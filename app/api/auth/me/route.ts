@@ -16,7 +16,7 @@ export async function GET() {
     if (userError || !user) {
       return NextResponse.json(
         { success: false, error: "No autorizado. No existe sesión activa." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,7 +24,9 @@ export async function GET() {
     const admin = createAdminClient();
     const { data: negocio, error: negocioError } = await admin
       .from("negocios")
-      .select("id, nombre_comercial, slug, giro_comercial, logo_url, moneda_principal")
+      .select(
+        "id, nombre_comercial, slug, giro_comercial, logo_url, moneda_principal",
+      )
       .eq("owner_id", user.id)
       .maybeSingle();
 
@@ -37,7 +39,9 @@ export async function GET() {
     if (negocio?.id) {
       const { data: subData, error: subError } = await admin
         .from("suscripciones")
-        .select("plan_nombre, estado, current_period_end, limite_sucursales, limite_profesionales, pasarela")
+        .select(
+          "plan_nombre, estado, current_period_end, limite_sucursales, limite_profesionales, pasarela",
+        )
         .eq("negocio_id", negocio.id)
         .maybeSingle();
 
@@ -47,29 +51,44 @@ export async function GET() {
       suscripcion = subData;
     }
 
-    return NextResponse.json({
-      success: true,
+    const negocioPayload = negocio
+      ? {
+          id: negocio.id,
+          nombreComercial: negocio.nombre_comercial,
+          nombre_comercial: negocio.nombre_comercial,
+          slug: negocio.slug,
+          giroComercial: negocio.giro_comercial,
+          giro_comercial: negocio.giro_comercial,
+          logoUrl: negocio.logo_url,
+          logo_url: negocio.logo_url,
+          monedaPrincipal: negocio.moneda_principal,
+          moneda_principal: negocio.moneda_principal,
+        }
+      : null;
+
+    const responseData = {
       user: {
         id: user.id,
         email: user.email,
         createdAt: user.created_at,
       },
-      negocio: negocio
-        ? {
-            id: negocio.id,
-            nombreComercial: negocio.nombre_comercial,
-            slug: negocio.slug,
-            giroComercial: negocio.giro_comercial,
-            logoUrl: negocio.logo_url,
-            monedaPrincipal: negocio.moneda_principal,
-          }
-        : null,
+      negocio: negocioPayload,
       suscripcion,
+    };
+
+    return NextResponse.json({
+      success: true,
+      ok: true,
+      data: responseData,
+      ...responseData,
     });
   } catch (error) {
     Sentry.captureException(error);
-    const message = error instanceof Error ? error.message : "Error al obtener sesión.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "Error al obtener sesión.";
+    return NextResponse.json(
+      { success: false, ok: false, error: message },
+      { status: 500 },
+    );
   }
 }
-

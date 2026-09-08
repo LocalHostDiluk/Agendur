@@ -55,7 +55,7 @@ export function getDiaSemana(fechaStr: string): number {
  * descontando citas agendadas y solapamientos.
  */
 export async function obtenerDisponibilidad(
-  params: DisponibilidadParams
+  params: DisponibilidadParams,
 ): Promise<string[]> {
   try {
     const { sucursalId, servicioId, fecha, profesionalId } = params;
@@ -168,14 +168,14 @@ export async function obtenerDisponibilidad(
       const profInicioMin = horarioProf?.es_laborable
         ? timeToMinutes(horarioProf.hora_inicio)
         : horarioProf
-        ? null // Si existe registro con es_laborable = false, no labora
-        : sucAperturaMin;
+          ? null // Si existe registro con es_laborable = false, no labora
+          : sucAperturaMin;
 
       const profFinMin = horarioProf?.es_laborable
         ? timeToMinutes(horarioProf.hora_fin)
         : horarioProf
-        ? null
-        : sucCierreMin;
+          ? null
+          : sucCierreMin;
 
       if (profInicioMin === null || profFinMin === null) {
         continue;
@@ -203,13 +203,15 @@ export async function obtenerDisponibilidad(
       }));
 
       // Probar cada franja candidata
-      for (let inicio = ventanaInicio; inicio + duracionMin <= ventanaFin; inicio += pasoMin) {
+      for (
+        let inicio = ventanaInicio;
+        inicio + duracionMin <= ventanaFin;
+        inicio += pasoMin
+      ) {
         const fin = inicio + duracionMin;
 
         // Comprobar solapamiento: inicio < cita.fin && fin > cita.inicio
-        const solapada = citasMin.some(
-          (c) => inicio < c.fin && fin > c.inicio
-        );
+        const solapada = citasMin.some((c) => inicio < c.fin && fin > c.inicio);
 
         if (!solapada) {
           franjasDisponibles.add(minutesToTime(inicio));
@@ -230,7 +232,7 @@ export async function obtenerDisponibilidad(
  * Registra una nueva cita verificando que no exista solapamiento concurrente.
  */
 export async function crearReservaCita(
-  input: CrearReservaInput
+  input: CrearReservaInput,
 ): Promise<Cita> {
   try {
     const {
@@ -247,8 +249,18 @@ export async function crearReservaCita(
     } = input;
 
     // 1. Validaciones básicas de campos
-    if (!clienteNombre || !clientePhone || !sucursalId || !servicioId || !profesionalId || !fecha || !hora) {
-      throw new Error("Todos los campos principales de reserva son obligatorios.");
+    if (
+      !clienteNombre ||
+      !clientePhone ||
+      !sucursalId ||
+      !servicioId ||
+      !profesionalId ||
+      !fecha ||
+      !hora
+    ) {
+      throw new Error(
+        "Todos los campos principales de reserva son obligatorios.",
+      );
     }
 
     // 2. Obtener sucursal para negocio_id
@@ -262,15 +274,54 @@ export async function crearReservaCita(
       throw new Error("La sucursal seleccionada no existe o no está activa.");
     }
 
-    // 3. Obtener servicio oficial para duración y precio legítimo (evita manipulación en frontend)
+    // 3. Obtener servicio oficial y validar que pertenezca al mismo negocio
     const { data: servicio, error: servErr } = await adminClient
       .from("servicios")
-      .select("id, duracion_minutos, precio, activo, nombre")
+      .select("id, negocio_id, duracion_minutos, precio, activo, nombre")
       .eq("id", servicioId)
       .single();
 
     if (servErr || !servicio || !servicio.activo) {
       throw new Error("El servicio seleccionado no existe o no está activo.");
+    }
+
+    if (servicio.negocio_id !== sucursal.negocio_id) {
+      throw new Error(
+        "El servicio no pertenece al negocio de la sucursal seleccionada.",
+      );
+    }
+
+    // 3.1. Validar existencia, estado y pertenencia de sucursal del profesional
+    const { data: profesional, error: profErr } = await adminClient
+      .from("profesionales")
+      .select("id, sucursal_id, activo, nombre")
+      .eq("id", profesionalId)
+      .single();
+
+    if (profErr || !profesional || !profesional.activo) {
+      throw new Error(
+        "El profesional seleccionado no existe o no está activo.",
+      );
+    }
+
+    if (profesional.sucursal_id !== sucursalId) {
+      throw new Error(
+        "El profesional seleccionado no pertenece a esta sucursal.",
+      );
+    }
+
+    // 3.2. Validar que el profesional ofrezca el servicio
+    const { data: asignacion } = await adminClient
+      .from("profesional_servicios")
+      .select("profesional_id")
+      .eq("profesional_id", profesionalId)
+      .eq("servicio_id", servicioId)
+      .maybeSingle();
+
+    if (!asignacion) {
+      throw new Error(
+        "El profesional seleccionado no ofrece el servicio solicitado.",
+      );
     }
 
     // 4. Calcular hora_fin
@@ -291,11 +342,15 @@ export async function crearReservaCita(
       .gt("hora_fin", horaInicioStr);
 
     if (checkErr) {
-      throw new Error(`Error verificando disponibilidad de horario: ${checkErr.message}`);
+      throw new Error(
+        `Error verificando disponibilidad de horario: ${checkErr.message}`,
+      );
     }
 
     if (citasSolapadas && citasSolapadas.length > 0) {
-      const err = new Error("El horario seleccionado ya ha sido reservado por otro cliente.");
+      const err = new Error(
+        "El horario seleccionado ya ha sido reservado por otro cliente.",
+      );
       (err as unknown as { status: number }).status = 409;
       throw err;
     }
@@ -324,7 +379,9 @@ export async function crearReservaCita(
       .single();
 
     if (insertError || !nuevaCita) {
-      throw new Error(`Error al registrar la cita en Supabase: ${insertError?.message || "Sin datos"}`);
+      throw new Error(
+        `Error al registrar la cita en Supabase: ${insertError?.message || "Sin datos"}`,
+      );
     }
 
     // 7. Disparar notificación por WhatsApp (en segundo plano)
@@ -333,7 +390,9 @@ export async function crearReservaCita(
       mensaje: `¡Hola ${clienteNombre}! Tu cita para "${servicio.nombre}" en ${sucursal.nombre} ha sido agendada para el ${fecha} a las ${minutesToTime(horaInicioMin)} hrs.`,
       negocioNombre: sucursal.nombre,
     }).catch((waErr) => {
-      Sentry.captureException(waErr, { extra: { context: "crearReservaCita.whatsapp", citaId: nuevaCita.id } });
+      Sentry.captureException(waErr, {
+        extra: { context: "crearReservaCita.whatsapp", citaId: nuevaCita.id },
+      });
     });
 
     return nuevaCita as Cita;

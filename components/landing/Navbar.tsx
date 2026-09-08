@@ -58,10 +58,10 @@ export function Navbar() {
           {/* Actions */}
           <div className="hidden md:flex items-center gap-4">
             <Link
-              href="/dashboard"
+              href="/login"
               className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-3 py-2"
             >
-              Panel Negocio
+              Iniciar Sesión
             </Link>
             <Link
               href="/reserva/barber-shop"
@@ -69,13 +69,13 @@ export function Navbar() {
             >
               Ver Portal Cliente
             </Link>
-            <a
-              href="#precios"
+            <Link
+              href="/register"
               className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 px-4 py-2 rounded-lg shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Building2 className="w-4 h-4" />
-              Registrar mi Negocio
-            </a>
+              Registrar Negocio
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}

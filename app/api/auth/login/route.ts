@@ -2,32 +2,70 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    // Control de Tráfico: Rate Limiting por IP (Máx 10 intentos en 5 minutos)
+    if (process.env.NODE_ENV !== "test") {
+      const rateLimit = await checkRateLimit(request, {
+        limit: 10,
+        windowMs: 5 * 60 * 1000,
+        keyPrefix: "auth:login",
+      });
+
+      if (!rateLimit.success) {
+        const retrySeconds = Math.ceil(
+          (rateLimit.resetTime - Date.now()) / 1000,
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            ok: false,
+            error: `Demasiados intentos de acceso desde esta conexión. Por favor espera ${Math.ceil(retrySeconds / 60)} minuto(s).`,
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retrySeconds),
+              "X-RateLimit-Limit": String(rateLimit.limit),
+              "X-RateLimit-Remaining": String(rateLimit.remaining),
+            },
+          },
+        );
+      }
+    }
+
     const body = await request.json();
     const { email, password } = body;
 
     // 1. Validaciones
     if (!email || !password) {
       return NextResponse.json(
-        { success: false, error: "El correo electrónico y la contraseña son obligatorios." },
-        { status: 400 }
+        {
+          success: false,
+          error: "El correo electrónico y la contraseña son obligatorios.",
+        },
+        { status: 400 },
       );
     }
 
     const supabase = await createClient();
 
     // 2. Autenticar credenciales
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (authError || !authData.user) {
       return NextResponse.json(
-        { success: false, error: "Credenciales inválidas. Verifica tu correo y contraseña." },
-        { status: 401 }
+        {
+          success: false,
+          error: "Credenciales inválidas. Verifica tu correo y contraseña.",
+        },
+        { status: 401 },
       );
     }
 
@@ -48,7 +86,9 @@ export async function POST(request: Request) {
     if (negocio?.id) {
       const { data: subData } = await admin
         .from("suscripciones")
-        .select("plan_nombre, estado, current_period_end, limite_sucursales, limite_profesionales")
+        .select(
+          "plan_nombre, estado, current_period_end, limite_sucursales, limite_profesionales",
+        )
         .eq("negocio_id", negocio.id)
         .maybeSingle();
 
@@ -57,6 +97,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      ok: true,
       user: {
         id: authData.user.id,
         email: authData.user.email,
@@ -74,8 +115,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     Sentry.captureException(error);
-    const message = error instanceof Error ? error.message : "Error inesperado al iniciar sesión.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error inesperado al iniciar sesión.";
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 },
+    );
   }
 }
-

@@ -17,7 +17,7 @@ export function getStripeClient(): Stripe {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
     const error = new Error(
-      "STRIPE_SECRET_KEY no está configurada en las variables de entorno."
+      "STRIPE_SECRET_KEY no está configurada en las variables de entorno.",
     );
     Sentry.captureException(error);
     throw error;
@@ -37,7 +37,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
    * Crea una sesión de Stripe Checkout para suscripciones recurrentes.
    */
   async createCheckoutSession(
-    params: CreateCheckoutSessionParams
+    params: CreateCheckoutSessionParams,
   ): Promise<CheckoutSessionResult> {
     try {
       const stripe = getStripeClient();
@@ -63,7 +63,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
         // B7: Validate metadata.negocio_id matches to prevent cross-tenant linking
         const matchingCustomer = existingCustomers.data.find(
-          (c) => c.metadata?.negocio_id === params.negocioId
+          (c) => c.metadata?.negocio_id === params.negocioId,
         );
 
         if (matchingCustomer) {
@@ -89,8 +89,10 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
           if (updateError) {
             Sentry.captureException(
-              new Error(`Error al guardar customer_external_id: ${updateError.message}`),
-              { extra: { negocioId: params.negocioId, customerId } }
+              new Error(
+                `Error al guardar customer_external_id: ${updateError.message}`,
+              ),
+              { extra: { negocioId: params.negocioId, customerId } },
             );
           }
         }
@@ -147,7 +149,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
       if (!session.url) {
         throw new Error(
-          "Stripe no devolvió una URL válida para la sesión de checkout."
+          "Stripe no devolvió una URL válida para la sesión de checkout.",
         );
       }
 
@@ -170,7 +172,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
    * Crea una sesión de Stripe Billing Portal para que el dueño gestione su suscripción, facturas y tarjetas.
    */
   async createPortalSession(
-    params: CreatePortalSessionParams
+    params: CreatePortalSessionParams,
   ): Promise<{ url: string }> {
     try {
       const stripe = getStripeClient();
@@ -198,7 +200,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
    */
   async handleWebhookEvent(
     payload: string | Buffer,
-    signature: string
+    signature: string,
   ): Promise<WebhookProcessResult> {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -246,17 +248,26 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
             if (subscriptionId) {
               try {
                 const sub = await stripe.subscriptions.retrieve(subscriptionId);
-                const itemPeriodStart = sub.items?.data?.[0]?.current_period_start;
+                const itemPeriodStart =
+                  sub.items?.data?.[0]?.current_period_start;
                 const itemPeriodEnd = sub.items?.data?.[0]?.current_period_end;
-                const fallbackStart = (sub as unknown as { current_period_start?: number }).current_period_start;
-                const fallbackEnd = (sub as unknown as { current_period_end?: number }).current_period_end;
+                const fallbackStart = (
+                  sub as unknown as { current_period_start?: number }
+                ).current_period_start;
+                const fallbackEnd = (
+                  sub as unknown as { current_period_end?: number }
+                ).current_period_end;
                 const startTs = itemPeriodStart ?? fallbackStart;
                 const endTs = itemPeriodEnd ?? fallbackEnd;
-                if (startTs) periodStart = new Date(startTs * 1000).toISOString();
+                if (startTs)
+                  periodStart = new Date(startTs * 1000).toISOString();
                 if (endTs) periodEnd = new Date(endTs * 1000).toISOString();
               } catch (subErr) {
                 Sentry.captureException(subErr, {
-                  extra: { context: "checkout.session.completed.retrieveSubscription", subscriptionId },
+                  extra: {
+                    context: "checkout.session.completed.retrieveSubscription",
+                    subscriptionId,
+                  },
                 });
               }
             }
@@ -282,7 +293,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
             if (dbError) {
               throw new Error(
-                `Error actualizando suscripción en checkout.session.completed: ${dbError.message}`
+                `Error actualizando suscripción en checkout.session.completed: ${dbError.message}`,
               );
             }
 
@@ -306,16 +317,28 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
           // Period dates
           const itemPeriodStart = sub.items?.data?.[0]?.current_period_start;
           const itemPeriodEnd = sub.items?.data?.[0]?.current_period_end;
-          const fallbackStart = (sub as unknown as { current_period_start?: number }).current_period_start;
-          const fallbackEnd = (sub as unknown as { current_period_end?: number }).current_period_end;
+          const fallbackStart = (
+            sub as unknown as { current_period_start?: number }
+          ).current_period_start;
+          const fallbackEnd = (
+            sub as unknown as { current_period_end?: number }
+          ).current_period_end;
           const startTs = itemPeriodStart ?? fallbackStart;
           const endTs = itemPeriodEnd ?? fallbackEnd;
-          const formattedStart = startTs ? new Date(startTs * 1000).toISOString() : undefined;
-          const formattedEnd = endTs ? new Date(endTs * 1000).toISOString() : undefined;
+          const formattedStart = startTs
+            ? new Date(startTs * 1000).toISOString()
+            : undefined;
+          const formattedEnd = endTs
+            ? new Date(endTs * 1000).toISOString()
+            : undefined;
 
           // B5: Sync plan_nombre and limits from metadata after portal upgrades/downgrades
-          const planNombre = sub.metadata?.plan_nombre as PlanNombre | undefined;
-          const intervalo = sub.metadata?.intervalo as IntervaloPlan | undefined;
+          const planNombre = sub.metadata?.plan_nombre as
+            | PlanNombre
+            | undefined;
+          const intervalo = sub.metadata?.intervalo as
+            | IntervaloPlan
+            | undefined;
           const planConfig = planNombre ? getPlanConfig(planNombre) : null;
 
           // B3: Capture { error } and throw if Supabase update fails
@@ -337,7 +360,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
           if (dbError) {
             throw new Error(
-              `Error actualizando suscripción en customer.subscription.updated: ${dbError.message}`
+              `Error actualizando suscripción en customer.subscription.updated: ${dbError.message}`,
             );
           }
 
@@ -346,7 +369,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
             event: event.type,
             handled: true,
             subscriptionId: sub.id,
-            estado: "canceled",
+            estado,
           };
         }
 
@@ -364,7 +387,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
           if (dbError) {
             throw new Error(
-              `Error actualizando suscripción en customer.subscription.deleted: ${dbError.message}`
+              `Error actualizando suscripción en customer.subscription.deleted: ${dbError.message}`,
             );
           }
 
@@ -390,7 +413,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
             if (dbError) {
               throw new Error(
-                `Error actualizando suscripción en invoice.payment_failed: ${dbError.message}`
+                `Error actualizando suscripción en invoice.payment_failed: ${dbError.message}`,
               );
             }
 

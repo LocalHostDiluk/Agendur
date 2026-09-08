@@ -174,3 +174,13 @@
 - [x] Task 5.6: Integración del portal de reserva del cliente (`BookingPortal.tsx` conectado a APIs en tiempo real).
 - [x] Task 5.7: Suite de pruebas automatizadas (`tests/disponibilidad.test.ts` y `tests/reservas.test.ts`).
 - [x] Verificación completa: `tsc --noEmit` (0 errores), `bun test` (37/37 tests pasan), `bun run lint` (0 errores), `bun run build` (exitoso).
+---
+
+## Rediseño del Panel Administrativo & Flujo de Autenticación [COMPLETADA]
+
+- [x] Task UI.1: Sistema de Diseño con Tema Claro (Default) y Modo Oscuro persistente (`localStorage` vía `useSyncExternalStore`).
+- [x] Task UI.2: Creación de `ThemeProvider.tsx` y componente interactivo `ThemeToggle.tsx` (Sol / Luna).
+- [x] Task UI.3: Pantallas de autenticación modernas: `/login` y `/register` con validación y conexión a Supabase Auth.
+- [x] Task UI.4: Rediseño del Layout Administrativo (`app/(negocio)/layout.tsx`, `Sidebar.tsx` y `Header.tsx`).
+- [x] Task UI.5: Rediseño integral de la página principal del panel (`/dashboard`) con KPIs, límites de sucursales, enlace rápido de reservas y tabla de citas.
+- [x] Verificación completa: `tsc --noEmit` (0 errores), `bun test` (37/37 tests pasan), `bun run lint` (0 errores), `bun run build` (21 rutas compiladas en Turbopack).

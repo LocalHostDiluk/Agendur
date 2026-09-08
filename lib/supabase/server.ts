@@ -2,6 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 /**
+ * Normaliza la URL de Supabase para remover /rest/v1 o trailing slashes si fueron copiados por error.
+ */
+function normalizeSupabaseUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+}
+
+/**
  * Crea un cliente de Supabase para su uso en Server Components,
  * Server Actions y Route Handlers con gestión de cookies.
  * Incluye fallback seguro para entornos de prueba donde cookies() se invoque fuera de un request scope.
@@ -22,9 +30,11 @@ export async function createClient() {
     };
   }
 
-  const supabaseUrl =
+  const rawUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     (process.env.NODE_ENV === "test" ? "https://test.supabase.co" : undefined);
+  const supabaseUrl = normalizeSupabaseUrl(rawUrl);
+
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     (process.env.NODE_ENV === "test" ? "test-anon-key" : undefined);

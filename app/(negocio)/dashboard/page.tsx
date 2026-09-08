@@ -1,127 +1,365 @@
-import { Store, Calendar, TrendingUp, Users, ArrowUpRight } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  Calendar,
+  Store,
+  CreditCard,
+  TrendingUp,
+  ArrowUpRight,
+  Clock,
+  ExternalLink,
+  Copy,
+  Check,
+} from "lucide-react";
+
+interface DashboardData {
+  negocioNombre: string;
+  negocioSlug: string;
+  planNombre: string;
+  sucursalesUsadas: number;
+  sucursalesLimite: number;
+  citasHoy: number;
+  citasPendientes: number;
+  citas: Array<{
+    id: string;
+    cliente: string;
+    telefono: string;
+    sucursal: string;
+    servicio: string;
+    hora: string;
+    fecha: string;
+    estado: string;
+    precio: number;
+  }>;
+}
 
 export default function DashboardPage() {
-  const stats = [
-    {
-      name: "Citas Confirmadas Hoy",
-      value: "18",
-      change: "+12%",
-      icon: Calendar,
-    },
-    { name: "Sucursales Operativas", value: "3", change: "100%", icon: Store },
-    {
-      name: "Ingresos Estimados (Mes)",
-      value: "$12,450 USD",
-      change: "+24%",
-      icon: TrendingUp,
-    },
-    { name: "Clientes Recurrentes", value: "342", change: "+8%", icon: Users },
-  ];
+  const [data, setData] = useState<DashboardData>({
+    negocioNombre: "Mi Negocio",
+    negocioSlug: "mi-negocio",
+    planNombre: "Emprendedor",
+    sucursalesUsadas: 1,
+    sucursalesLimite: 3,
+    citasHoy: 4,
+    citasPendientes: 1,
+    citas: [
+      {
+        id: "1",
+        cliente: "Carlos Mendoza",
+        telefono: "+52 55 1234 5678",
+        sucursal: "Sucursal Matriz",
+        servicio: "Corte Clásico & Estilo",
+        fecha: "Hoy",
+        hora: "10:00 hrs",
+        estado: "confirmada",
+        precio: 350,
+      },
+      {
+        id: "2",
+        cliente: "Ana Sofía Gómez",
+        telefono: "+52 55 8765 4321",
+        sucursal: "Sucursal Matriz",
+        servicio: "Tratamiento & Masaje",
+        fecha: "Hoy",
+        hora: "12:30 hrs",
+        estado: "confirmada",
+        precio: 650,
+      },
+      {
+        id: "3",
+        cliente: "Roberto Silva",
+        telefono: "+52 55 9876 1234",
+        sucursal: "Sucursal Norte",
+        servicio: "Consulta Especializada",
+        fecha: "Hoy",
+        hora: "16:00 hrs",
+        estado: "pendiente_pago",
+        precio: 500,
+      },
+      {
+        id: "4",
+        cliente: "Mariana Torres",
+        telefono: "+52 33 4567 8901",
+        sucursal: "Sucursal Matriz",
+        servicio: "Sesión Completa VIP",
+        fecha: "Mañana",
+        hora: "11:00 hrs",
+        estado: "confirmada",
+        precio: 950,
+      },
+    ],
+  });
 
-  const recentBookings = [
-    {
-      id: "1",
-      cliente: "Juan Pérez",
-      sucursal: "Sucursal Polanco",
-      servicio: "Corte & Estilo Premium",
-      hora: "10:00 hrs",
-      estado: "Confirmada",
-    },
-    {
-      id: "2",
-      cliente: "Ana Sofía Gómez",
-      sucursal: "Sucursal Roma Norte",
-      servicio: "Tratamiento Facial Spa",
-      hora: "12:15 hrs",
-      estado: "Confirmada",
-    },
-    {
-      id: "3",
-      cliente: "Carlos Mendoza",
-      sucursal: "Sucursal Polanco",
-      servicio: "Consulta Especializada",
-      hora: "16:30 hrs",
-      estado: "Pendiente WhatsApp",
-    },
-  ];
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // 1. Cargar datos del usuario y negocio
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.ok && json.data) {
+          const neg = json.data.negocio;
+          const sub = json.data.suscripcion;
+          setData((prev) => ({
+            ...prev,
+            negocioNombre: neg?.nombre_comercial || prev.negocioNombre,
+            negocioSlug: neg?.slug || prev.negocioSlug,
+            planNombre: sub?.plan_nombre || prev.planNombre,
+            sucursalesLimite: sub?.limite_sucursales || prev.sucursalesLimite,
+          }));
+        }
+      })
+      .catch(() => {});
+
+    // 2. Cargar datos de suscripción y límites
+    fetch("/api/negocio/suscripcion")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.ok && json.data) {
+          setData((prev) => ({
+            ...prev,
+            planNombre: json.data.suscripcion?.plan_nombre || prev.planNombre,
+            sucursalesUsadas: json.data.sucursales_usadas ?? prev.sucursalesUsadas,
+            sucursalesLimite: json.data.sucursales_limite ?? prev.sucursalesLimite,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const copyBookingUrl = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/reserva/${data.negocioSlug}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getStatusBadge = (estado: string) => {
+    switch (estado) {
+      case "confirmada":
+        return (
+          <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+            Confirmada
+          </span>
+        );
+      case "pendiente_pago":
+        return (
+          <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+            Pendiente Pago
+          </span>
+        );
+      case "completada":
+        return (
+          <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+            Completada
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            {estado}
+          </span>
+        );
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">
-          Panel General de la Empresa
-        </h1>
-        <p className="text-sm text-slate-400">
-          Resumen operativo de tus sucursales y reservaciones en tiempo real.
-        </p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Welcome Banner */}
+      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-slate-900 text-white shadow-xl shadow-indigo-600/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-xs font-semibold uppercase tracking-wider">
+            <span>Plan {data.planNombre}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="text-emerald-300 font-normal">Activo</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Hola, {data.negocioNombre}
+          </h1>
+          <p className="text-xs sm:text-sm text-indigo-100 max-w-xl">
+            Tu portal de reservas está activo y listo para recibir clientes en línea en tus sedes.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={copyBookingUrl}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-xs font-semibold border border-white/20 transition-all active:scale-95"
+          >
+            {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? "¡Enlace Copiado!" : "Copiar Enlace de Reserva"}</span>
+          </button>
+
+          <Link
+            href={`/reserva/${data.negocioSlug}`}
+            target="_blank"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-indigo-50 text-xs font-bold shadow-md transition-all hover:scale-[1.02] active:scale-95"
+          >
+            <span>Ver Portal Público</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* KPI Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3"
-          >
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                {stat.name}
-              </span>
-              <stat.icon className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold text-white font-mono">
-                {stat.value}
-              </span>
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                {stat.change}
-              </span>
+        {/* Card 1: Citas Hoy */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider">Citas para Hoy</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Calendar className="w-4 h-4" />
             </div>
           </div>
-        ))}
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
+              {data.citasHoy}
+            </span>
+            <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
+              {data.citasPendientes} pendiente
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Todas tus sucursales activas
+          </p>
+        </div>
+
+        {/* Card 2: Sucursales */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider">Sedes Habilitadas</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Store className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
+              {data.sucursalesUsadas}{" "}
+              <span className="text-sm font-normal text-slate-400">/ {data.sucursalesLimite}</span>
+            </span>
+            <Link
+              href="/sucursales"
+              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+            >
+              Gestionar <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Capacidad de tu plan: {data.sucursalesLimite} sedes
+          </p>
+        </div>
+
+        {/* Card 3: Suscripción */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider">Suscripción SaaS</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <CreditCard className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-xl font-bold text-slate-900 dark:text-white capitalize">
+              {data.planNombre}
+            </span>
+            <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800/60">
+              Vigente
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Facturación mensual activa
+          </p>
+        </div>
+
+        {/* Card 4: Ingresos Proyectados */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider">Servicios Agendados</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
+              $2,450 <span className="text-xs font-normal text-slate-500">MXN</span>
+            </span>
+            <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              +18% sem.
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Valor total de citas confirmadas
+          </p>
+        </div>
       </div>
 
-      {/* Recent Bookings Table */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-base font-bold text-white">
-            Últimas Citas Agendadas por Clientes
-          </h2>
-          <Link
-            href="/agendas"
-            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-          >
-            Ver todas <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+      {/* Main Appointments Table */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Citas Recientes y Próximas
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Listado de reservaciones de clientes en tiempo real
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/agendas"
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/20"
+            >
+              Ver Calendario Completo <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+          <table className="w-full text-xs text-left text-slate-600 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-3 px-4">Cliente</th>
-                <th className="py-3 px-4">Sucursal</th>
+                <th className="py-3 px-4">Sede / Sucursal</th>
                 <th className="py-3 px-4">Servicio</th>
-                <th className="py-3 px-4">Horario</th>
+                <th className="py-3 px-4">Fecha y Hora</th>
+                <th className="py-3 px-4">Precio</th>
                 <th className="py-3 px-4 text-right">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {recentBookings.map((b) => (
-                <tr key={b.id} className="hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-white">
-                    {b.cliente}
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {data.citas.map((cita) => (
+                <tr key={cita.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                  <td className="py-3.5 px-4">
+                    <p className="font-semibold text-slate-900 dark:text-white">{cita.cliente}</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">{cita.telefono}</p>
                   </td>
-                  <td className="py-3 px-4 text-slate-400">{b.sucursal}</td>
-                  <td className="py-3 px-4">{b.servicio}</td>
-                  <td className="py-3 px-4 font-mono text-emerald-400">
-                    {b.hora}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                      {b.estado}
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5 text-slate-400" />
+                      {cita.sucursal}
                     </span>
+                  </td>
+                  <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
+                    {cita.servicio}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                      <Clock className="w-3 h-3 text-indigo-500" />
+                      <span className="font-medium">{cita.fecha}</span>
+                      <span className="text-slate-400">·</span>
+                      <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                        {cita.hora}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
+                    ${cita.precio} MXN
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    {getStatusBadge(cita.estado)}
                   </td>
                 </tr>
               ))}
