@@ -184,3 +184,35 @@
 - [x] Task UI.4: Rediseño del Layout Administrativo (`app/(negocio)/layout.tsx`, `Sidebar.tsx` y `Header.tsx`).
 - [x] Task UI.5: Rediseño integral de la página principal del panel (`/dashboard`) con KPIs, límites de sucursales, enlace rápido de reservas y tabla de citas.
 - [x] Verificación completa: `tsc --noEmit` (0 errores), `bun test` (37/37 tests pasan), `bun run lint` (0 errores), `bun run build` (21 rutas compiladas en Turbopack).
+
+---
+
+## Remediación Sintáctica Turbopack & Hardening OWASP [COMPLETADA]
+
+### Tarea 1: Reparación Sintáctica y Limpieza de Route Handlers (API Syntax) [COMPLETADA]
+- [x] Corregir sintaxis rota y retornos duplicados en `app/api/negocio/sucursales/route.ts`
+- [x] Corregir sintaxis rota y retornos duplicados en `app/api/auth/logout/route.ts`
+- [x] Corregir sintaxis rota y retornos duplicados en `app/api/cliente/catalogo/route.ts`
+- [x] Corregir sintaxis rota y retornos duplicados en `app/api/cliente/disponibilidad/route.ts`
+- [x] Corregir sintaxis rota y retornos duplicados en `app/api/cliente/reservas/route.ts`
+- [x] Corregir sintaxis rota y retornos duplicados en `app/api/negocio/configuracion/route.ts`
+- [x] Verificar con `bun x tsc --noEmit` (0 errores)
+
+### Tarea 2: Hardening de Autenticación, Proxy y Rate-Limit (Auth & Security) [COMPLETADA]
+- [x] Mitigar Open Redirect / Host Header Injection en `app/api/auth/callback/route.ts`
+- [x] Eliminar fuga de trazas en `app/api/auth/login/route.ts` usando `apiError`
+- [x] Corregir código inalcanzable de purga de cookies en `proxy.ts`
+- [x] Propagar cookies en redirección a `/dashboard` en `proxy.ts` para evitar pérdida de sesión
+- [x] Respetar TTL de cookies efímeras en `proxy.ts` y `lib/supabase/server.ts`
+- [x] Proteger `getClientIp` contra suplantación en `lib/security/rate-limit.ts`
+- [x] Verificar con `bun test tests/auth.test.ts` (19/19 tests pasan al 100%)
+
+### Tarea 3: Guardias de Suscripción, Extracción de Error Codes y Headers de Seguridad [COMPLETADA]
+- [x] Extraer automáticamente `error.code` en `lib/utils/api-error.ts`
+- [x] Migrar catch blocks a `apiError` en `app/api/negocio/suscripcion/route.ts` y `portal/route.ts`
+- [x] Integrar `assertActiveSubscription` en `crearReservaCita` en `lib/backend/reserva-service.ts`
+- [x] Proteger integridad de `es_matriz` en `lib/backend/sucursal-service.ts`
+- [x] Configurar cabeceras de seguridad HTTP en `next.config.ts`
+- [x] Verificar con `bun test tests/payments.test.ts tests/reservas.test.ts` (32/32 tests pasan al 100%)
+- [x] Verificación completa: `tsc --noEmit` (0 errores), `bun test` (76/76 tests pasan al 100%), `bun run lint` (0 errores), `bun run build` (22 rutas compiladas limpiamente en Turbopack).
+

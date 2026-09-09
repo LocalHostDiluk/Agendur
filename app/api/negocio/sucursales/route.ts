@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSucursal } from "@/lib/backend/sucursal-service";
 import { adminClient } from "@/lib/supabase/admin";
+import { assertActiveSubscription } from "@/lib/payments/guards";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 /**
  * GET /api/negocio/sucursales
@@ -17,10 +18,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: "No autorizado. Sesión requerida." },
-        { status: 401 }
-      );
+      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
     }
 
     const { data: negocio, error: negError } = await supabase
@@ -30,10 +28,7 @@ export async function GET() {
       .maybeSingle();
 
     if (negError || !negocio) {
-      return NextResponse.json(
-        { success: false, error: "No se encontró un negocio para esta cuenta." },
-        { status: 404 }
-      );
+      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
     }
 
     const { data: sucursales, error: sucError } = await adminClient
@@ -47,13 +42,11 @@ export async function GET() {
       throw sucError;
     }
 
-    return NextResponse.json({ success: true, sucursales: sucursales || [] });
+    return apiSuccess({ sucursales: sucursales || [] });
   } catch (error: unknown) {
-    Sentry.captureException(error, { extra: { route: "GET /api/negocio/sucursales" } });
-    return NextResponse.json(
-      { success: false, error: "Error interno al consultar sucursales." },
-      { status: 500 }
-    );
+    return apiError(error, "Error interno al consultar sucursales.", {
+      extra: { route: "GET /api/negocio/sucursales" },
+    });
   }
 }
 
@@ -70,10 +63,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: "No autorizado. Sesión requerida." },
-        { status: 401 }
-      );
+      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
     }
 
     const { data: negocio, error: negError } = await supabase
@@ -83,43 +73,29 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (negError || !negocio) {
-      return NextResponse.json(
-        { success: false, error: "No se encontró un negocio para esta cuenta." },
-        { status: 404 }
-      );
+      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
     }
 
     const body = await request.json().catch(() => ({}));
     const { nombre, direccion, ciudad, telefono } = body;
 
     if (!nombre || !direccion || !ciudad || !telefono) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Campos requeridos faltantes: nombre, direccion, ciudad, telefono.",
-        },
-        { status: 400 }
+      return apiError(
+        "Campos requeridos faltantes: nombre, direccion, ciudad, telefono.",
+        undefined,
+        { status: 400, code: "MISSING_REQUIRED_FIELDS" }
       );
     }
 
+    // Validar que la suscripción no esté vencida (HTTP 402 si expiró)
+    await assertActiveSubscription(negocio.id);
+
     const nuevaSucursal = await createSucursal(negocio.id, body);
 
-    return NextResponse.json(
-      { success: true, sucursal: nuevaSucursal },
-      { status: 201 }
-    );
+    return apiSuccess({ sucursal: nuevaSucursal }, 201);
   } catch (error: unknown) {
-    const status = (error as { status?: number })?.status || 500;
-    const errorMessage =
-      error instanceof Error ? error.message : "Error al crear sucursal";
-
-    Sentry.captureException(error, {
+    return apiError(error, "Error al crear sucursal.", {
       extra: { route: "POST /api/negocio/sucursales" },
     });
-
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status }
-    );
   }
 }

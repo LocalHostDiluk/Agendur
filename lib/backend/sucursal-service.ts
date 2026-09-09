@@ -78,13 +78,26 @@ export async function createSucursal(
       throw err;
     }
 
-    // 2. Insertar sucursal en Supabase
+    // 2. Determinar es_matriz: solo true si es la primera sucursal o si no existe ninguna otra matriz
+    let esMatriz = false;
+    if (usage.sucursales_creadas === 0) {
+      esMatriz = true;
+    } else if (data.es_matriz) {
+      const { count: matrizCount } = await adminClient
+        .from("sucursales")
+        .select("id", { count: "exact", head: true })
+        .eq("negocio_id", negocioId)
+        .eq("es_matriz", true);
+      esMatriz = (matrizCount ?? 0) === 0;
+    }
+
+    // 3. Insertar sucursal en Supabase
     const { data: nuevaSucursal, error: insertError } = await adminClient
       .from("sucursales")
       .insert({
         negocio_id: negocioId,
         nombre: data.nombre,
-        es_matriz: Boolean(data.es_matriz),
+        es_matriz: esMatriz,
         direccion: data.direccion,
         ciudad: data.ciudad,
         estado_provincia: data.estado_provincia || "CDMX",

@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { apiError } from "@/lib/utils/api-error";
 
 export async function POST(request: Request) {
   try {
@@ -114,14 +115,8 @@ export async function POST(request: Request) {
       suscripcion,
     });
   } catch (error) {
-    Sentry.captureException(error);
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Error inesperado al iniciar sesión.";
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 },
-    );
+    return apiError(error, "Error inesperado al iniciar sesión.", {
+      extra: { route: "POST /api/auth/login" },
+    });
   }
 }

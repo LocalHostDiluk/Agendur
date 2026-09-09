@@ -44,17 +44,17 @@ if (typeof setInterval !== "undefined") {
 export function getClientIp(request: Request): string {
   const headers = request.headers;
 
+  const cfConnectingIp = headers.get("cf-connecting-ip");
+  if (cfConnectingIp) return cfConnectingIp.trim();
+
+  const realIp = headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
     const ip = forwardedFor.split(",")[0].trim();
     if (ip) return ip;
   }
-
-  const realIp = headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
-  const cfConnectingIp = headers.get("cf-connecting-ip");
-  if (cfConnectingIp) return cfConnectingIp.trim();
 
   return "127.0.0.1";
 }

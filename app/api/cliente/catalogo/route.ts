@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { NextRequest } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 /**
  * GET /api/cliente/catalogo?slug={slug}
@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
     const slug = searchParams.get("slug");
 
     if (!slug) {
-      return NextResponse.json(
-        { success: false, error: "El parámetro slug es requerido." },
-        { status: 400 }
-      );
+      return apiError("El parámetro slug es requerido.", undefined, {
+        status: 400,
+        code: "MISSING_SLUG_PARAM",
+      });
     }
 
     // 1. Obtener negocio
@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (negErr || !negocio) {
-      return NextResponse.json(
-        { success: false, error: "Negocio no encontrado." },
-        { status: 404 }
-      );
+      return apiError("Negocio no encontrado.", undefined, {
+        status: 404,
+        code: "BUSINESS_NOT_FOUND",
+      });
     }
 
     // 2. Obtener sucursales activas
@@ -89,8 +89,7 @@ export async function GET(request: NextRequest) {
       }));
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       data: {
         negocio,
         sucursales: sucursales || [],
@@ -98,11 +97,9 @@ export async function GET(request: NextRequest) {
         profesionales,
       },
     });
-  } catch (error) {
-    Sentry.captureException(error, { extra: { route: "GET /api/cliente/catalogo" } });
-    return NextResponse.json(
-      { success: false, error: "Error interno al obtener catálogo." },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return apiError(error, "Error interno al obtener catálogo.", {
+      extra: { route: "GET /api/cliente/catalogo" },
+    });
   }
 }

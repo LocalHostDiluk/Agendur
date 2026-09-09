@@ -11,6 +11,7 @@ export * from "./types";
 export * from "./plans";
 export * from "./manual-adapter";
 export * from "./stripe-adapter";
+export * from "./guards";
 
 /**
  * Fábrica para instanciar el adaptador de pasarela de pago correspondiente.
@@ -96,6 +97,7 @@ export async function getSubscriptionUsage(
   return {
     suscripcion,
     sucursales_usadas: sucursalesUsadas,
+    sucursales_creadas: sucursalesUsadas,
     sucursales_limite: suscripcion.limite_sucursales,
     sucursales_disponibles: Math.max(
       0,

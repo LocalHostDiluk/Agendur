@@ -52,9 +52,22 @@ export async function createClient() {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const isDeleting = value === "" || options?.maxAge === 0;
+            const maxAge = isDeleting
+              ? 0
+              : typeof options?.maxAge === "number" && options.maxAge < 7 * 24 * 60 * 60
+                ? options.maxAge
+                : 7 * 24 * 60 * 60;
+            cookieStore.set(name, value, {
+              ...options,
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              path: "/",
+              maxAge,
+            });
+          });
         } catch {
           // El método setAll fue invocado desde un Server Component o contexto de lectura.
           // Puede ignorarse con seguridad si el proxy refresca la sesión.

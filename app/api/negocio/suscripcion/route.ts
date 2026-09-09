@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { apiError } from "@/lib/utils/api-error";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSubscriptionUsage,
@@ -72,16 +72,9 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
-    Sentry.captureException(error, {
+    return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "GET /api/negocio/suscripcion" },
     });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Error interno del servidor al consultar la suscripción.",
-      },
-      { status: 500 }
-    );
   }
 }
 
@@ -244,18 +237,8 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   } catch (error: unknown) {
-    Sentry.captureException(error, {
+    return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "POST /api/negocio/suscripcion" },
     });
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Error al procesar la suscripción.",
-      },
-      { status: 500 }
-    );
   }
 }

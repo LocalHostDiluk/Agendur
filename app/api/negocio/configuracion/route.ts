@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { assertActiveSubscription } from "@/lib/payments/guards";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 /**
  * GET /api/negocio/configuracion
@@ -15,10 +16,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: "No autorizado. Sesión requerida." },
-        { status: 401 }
-      );
+      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
     }
 
     const { data: negocio, error: negError } = await supabase
@@ -28,14 +26,10 @@ export async function GET() {
       .maybeSingle();
 
     if (negError || !negocio) {
-      return NextResponse.json(
-        { success: false, error: "No se encontró un negocio para esta cuenta." },
-        { status: 404 }
-      );
+      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       configuracion: {
         id: negocio.id,
         nombreNegocio: negocio.nombre_comercial,
@@ -48,13 +42,9 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
-    Sentry.captureException(error, {
+    return apiError(error, "Error interno al consultar configuración.", {
       extra: { route: "GET /api/negocio/configuracion" },
     });
-    return NextResponse.json(
-      { success: false, error: "Error interno al consultar configuración." },
-      { status: 500 }
-    );
   }
 }
 
@@ -71,10 +61,7 @@ export async function PUT(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: "No autorizado. Sesión requerida." },
-        { status: 401 }
-      );
+      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
     }
 
     const { data: negocio, error: negError } = await supabase
@@ -84,11 +71,11 @@ export async function PUT(request: NextRequest) {
       .maybeSingle();
 
     if (negError || !negocio) {
-      return NextResponse.json(
-        { success: false, error: "No se encontró un negocio para esta cuenta." },
-        { status: 404 }
-      );
+      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
     }
+
+    // Validar que la suscripción no esté vencida (HTTP 402 si expiró)
+    await assertActiveSubscription(negocio.id);
 
     const body = await request.json().catch(() => ({}));
     const updatePayload: Record<string, unknown> = {};
@@ -100,9 +87,10 @@ export async function PUT(request: NextRequest) {
     if (body.porcentajeAnticipo !== undefined) {
       const p = Number(body.porcentajeAnticipo);
       if (isNaN(p) || p < 0 || p > 100) {
-        return NextResponse.json(
-          { success: false, error: "El porcentaje de anticipo debe ser entre 0 y 100." },
-          { status: 400 }
+        return apiError(
+          "El porcentaje de anticipo debe ser entre 0 y 100.",
+          undefined,
+          { status: 400, code: "INVALID_PERCENTAGE" }
         );
       }
       updatePayload.porcentaje_anticipo_default = p;
@@ -119,8 +107,7 @@ export async function PUT(request: NextRequest) {
       throw updateError || new Error("Error al actualizar");
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       configuracion: {
         id: updated.id,
         nombreNegocio: updated.nombre_comercial,
@@ -133,15 +120,8 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    Sentry.captureException(error, {
+    return apiError(error, "Error al actualizar configuración.", {
       extra: { route: "PUT /api/negocio/configuracion" },
     });
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Error al actualizar configuración.",
-      },
-      { status: 500 }
-    );
   }
 }

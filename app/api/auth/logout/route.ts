@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 export async function POST() {
   try {
@@ -8,21 +8,45 @@ export async function POST() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      Sentry.captureException(error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
+      return apiError(error, "Error al cerrar sesión.", {
+        status: 500,
+        extra: { route: "POST /api/auth/logout" },
+      });
     }
 
-    return NextResponse.json({
-      success: true,
+    const response = apiSuccess({
       message: "Sesión cerrada correctamente.",
     });
-  } catch (error) {
-    Sentry.captureException(error);
-    const message = error instanceof Error ? error.message : "Error al cerrar sesión.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+
+    // Limpieza forzada de cookies en el cliente
+    try {
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+      for (const cookie of allCookies) {
+        if (
+          cookie.name.startsWith("sb-") ||
+          cookie.name.includes("auth") ||
+          cookie.name.includes("token")
+        ) {
+          response.cookies.set(cookie.name, "", {
+            maxAge: 0,
+            expires: new Date(0),
+            path: "/",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
+          cookieStore.delete(cookie.name);
+        }
+      }
+    } catch {
+      // Ignorar en entornos sin contexto de cookies (ej. tests)
+    }
+
+    return response;
+  } catch (error: unknown) {
+    return apiError(error, "Error al cerrar sesión.", {
+      extra: { route: "POST /api/auth/logout" },
+    });
   }
 }
-

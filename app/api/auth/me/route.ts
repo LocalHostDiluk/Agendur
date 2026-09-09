@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apiError } from "@/lib/utils/api-error";
 
 export async function GET() {
   try {
@@ -18,6 +19,9 @@ export async function GET() {
         { success: false, error: "No autorizado. No existe sesión activa." },
         { status: 401 },
       );
+      return apiError("No autorizado. No existe sesión activa.", undefined, {
+        status: 401,
+      });
     }
 
     // 2. Obtener datos del negocio
@@ -90,5 +94,6 @@ export async function GET() {
       { success: false, ok: false, error: message },
       { status: 500 },
     );
+    return apiError(error, "Error al obtener sesión.");
   }
 }

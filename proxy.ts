@@ -17,9 +17,13 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const rawUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    (process.env.NODE_ENV === "test" ? "https://test.supabase.co" : undefined);
   const supabaseUrl = normalizeSupabaseUrl(rawUrl);
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    (process.env.NODE_ENV === "test" ? "test-anon-key" : undefined);
 
   if (supabaseUrl && supabaseKey) {
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
@@ -35,7 +39,20 @@ export async function proxy(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            const isDeleting = value === "" || options?.maxAge === 0;
+            const maxAge = isDeleting
+              ? 0
+              : typeof options?.maxAge === "number" && options.maxAge < 7 * 24 * 60 * 60
+                ? options.maxAge
+                : 7 * 24 * 60 * 60;
+            response.cookies.set(name, value, {
+              ...options,
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              path: "/",
+              maxAge,
+            });
           });
         },
       },
@@ -61,11 +78,25 @@ export async function proxy(request: NextRequest) {
     if (isProtectedRoute && !user) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirectTo", pathname);
-      return NextResponse.redirect(loginUrl);
+      const redirectResponse = NextResponse.redirect(loginUrl);
+      request.cookies.getAll().forEach((c) => {
+        if (c.name.startsWith("sb-") || c.name.includes("auth")) {
+          redirectResponse.cookies.set(c.name, "", {
+            maxAge: 0,
+            path: "/",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
+        }
+      });
+      return redirectResponse;
     }
 
     if (isAuthRoute && user) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+      response.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c.name, c.value, c));
+      return redirectResponse;
     }
   }
 

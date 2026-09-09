@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { NextRequest } from "next/server";
 import { obtenerDisponibilidad } from "@/lib/backend/reserva-service";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 /**
  * GET /api/cliente/disponibilidad?sucursalId=...&servicioId=...&fecha=YYYY-MM-DD[&profesionalId=...]
@@ -15,24 +15,20 @@ export async function GET(request: NextRequest) {
     const profesionalId = searchParams.get("profesionalId") || undefined;
 
     if (!sucursalId || !servicioId || !fecha) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Los parámetros sucursalId, servicioId y fecha (YYYY-MM-DD) son requeridos.",
-        },
-        { status: 400 }
+      return apiError(
+        "Los parámetros sucursalId, servicioId y fecha (YYYY-MM-DD) son requeridos.",
+        undefined,
+        { status: 400, code: "MISSING_REQUIRED_PARAMS" }
       );
     }
 
     // Validar formato de fecha YYYY-MM-DD
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(fecha)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "El formato de fecha debe ser YYYY-MM-DD.",
-        },
-        { status: 400 }
+      return apiError(
+        "El formato de fecha debe ser YYYY-MM-DD.",
+        undefined,
+        { status: 400, code: "INVALID_DATE_FORMAT" }
       );
     }
 
@@ -43,8 +39,7 @@ export async function GET(request: NextRequest) {
       profesionalId,
     });
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       sucursalId,
       servicioId,
       fecha,
@@ -52,15 +47,8 @@ export async function GET(request: NextRequest) {
       horarios,
     });
   } catch (error: unknown) {
-    Sentry.captureException(error, {
+    return apiError(error, "Error al consultar disponibilidad.", {
       extra: { route: "GET /api/cliente/disponibilidad" },
     });
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Error al consultar disponibilidad.",
-      },
-      { status: 500 }
-    );
   }
 }

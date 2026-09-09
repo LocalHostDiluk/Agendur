@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { NextRequest } from "next/server";
 import { crearReservaCita } from "@/lib/backend/reserva-service";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 /**
  * POST /api/cliente/reservas
@@ -33,21 +33,19 @@ export async function POST(request: NextRequest) {
       !fecha ||
       !hora
     ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Campos requeridos faltantes: sucursalId, servicioId, profesionalId, clienteNombre, clientePhone, clienteEmail, fecha, hora.",
-        },
-        { status: 400 }
+      return apiError(
+        new Error("Campos requeridos faltantes: sucursalId, servicioId, profesionalId, clienteNombre, clientePhone, clienteEmail, fecha, hora."),
+        "Campos requeridos faltantes: sucursalId, servicioId, profesionalId, clienteNombre, clientePhone, clienteEmail, fecha, hora.",
+        { status: 400, code: "MISSING_REQUIRED_FIELDS" },
       );
     }
 
     // Validar formato de fecha YYYY-MM-DD
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-      return NextResponse.json(
-        { success: false, error: "El formato de fecha debe ser YYYY-MM-DD." },
-        { status: 400 }
+      return apiError(
+        new Error("El formato de fecha debe ser YYYY-MM-DD."),
+        "El formato de fecha debe ser YYYY-MM-DD.",
+        { status: 400, code: "INVALID_DATE_FORMAT" },
       );
     }
 
@@ -64,22 +62,10 @@ export async function POST(request: NextRequest) {
       notasCliente,
     });
 
-    return NextResponse.json(
-      { success: true, cita: nuevaCita },
-      { status: 201 }
-    );
+    return apiSuccess({ cita: nuevaCita }, 201);
   } catch (error: unknown) {
-    const status = (error as { status?: number })?.status || 500;
-    const errorMessage =
-      error instanceof Error ? error.message : "Error al procesar reserva";
-
-    Sentry.captureException(error, {
+    return apiError(error, "Error al procesar la reservación.", {
       extra: { route: "POST /api/cliente/reservas" },
     });
-
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status }
-    );
   }
 }

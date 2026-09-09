@@ -76,6 +76,7 @@ export interface PaymentGatewayAdapter {
 export interface SubscriptionUsageStats {
   suscripcion: Suscripcion;
   sucursales_usadas: number;
+  sucursales_creadas: number;
   sucursales_limite: number;
   sucursales_disponibles: number;
   profesionales_usados: number;

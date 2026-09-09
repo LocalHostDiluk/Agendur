@@ -281,10 +281,11 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     Sentry.captureException(error);
+    const isDev = process.env.NODE_ENV === "development";
     const message =
-      error instanceof Error
+      isDev && error instanceof Error
         ? error.message
-        : "Error inesperado en el servidor.";
+        : "Error interno del servidor. Por favor intenta de nuevo más tarde.";
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 },

@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { notify } from "@/lib/utils/toast";
 
 interface DashboardData {
   negocioNombre: string;
@@ -121,8 +122,10 @@ export default function DashboardPage() {
           setData((prev) => ({
             ...prev,
             planNombre: json.data.suscripcion?.plan_nombre || prev.planNombre,
-            sucursalesUsadas: json.data.sucursales_usadas ?? prev.sucursalesUsadas,
-            sucursalesLimite: json.data.sucursales_limite ?? prev.sucursalesLimite,
+            sucursalesUsadas:
+              json.data.sucursales_usadas ?? prev.sucursalesUsadas,
+            sucursalesLimite:
+              json.data.sucursales_limite ?? prev.sucursalesLimite,
           }));
         }
       })
@@ -134,6 +137,7 @@ export default function DashboardPage() {
     const url = `${origin}/reserva/${data.negocioSlug}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
+    notify.success("Enlace copiado", "Se copió el enlace al portapapeles.");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -180,7 +184,8 @@ export default function DashboardPage() {
             Hola, {data.negocioNombre}
           </h1>
           <p className="text-xs sm:text-sm text-indigo-100 max-w-xl">
-            Tu portal de reservas está activo y listo para recibir clientes en línea en tus sedes.
+            Tu portal de reservas está activo y listo para recibir clientes en
+            línea en tus sedes.
           </p>
         </div>
 
@@ -189,8 +194,14 @@ export default function DashboardPage() {
             onClick={copyBookingUrl}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-xs font-semibold border border-white/20 transition-all active:scale-95"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? "¡Enlace Copiado!" : "Copiar Enlace de Reserva"}</span>
+            {copied ? (
+              <Check className="w-4 h-4 text-emerald-300" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+            <span>
+              {copied ? "¡Enlace Copiado!" : "Copiar Enlace de Reserva"}
+            </span>
           </button>
 
           <Link
@@ -209,7 +220,9 @@ export default function DashboardPage() {
         {/* Card 1: Citas Hoy */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Citas para Hoy</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Citas para Hoy
+            </span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Calendar className="w-4 h-4" />
             </div>
@@ -230,7 +243,9 @@ export default function DashboardPage() {
         {/* Card 2: Sucursales */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Sedes Habilitadas</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Sedes Habilitadas
+            </span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Store className="w-4 h-4" />
             </div>
@@ -238,7 +253,9 @@ export default function DashboardPage() {
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
               {data.sucursalesUsadas}{" "}
-              <span className="text-sm font-normal text-slate-400">/ {data.sucursalesLimite}</span>
+              <span className="text-sm font-normal text-slate-400">
+                / {data.sucursalesLimite}
+              </span>
             </span>
             <Link
               href="/sucursales"
@@ -255,7 +272,9 @@ export default function DashboardPage() {
         {/* Card 3: Suscripción */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Suscripción SaaS</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Suscripción SaaS
+            </span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <CreditCard className="w-4 h-4" />
             </div>
@@ -276,14 +295,17 @@ export default function DashboardPage() {
         {/* Card 4: Ingresos Proyectados */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Servicios Agendados</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Servicios Agendados
+            </span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
-              $2,450 <span className="text-xs font-normal text-slate-500">MXN</span>
+              $2,450{" "}
+              <span className="text-xs font-normal text-slate-500">MXN</span>
             </span>
             <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
               +18% sem.
@@ -331,10 +353,17 @@ export default function DashboardPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {data.citas.map((cita) => (
-                <tr key={cita.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                <tr
+                  key={cita.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                >
                   <td className="py-3.5 px-4">
-                    <p className="font-semibold text-slate-900 dark:text-white">{cita.cliente}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">{cita.telefono}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">
+                      {cita.cliente}
+                    </p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                      {cita.telefono}
+                    </p>
                   </td>
                   <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
                     <span className="inline-flex items-center gap-1.5">

@@ -10,6 +10,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
+import { notify } from "@/lib/utils/toast";
 
 interface BookingPortalProps {
   negocioSlug: string;
@@ -93,11 +94,16 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
         }),
       });
 
-      if (res.ok) {
-        setConfirmed(true);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "No se pudo agendar la reservación.");
       }
-    } catch (err) {
-      console.error(err);
+
+      notify.success("¡Cita agendada!", "Tu cita ha sido reservada con éxito.");
+      setConfirmed(true);
+    } catch (err: unknown) {
+      notify.error(err, "No se pudo completar la reservación.");
     } finally {
       setLoading(false);
     }

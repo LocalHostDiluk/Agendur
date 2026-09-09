@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { adminClient } from "@/lib/supabase/admin";
+import { assertActiveSubscription } from "@/lib/payments/guards";
 import { enviarNotificacionWhatsApp } from "./whatsapp-service";
 import type { Cita } from "@/lib/types";
 
@@ -273,6 +274,8 @@ export async function crearReservaCita(
     if (sucErr || !sucursal || !sucursal.activa) {
       throw new Error("La sucursal seleccionada no existe o no está activa.");
     }
+
+    await assertActiveSubscription(sucursal.negocio_id);
 
     // 3. Obtener servicio oficial y validar que pertenezca al mismo negocio
     const { data: servicio, error: servErr } = await adminClient

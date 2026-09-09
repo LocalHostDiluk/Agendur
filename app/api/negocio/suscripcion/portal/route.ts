@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
+import { apiError } from "@/lib/utils/api-error";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { StripeGatewayAdapter } from "@/lib/payments/stripe-adapter";
@@ -86,19 +86,9 @@ export async function POST(req: NextRequest) {
       portalUrl: portalSession.url,
     });
   } catch (error: unknown) {
-    Sentry.captureException(error, {
+    return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "POST /api/negocio/suscripcion/portal" },
     });
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Error al generar el portal de facturación.",
-      },
-      { status: 500 }
-    );
   }
 }
 
