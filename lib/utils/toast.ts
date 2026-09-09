@@ -127,6 +127,36 @@ export function getHumanErrorMessage(
   };
 }
 
+/** Helper conciso para instanciar notificaciones con botón de cierre funcional */
+function dispatchSileoToast(
+  fn: (opts: SileoOptions) => string,
+  title: string,
+  description?: string,
+  options?: Partial<SileoOptions>,
+  alwaysShowDismiss = false,
+): string {
+  let toastId = "";
+  const button =
+    options?.button ??
+    (alwaysShowDismiss || description
+      ? {
+          title: "Cerrar",
+          onClick: () => {
+            if (toastId) sileo.dismiss(toastId);
+            else sileo.clear();
+          },
+        }
+      : undefined);
+
+  toastId = fn({
+    title,
+    description,
+    ...(button ? { button } : {}),
+    ...options,
+  });
+  return toastId;
+}
+
 /**
  * API unificada de notificaciones Sileo:
  * Errores humanizados, alertas, tips informativos, confirmaciones de éxito y acciones.
@@ -142,17 +172,7 @@ export const notify = {
       error,
       fallbackDescription,
     );
-    const toastId = `err-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-    return sileo.error({
-      title,
-      description,
-      button: options?.button ?? {
-        title: "Cerrar",
-        onClick: () => sileo.dismiss(toastId),
-      },
-      ...options,
-    });
+    return dispatchSileoToast(sileo.error, title, description, options, true);
   },
 
   /** Alerta de advertencia para validaciones o límites con botón de cierre */
@@ -161,40 +181,12 @@ export const notify = {
     description?: string,
     options?: Partial<SileoOptions>,
   ) {
-    const toastId = `warn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-    return sileo.warning({
-      title,
-      description,
-      button:
-        options?.button ??
-        (description
-          ? {
-              title: "Cerrar",
-              onClick: () => sileo.dismiss(toastId),
-            }
-          : undefined),
-      ...options,
-    });
+    return dispatchSileoToast(sileo.warning, title, description, options);
   },
 
   /** Tips, avisos o información relevante del sistema */
   info(title: string, description?: string, options?: Partial<SileoOptions>) {
-    const toastId = `info-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-    return sileo.info({
-      title,
-      description,
-      button:
-        options?.button ??
-        (description
-          ? {
-              title: "Cerrar",
-              onClick: () => sileo.dismiss(toastId),
-            }
-          : undefined),
-      ...options,
-    });
+    return dispatchSileoToast(sileo.info, title, description, options);
   },
 
   /** Confirmación de operaciones exitosas */
@@ -203,21 +195,7 @@ export const notify = {
     description?: string,
     options?: Partial<SileoOptions>,
   ) {
-    const toastId = `ok-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-    return sileo.success({
-      title,
-      description,
-      button:
-        options?.button ??
-        (description
-          ? {
-              title: "Cerrar",
-              onClick: () => sileo.dismiss(toastId),
-            }
-          : undefined),
-      ...options,
-    });
+    return dispatchSileoToast(sileo.success, title, description, options);
   },
 
   /** Notificación interactiva con botón de acción */

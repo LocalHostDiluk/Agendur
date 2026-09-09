@@ -102,4 +102,24 @@ describe("Capa de Seguridad - Rate Limiting & Turnstile", () => {
       );
     });
   });
+
+  describe("Sistema de Notificaciones (notify)", () => {
+    it("debería despachar alertas de error con botón de cierre sin lanzar excepciones", async () => {
+      const { notify } = await import("@/lib/utils/toast");
+      expect(typeof notify.error).toBe("function");
+      expect(typeof notify.success).toBe("function");
+      expect(typeof notify.warning).toBe("function");
+      expect(typeof notify.info).toBe("function");
+
+      const id = notify.error("Error de prueba", "Descripción detallada");
+      expect(typeof id).toBe("string");
+
+      const okId = notify.success("Éxito de prueba");
+      expect(typeof okId).toBe("string");
+
+      // Validar que dismiss no arroja error
+      expect(() => notify.dismiss(id)).not.toThrow();
+      expect(() => notify.clear()).not.toThrow();
+    });
+  });
 });
