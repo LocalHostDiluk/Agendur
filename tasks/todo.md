@@ -82,9 +82,11 @@
 ---
 
 ## Fase 4: Motor de Pagos y Suscripciones Desacoplado [EN ESPERA DE APROBACIÓN]
+
 ## Fase 4: Motor de Pagos y Suscripciones Desacoplado [COMPLETADA]
 
 ### Task 4.1: Tipos y Arquitectura de Adaptadores (`lib/payments/`)
+
 - [ ] Definir interfaz unificada `PaymentGatewayAdapter` en `lib/payments/types.ts`.
 - [ ] Definir configuración de planes (`emprendedor`, `pyme`, `enterprise`, `custom`) y sus límites de sucursales/profesionales.
 - [ ] Crear catálogo y fábrica de adaptadores en `lib/payments/index.ts`.
@@ -95,6 +97,7 @@
 ---
 
 ### Task 4.2: Adaptador de Cobros Directos / Offline (`ManualGatewayAdapter`)
+
 - [ ] Implementar `ManualGatewayAdapter` en `lib/payments/manual-adapter.ts`.
 - [ ] Soportar activación inmediata de suscripción para pagos manuales, en efectivo o transferencia.
 - [ ] Actualizar periodos de vigencia (+30 días mensual / +365 días anual) y registrar `notas_admin` de auditoría.
@@ -105,6 +108,7 @@
 ---
 
 ### Task 4.3: Adaptador Oficial de Stripe (`StripeGatewayAdapter`)
+
 - [ ] Implementar `StripeGatewayAdapter` en `lib/payments/stripe-adapter.ts`.
 - [ ] Creación y asociación de clientes de Stripe (`stripe.customers.create`).
 - [ ] Creación de Checkout Sessions (`stripe.checkout.sessions.create`) en modo suscripción.
@@ -119,6 +123,7 @@
 ---
 
 ### Task 4.4: Endpoints de Suscripción y Webhook
+
 - [ ] `GET /api/negocio/suscripcion`: Consultar plan activo, vigencia, pasarela y métricas de uso vs límites.
 - [ ] `POST /api/negocio/suscripcion`: Solicitar cambio de plan o pasarela (manual vs Stripe checkout).
 - [ ] `POST /api/negocio/suscripcion/portal`: Obtener enlace al Stripe Customer Portal.
@@ -131,6 +136,7 @@
 ---
 
 ### Task 4.5: Suite de Pruebas Automatizadas y Verificación con `bun test`
+
 - [ ] Pruebas unitarias de cálculo de límites y periodos del adaptador manual.
 - [ ] Pruebas de integración de endpoints (validación de payload, 401 si no autenticado, 400 si datos inválidos).
 - [ ] Verificación de reporte de excepciones en Sentry.
@@ -143,13 +149,17 @@
 ---
 
 ## Checkpoint: Fase 4
+
 - [ ] Tareas 4.1 a 4.5 completadas.
 - [ ] Pruebas `bun test` pasando al 100%.
 - [ ] Linter y build sin errores.
+
 ## Checkpoint: Fase 4 [PASADO]
+
 - [x] Tareas 4.1 a 4.5 completadas.
 - [x] Pruebas `bun test` pasando al 100% (25/25 tests).
 - [x] Linter y build sin errores (0 advertencias).
+
 ---
 
 ## Saneamiento y Remediación de Código & Base de Datos [COMPLETADA]
@@ -162,6 +172,7 @@
 - [x] Corrección sintáctica de políticas RLS y Storage en `supabase/schema.sql`.
 - [x] Creación de script de migración incremental `supabase/migrations/20260908_remediation_security_rls.sql`.
 - [x] Verificación de suite completa: `bun test` (25/25), `bun run lint` (0 errores), `bun run build` (exitoso).
+
 ---
 
 ## Fase 5: Motor de Reservas y Disponibilidad Multi-Sucursal [COMPLETADA]
@@ -174,6 +185,7 @@
 - [x] Task 5.6: Integración del portal de reserva del cliente (`BookingPortal.tsx` conectado a APIs en tiempo real).
 - [x] Task 5.7: Suite de pruebas automatizadas (`tests/disponibilidad.test.ts` y `tests/reservas.test.ts`).
 - [x] Verificación completa: `tsc --noEmit` (0 errores), `bun test` (37/37 tests pasan), `bun run lint` (0 errores), `bun run build` (exitoso).
+
 ---
 
 ## Rediseño del Panel Administrativo & Flujo de Autenticación [COMPLETADA]
@@ -190,6 +202,7 @@
 ## Remediación Sintáctica Turbopack & Hardening OWASP [COMPLETADA]
 
 ### Tarea 1: Reparación Sintáctica y Limpieza de Route Handlers (API Syntax) [COMPLETADA]
+
 - [x] Corregir sintaxis rota y retornos duplicados en `app/api/negocio/sucursales/route.ts`
 - [x] Corregir sintaxis rota y retornos duplicados en `app/api/auth/logout/route.ts`
 - [x] Corregir sintaxis rota y retornos duplicados en `app/api/cliente/catalogo/route.ts`
@@ -199,6 +212,7 @@
 - [x] Verificar con `bun x tsc --noEmit` (0 errores)
 
 ### Tarea 2: Hardening de Autenticación, Proxy y Rate-Limit (Auth & Security) [COMPLETADA]
+
 - [x] Mitigar Open Redirect / Host Header Injection en `app/api/auth/callback/route.ts`
 - [x] Eliminar fuga de trazas en `app/api/auth/login/route.ts` usando `apiError`
 - [x] Corregir código inalcanzable de purga de cookies en `proxy.ts`
@@ -208,6 +222,7 @@
 - [x] Verificar con `bun test tests/auth.test.ts` (19/19 tests pasan al 100%)
 
 ### Tarea 3: Guardias de Suscripción, Extracción de Error Codes y Headers de Seguridad [COMPLETADA]
+
 - [x] Extraer automáticamente `error.code` en `lib/utils/api-error.ts`
 - [x] Migrar catch blocks a `apiError` en `app/api/negocio/suscripcion/route.ts` y `portal/route.ts`
 - [x] Integrar `assertActiveSubscription` en `crearReservaCita` en `lib/backend/reserva-service.ts`
@@ -216,3 +231,60 @@
 - [x] Verificar con `bun test tests/payments.test.ts tests/reservas.test.ts` (32/32 tests pasan al 100%)
 - [x] Verificación completa: `tsc --noEmit` (0 errores), `bun test` (76/76 tests pasan al 100%), `bun run lint` (0 errores), `bun run build` (22 rutas compiladas limpiamente en Turbopack).
 
+---
+
+## Etapa 1.5: Setup de Preline UI & Rediseño Base [PENDIENTE]
+
+### Tarea 1.5.1: Dependencia y Configuración en Tailwind CSS v4 [COMPLETADA]
+
+- [x] Instalar `preline` vía `bun add preline`
+- [x] Configurar `@import "preline/variants.css";` y directiva `@source` en `app/globals.css`
+- [x] Crear archivo de tipos `types/preline.d.ts` con interfaz global de `window.HSStaticMethods`
+- [x] Verificar compilación con `bun x tsc --noEmit`
+
+### Tarea 1.5.2: Inicializador Dinámico en Next.js (`PrelineScript.tsx`) [COMPLETADA]
+
+- [x] Crear componente cliente `components/theme/PrelineScript.tsx` con hook `usePathname()`
+- [x] Montar `<PrelineScript />` en `app/layout.tsx` de forma no bloqueante
+- [x] Verificar que no existan errores de hidratación
+
+### Tarea 1.5.3: UI Kit Base de Componentes Preline UI [COMPLETADA]
+
+- [x] Crear `components/ui/Button.tsx` con variantes de Preline (`primary`, `secondary`, `outline`, `ghost`, `danger`)
+- [x] Crear `components/ui/Card.tsx` estilizada con bordes y modo oscuro
+- [x] Crear `components/ui/Badge.tsx` con soporte de estados (`success`, `warning`, `danger`, `info`, `neutral`)
+- [x] Crear `components/ui/Modal.tsx` accesible y gobernado reactivamente
+- [x] Crear `components/ui/Table.tsx` unificada con hover y estilos Preline
+- [x] Crear suite de pruebas en `tests/ui-components.test.ts`
+
+### Tarea 1.5.4: Rediseño del Shell Administrativo [COMPLETADA]
+
+- [x] Rediseñar `components/negocio/Sidebar.tsx` con patrones de navegación Preline UI
+- [x] Rediseñar `components/negocio/Header.tsx` con Navbar de Preline UI
+- [x] Actualizar `app/(negocio)/layout.tsx` con contenedor responsivo optimizado
+- [x] Verificar navegación entre `/dashboard`, `/sucursales` y `/agendas`
+
+### Tarea 1.5.5: Rediseño Integral de la Landing Page con Preline UI v5 [COMPLETADA]
+
+- [x] Rediseño de `components/landing/Navbar.tsx` con barra sticky, desenfoque backdrop, ThemeToggle y menú móvil accesible.
+- [x] Implementación canónica del bloque oficial de Preline UI v5 "Floating Navbar with CTA" en `components/landing/Navbar.tsx` (geometría flotante pill, mega-menú `md:w-150`, dropdowns, botón CTA Request demo y colapso móvil).
+- [x] Corrección de raíz del error de compilación SWC/Turbopack (`Expression expected`) mediante reescritura atómica.
+- [x] Rediseño de `components/landing/HeroSection.tsx` con split hero, píldora suave, micro-captura de slug y tarjeta interactiva de cita en vivo.
+- [x] Creación de `components/landing/SocialProofMarquee.tsx` con ticker continuo accesible, sectores de la industria y respeto a `prefers-reduced-motion`.
+- [x] Rediseño de `components/landing/FeaturesSection.tsx` con Bento Grid asimétrico de 4 cuadrantes creativos.
+- [x] Creación de `components/landing/ImpactChartSection.tsx` (reemplazo de InteractiveDemo) con selector de industrias, comparativa en SVG/Tailwind y tarjeta ROI.
+- [x] Rediseño de `components/landing/PricingSection.tsx` con tarjetas Preline UI, switcher mensual/anual y badges de popularidad.
+- [x] Rediseño de `components/landing/FAQSection.tsx` con acordeón WAI-ARIA accesible y dudas frecuentes.
+- [x] Rediseño de `components/landing/CTASection.tsx` con banner de alto contraste y badges de confianza.
+- [x] Rediseño de `components/landing/Footer.tsx` con layout multi-columna, ThemeToggle y copyright dinámico.
+- [x] Enlace armónico y soporte nativo claro/oscuro en `app/(landing)/page.tsx`.
+- [x] Suite de pruebas automatizadas en `tests/landing.test.ts` (16 pruebas pasando al 100%).
+- [x] Verificación completa: `bun test` (113/113 tests pasan), `bun x tsc --noEmit` (0 errores), `bun run lint` (0 errores/warnings), `bun run build` (22 rutas compiladas en Turbopack).
+- [x] Verificación completa: `bun test` (113/113 tests pasan en 10 archivos), `bun x tsc --noEmit` (0 errores), `bun run lint` (0 errores/warnings), `bun run build` (22 rutas compiladas en Turbopack en 655ms), runtime HTTP 200 OK.
+
+### Tarea 1.5.6: Rediseño de Vista Principal (`/dashboard`) [PENDIENTE DE CONSULTA]
+
+- [ ] Reestructurar `/dashboard` con tarjetas KPI de Preline UI
+- [ ] Integrar barra de acceso rápido para enlace público de reservas
+- [ ] Estilizar tabla de próximas citas con el nuevo componente `Table`
+- [ ] Verificación global: `bun test`, `bun x tsc --noEmit`, `bun run lint`, `bun run build`

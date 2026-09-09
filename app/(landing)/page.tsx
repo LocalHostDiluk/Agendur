@@ -1,22 +1,22 @@
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { SocialProofMarquee } from "@/components/landing/SocialProofMarquee";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { InteractiveDemo } from "@/components/landing/InteractiveDemo";
+import { ImpactChartSection } from "@/components/landing/ImpactChartSection";
 import { PricingSection } from "@/components/landing/PricingSection";
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-400 selection:text-slate-950">
+    <main className="min-h-screen bg-white dark:bg-neutral-950 text-gray-900 dark:text-neutral-100 selection:bg-blue-600 selection:text-white transition-colors duration-200">
       <Navbar />
       <HeroSection />
+      <SocialProofMarquee />
       <FeaturesSection />
-      <InteractiveDemo />
+      <ImpactChartSection />
       <PricingSection />
-      <TestimonialsSection />
       <FAQSection />
       <CTASection />
       <Footer />

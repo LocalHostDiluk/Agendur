@@ -1,20 +1,92 @@
 @import "tailwindcss";
+@import "preline/variants.css";
+
+@source "../node_modules/preline/dist/*.js";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-focus: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --primary-line: #1d4ed8;
+
+  --navbar: rgba(255, 255, 255, 0.85);
+  --navbar-line: #e2e8f0;
+  --navbar-2-nav-foreground: #475569;
+  --navbar-2-nav-foreground-hover: #0f172a;
+  --navbar-2-nav-foreground-focus: #0f172a;
+
+  --dropdown: #ffffff;
+  --dropdown-line: #e2e8f0;
+
+  --layer: #f8fafc;
+  --layer-line: #e2e8f0;
+  --layer-foreground: #1e293b;
+
+  --line-1: #e2e8f0;
+  --muted-hover: #f1f5f9;
+  --muted-focus: #e2e8f0;
 }
 
 .dark {
   --background: #020617;
   --foreground: #f8fafc;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-focus: #60a5fa;
+  --primary-foreground: #ffffff;
+  --primary-line: #2563eb;
+
+  --navbar: rgba(15, 23, 42, 0.85);
+  --navbar-line: #1e293b;
+  --navbar-2-nav-foreground: #94a3b8;
+  --navbar-2-nav-foreground-hover: #f8fafc;
+  --navbar-2-nav-foreground-focus: #f8fafc;
+
+  --dropdown: #0f172a;
+  --dropdown-line: #1e293b;
+
+  --layer: #1e293b;
+  --layer-line: #334155;
+  --layer-foreground: #f8fafc;
+
+  --line-1: #1e293b;
+  --muted-hover: #1e293b;
+  --muted-focus: #334155;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-focus: var(--primary-focus);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-line: var(--primary-line);
+
+  --color-navbar: var(--navbar);
+  --color-navbar-line: var(--navbar-line);
+  --color-navbar-2-nav-foreground: var(--navbar-2-nav-foreground);
+  --color-navbar-2-nav-foreground-hover: var(--navbar-2-nav-foreground-hover);
+  --color-navbar-2-nav-foreground-focus: var(--navbar-2-nav-foreground-focus);
+
+  --color-dropdown: var(--dropdown);
+  --color-dropdown-line: var(--dropdown-line);
+
+  --color-layer: var(--layer);
+  --color-layer-line: var(--layer-line);
+  --color-layer-foreground: var(--layer-foreground);
+
+  --color-line-1: var(--line-1);
+  --color-muted-hover: var(--muted-hover);
+  --color-muted-focus: var(--muted-focus);
+
+  --spacing-50: 12.5rem;
+  --spacing-150: 37.5rem;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,4 +95,19 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
 }

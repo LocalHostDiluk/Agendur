@@ -1,306 +1,396 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Clock,
-  MapPin,
-  MessageSquare,
   Sparkles,
-  Building2,
-  ChevronRight,
   ArrowRight,
   ShieldCheck,
+  Star,
+  MapPin,
+  MessageCircle,
+  Scissors,
+  Stethoscope,
+  Sparkle,
 } from "lucide-react";
 
 export function HeroSection() {
-  const [selectedBranch, setSelectedBranch] = useState("Polanco");
-  const [selectedService, setSelectedService] = useState(
-    "Corte & Estilo Premium",
-  );
-  const [selectedStaff, setSelectedStaff] = useState(
-    "Carlos Méndez (Master Barber)",
-  );
+  const router = useRouter();
+  const [slugInput, setSlugInput] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("1");
+  const [selectedStaff, setSelectedStaff] = useState("Carlos Méndez");
   const [selectedTime, setSelectedTime] = useState("16:30 hrs");
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
-  const branches = [
-    { name: "Polanco", city: "CDMX", status: "Abierto" },
-    { name: "Roma Norte", city: "CDMX", status: "Abierto" },
-    { name: "Guadalajara", city: "Jalisco", status: "Abierto" },
-  ];
-
   const services = [
-    { name: "Corte & Estilo Premium", duration: "45 min", price: "$350 MXN" },
-    { name: "Tratamiento Facial Spa", duration: "60 min", price: "$650 MXN" },
     {
-      name: "Consulta Médica Especializada",
+      id: "1",
+      name: "Corte & Barba Master",
+      duration: "45 min",
+      price: "$350 MXN",
+      anticipo: "$175 MXN (50%)",
+      icon: Scissors,
+    },
+    {
+      id: "2",
+      name: "Consulta Especializada",
       duration: "30 min",
       price: "$800 MXN",
+      anticipo: "$400 MXN (50%)",
+      icon: Stethoscope,
+    },
+    {
+      id: "3",
+      name: "Spa & Limpieza Facial",
+      duration: "60 min",
+      price: "$600 MXN",
+      anticipo: "$300 MXN (50%)",
+      icon: Sparkle,
     },
   ];
 
-  const handleConfirm = () => {
-    setBookingConfirmed(true);
-  };
+  const staffList = [
+    { name: "Carlos Méndez", role: "Master Barber", badge: "Estrella" },
+    { name: "Dra. Sofía R.", role: "Especialista", badge: "Certificada" },
+    { name: "Laura Vega", role: "Cosmiatra Pro", badge: "Senior" },
+  ];
 
-  const handleReset = () => {
-    setBookingConfirmed(false);
+  const currentService =
+    services.find((s) => s.id === selectedServiceId) ?? services[0];
+
+  const handleSlugSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanSlug = slugInput.trim();
+    if (cleanSlug) {
+      router.push(`/register?slug=${encodeURIComponent(cleanSlug)}`);
+    } else {
+      router.push("/register");
+    }
   };
 
   return (
-    <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-32">
-      {/* Background Radial Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-emerald-500/15 blur-[150px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute top-1/3 right-10 w-[450px] h-[450px] bg-teal-600/10 blur-[130px] rounded-full pointer-events-none -z-10" />
+    <section className="relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-24 bg-white dark:bg-neutral-950 transition-colors">
+      {/* Background Gradient Highlights */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-blue-100/60 dark:bg-blue-900/15 blur-[120px] rounded-full -z-10" />
+      <div className="pointer-events-none absolute top-1/3 right-0 w-[400px] h-[400px] bg-indigo-100/50 dark:bg-indigo-900/10 blur-[100px] rounded-full -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Left Content */}
-          <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs sm:text-sm font-medium">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
+          {/* Left Column */}
+          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+            {/* Soft Pill Badge */}
+            <div className="inline-flex items-center gap-x-2 py-1.5 px-3.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-400 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
               <span>
-                Nuevo: Gestión Multi-Sucursal + Recordatorios por WhatsApp
+                ✨ Nueva versión: Anticipos y recordatorios inteligentes
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.12] text-white">
-              Citas y reservaciones online para tus{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                sucursales y negocios.
-              </span>
+            {/* Bold Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-[1.12]">
+              El software de citas que{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 dark:from-blue-400 dark:via-indigo-300 dark:to-teal-300">
+                elimina el ausentismo
+              </span>{" "}
+              y llena tu agenda en piloto automático
             </h1>
 
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
-              Dale a tus clientes un portal de agendamiento 24/7. Registra todas
-              tus sucursales, organiza las agendas de tus profesionales y
-              elimina las ausencias con recordatorios automáticos por WhatsApp.
+            {/* Benefits Subtitle */}
+            <p className="text-base sm:text-lg text-gray-600 dark:text-neutral-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
+              Permite a tus clientes agendar en menos de 30 segundos desde
+              cualquier dispositivo. Gestiona múltiples sucursales, asegura tus
+              ingresos cobrando anticipos y envía recordatorios automáticos por
+              WhatsApp.
             </p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-              <a
-                href="#precios"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-semibold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 px-7 py-3.5 rounded-xl shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            {/* Slug Micro-Capture Bar */}
+            <div className="pt-2">
+              <form
+                onSubmit={handleSlugSubmit}
+                className="flex flex-col sm:flex-row items-stretch gap-2.5 max-w-lg mx-auto lg:mx-0"
               >
-                Crear Mi Agenda Gratis
-                <ArrowRight className="w-5 h-5" />
-              </a>
-
-              <a
-                href="/dashboard"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-6 py-3.5 rounded-xl transition-all hover:text-white"
-              >
-                Probar Vista Negocio
-              </a>
+                <div className="relative flex-1 flex items-center rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xs focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden">
+                  <span className="pl-3.5 text-xs sm:text-sm text-gray-400 dark:text-neutral-500 select-none font-medium">
+                    citasync.com/
+                  </span>
+                  <input
+                    type="text"
+                    value={slugInput}
+                    onChange={(e) =>
+                      setSlugInput(
+                        e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                      )
+                    }
+                    placeholder="tu-marca"
+                    aria-label="Nombre de tu marca o negocio"
+                    className="w-full py-3 pr-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 bg-transparent focus:outline-hidden"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="py-3 px-6 inline-flex items-center justify-center gap-x-2 text-sm font-semibold rounded-xl border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 shadow-md shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+                >
+                  Comenzar Gratis
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+              <p className="text-xs text-gray-500 dark:text-neutral-500 mt-2 text-center lg:text-left">
+                Prueba de 14 días sin tarjeta de crédito. Configuración en 3
+                minutos.
+              </p>
             </div>
 
-            {/* Trust highlights */}
-            <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-y-2 gap-x-6 text-xs sm:text-sm text-slate-400">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Multi-sucursal en 1 cuenta</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Sin descarga de Apps</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>14 días de prueba gratis</span>
+            {/* Social Proof Badges */}
+            <div className="pt-3 border-t border-gray-200 dark:border-neutral-800/80 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80"
+                    alt="Usuario CitaSync"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80"
+                    alt="Usuario CitaSync"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
+                    src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=80&q=80"
+                    alt="Usuario CitaSync"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
+                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80"
+                    alt="Usuario CitaSync"
+                  />
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className="size-3.5 fill-amber-400 text-amber-400"
+                      />
+                    ))}
+                    <span className="font-bold text-xs text-gray-800 dark:text-neutral-200 ml-1">
+                      4.9/5
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-neutral-400">
+                    +1,200 negocios gestionando sus citas
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Live Booking Widget Mockup */}
-          <div className="lg:col-span-6">
-            <div className="relative rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 p-1 border border-slate-800 shadow-2xl shadow-emerald-950/40">
-              {/* Window Bar Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/80 bg-slate-950/60 rounded-t-xl text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="ml-2 font-mono text-slate-500 text-[11px] hidden sm:inline">
-                    citas.tunegocio.com/sucursal-polanco
+          {/* Right Column: Preline UI Interactive Mockup Card */}
+          <div className="lg:col-span-5">
+            <div className="relative mx-auto max-w-md bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl shadow-xl transition-all">
+              {/* Card Window Topbar */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-neutral-800 bg-gray-50/75 dark:bg-neutral-900/90 rounded-t-2xl">
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2.5 rounded-full bg-red-400 inline-block" />
+                  <span className="size-2.5 rounded-full bg-amber-400 inline-block" />
+                  <span className="size-2.5 rounded-full bg-emerald-400 inline-block" />
+                  <span className="ml-2 font-mono text-[11px] text-gray-400 dark:text-neutral-500">
+                    citasync.com/reserva/live
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                  PORTAL PÚBLICO
+                <span className="inline-flex items-center gap-x-1 py-0.5 px-2 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  En Vivo
                 </span>
               </div>
 
-              {/* Portal Content */}
-              <div className="p-6 space-y-5 text-left">
-                {/* Business Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white text-base">
-                        Barber & Spa Club
-                      </h3>
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-emerald-400" /> Sucursal{" "}
-                        {selectedBranch} (
-                        {branches.find((b) => b.name === selectedBranch)?.city})
-                      </p>
-                    </div>
+              {/* Card Body */}
+              <div className="p-5 space-y-4 text-left">
+                {/* Header info */}
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-neutral-800">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                      Barber & Spa Club Matriz
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5">
+                      <MapPin className="size-3 text-blue-600 dark:text-blue-400" />{" "}
+                      Sucursal Polanco • CDMX
+                    </p>
                   </div>
-                  <span className="text-[11px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    24/7 ABIERTO
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-neutral-400 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-md">
+                    24/7 Abierto
                   </span>
                 </div>
 
                 {!bookingConfirmed ? (
                   <>
-                    {/* Step 1: Branch Selection */}
+                    {/* 1. Interactive Service Selection */}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                        1. Selecciona la Sucursal:
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-neutral-400 mb-1.5">
+                        1. Selecciona el Servicio
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {branches.map((b) => (
-                          <button
-                            key={b.name}
-                            onClick={() => setSelectedBranch(b.name)}
-                            className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all ${
-                              selectedBranch === b.name
-                                ? "bg-emerald-500/15 border-emerald-500 text-emerald-300 font-semibold shadow-sm"
-                                : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
-                            }`}
-                          >
-                            <span className="block">{b.name}</span>
-                            <span className="text-[10px] text-slate-500">
-                              {b.city}
-                            </span>
-                          </button>
-                        ))}
+                      <div className="space-y-1.5">
+                        {services.map((srv) => {
+                          const isSelected = selectedServiceId === srv.id;
+                          return (
+                            <button
+                              type="button"
+                              key={srv.id}
+                              onClick={() => setSelectedServiceId(srv.id)}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left text-xs transition-all ${
+                                isSelected
+                                  ? "border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 dark:border-blue-500 font-medium"
+                                  : "border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-800/60"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className={`p-1.5 rounded-lg ${
+                                    isSelected
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-300"
+                                  }`}
+                                >
+                                  <srv.icon className="size-3.5" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    {srv.name}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 dark:text-neutral-400 flex items-center gap-1">
+                                    <Clock className="size-3" /> {srv.duration}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-gray-900 dark:text-white">
+                                  {srv.price}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Step 2: Service Selection */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                        2. Elige el Servicio:
-                      </label>
-                      <div className="space-y-2">
-                        {services.map((s) => (
-                          <div
-                            key={s.name}
-                            onClick={() => setSelectedService(s.name)}
-                            className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer text-xs transition-all ${
-                              selectedService === s.name
-                                ? "bg-slate-800 border-emerald-500/80 text-white"
-                                : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                            }`}
-                          >
-                            <div>
-                              <p className="font-medium text-slate-200">
-                                {s.name}
-                              </p>
-                              <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {s.duration}
-                              </p>
-                            </div>
-                            <span className="font-mono text-emerald-400 font-bold">
-                              {s.price}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Step 3: Specialist & Time */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* 2. Staff and Time selectors */}
+                    <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                          Especialista
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-neutral-400 mb-1">
+                          Profesional
                         </label>
                         <select
                           value={selectedStaff}
                           onChange={(e) => setSelectedStaff(e.target.value)}
-                          className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                          className="w-full py-2 px-2.5 text-xs rounded-lg bg-gray-50 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-gray-800 dark:text-neutral-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                         >
-                          <option value="Carlos Méndez (Master Barber)">
-                            Carlos Méndez (Master Barber)
-                          </option>
-                          <option value="Dra. Elena Gómez (Médica)">
-                            Dra. Elena Gómez (Médica)
-                          </option>
-                          <option value="Roberto Silva (Especialista)">
-                            Roberto Silva (Especialista)
-                          </option>
+                          {staffList.map((st) => (
+                            <option key={st.name} value={st.name}>
+                              {st.name} ({st.role})
+                            </option>
+                          ))}
                         </select>
                       </div>
+
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                          Horario Disponible
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-neutral-400 mb-1">
+                          Horario
                         </label>
                         <select
                           value={selectedTime}
                           onChange={(e) => setSelectedTime(e.target.value)}
-                          className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                          className="w-full py-2 px-2.5 text-xs rounded-lg bg-gray-50 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-gray-800 dark:text-neutral-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                         >
-                          <option value="10:00 hrs">Hoy - 10:00 hrs</option>
-                          <option value="12:15 hrs">Hoy - 12:15 hrs</option>
+                          <option value="10:30 hrs">Hoy - 10:30 hrs</option>
+                          <option value="12:00 hrs">Hoy - 12:00 hrs</option>
                           <option value="16:30 hrs">Hoy - 16:30 hrs</option>
                           <option value="18:00 hrs">Mañana - 18:00 hrs</option>
                         </select>
                       </div>
                     </div>
 
-                    {/* Confirm Button */}
+                    {/* Deposit Preview Badge */}
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="size-4 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-neutral-200">
+                            Anticipo Requerido (50%)
+                          </p>
+                          <p className="text-[10px] text-gray-500 dark:text-neutral-400">
+                            Stripe / Tarjeta o Transferencia
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-bold text-xs text-blue-700 dark:text-blue-400">
+                        {currentService.anticipo}
+                      </span>
+                    </div>
+
+                    {/* Action Button */}
                     <button
-                      onClick={handleConfirm}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.01]"
+                      type="button"
+                      onClick={() => setBookingConfirmed(true)}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 shadow-sm transition-colors flex items-center justify-center gap-1.5"
                     >
-                      Agendar Cita Ahora
+                      <CheckCircle2 className="size-4" />
+                      Simular Confirmación de Cita
                     </button>
                   </>
                 ) : (
-                  /* Confirmation State */
-                  <div className="py-4 space-y-4 text-center">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
-                      <ShieldCheck className="w-7 h-7" />
+                  /* Confirmed State Simulation */
+                  <div className="py-3 space-y-4 text-center">
+                    <div className="size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto ring-4 ring-emerald-50 dark:ring-emerald-900/30">
+                      <CheckCircle2 className="size-6" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-white">
-                        ¡Cita Confirmada con Éxito!
+                      <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                        ¡Cita Agendada y Anticipo Pagado!
                       </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Reservada en{" "}
-                        <strong className="text-emerald-400">
-                          Sucursal {selectedBranch}
+                      <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">
+                        Servicio:{" "}
+                        <strong className="text-gray-900 dark:text-white">
+                          {currentService.name}
                         </strong>{" "}
-                        para{" "}
-                        <strong className="text-white">
-                          {selectedService}
+                        ({currentService.price})
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-neutral-400">
+                        Con{" "}
+                        <strong className="text-gray-900 dark:text-white">
+                          {selectedStaff}
                         </strong>{" "}
-                        a las {selectedTime}.
+                        el día de hoy a las{" "}
+                        <strong className="text-blue-600 dark:text-blue-400">
+                          {selectedTime}
+                        </strong>
+                        .
                       </p>
                     </div>
 
-                    <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-left text-xs space-y-1.5">
-                      <div className="flex items-center gap-2 text-emerald-300 font-semibold">
-                        <MessageSquare className="w-4 h-4 text-emerald-400" />
-                        Recordatorio enviado por WhatsApp
+                    {/* WhatsApp simulation */}
+                    <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-left text-xs space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold text-xs">
+                        <MessageCircle className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        Recordatorio Inteligente por WhatsApp
                       </div>
-                      <p className="text-slate-400 text-[11px]">
-                        Se ha enviado la ubicación de la sucursal y la opción de
-                        añadir a Google Calendar al cliente.
+                      <p className="text-[11px] text-gray-600 dark:text-neutral-400">
+                        Se enviará un mensaje 24h y 2h antes de la cita con
+                        confirmación de ubicación y calendarización en 1 clic.
                       </p>
                     </div>
 
                     <button
-                      onClick={handleReset}
-                      className="text-xs text-slate-400 hover:text-white underline"
+                      type="button"
+                      onClick={() => setBookingConfirmed(false)}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
                     >
-                      Probar agendar otra cita
+                      ← Cambiar configuración o servicio
                     </button>
                   </div>
                 )}

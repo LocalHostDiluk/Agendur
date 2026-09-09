@@ -1,167 +1,200 @@
+import Link from "next/link";
 import { Calendar, Globe, Share2, MessageSquare, Heart } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-slate-950 border-t border-slate-800/80 text-slate-400 text-xs sm:text-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <footer className="bg-gray-50 dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-800 text-gray-600 dark:text-neutral-400 text-xs sm:text-sm transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
-          {/* Brand */}
+          {/* Brand Col (2 cols) */}
           <div className="col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold">
-                <Calendar className="w-4 h-4 text-slate-950" />
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 rounded-lg"
+              aria-label="CitaSync Inicio"
+            >
+              <div className="size-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold shadow-xs">
+                <Calendar className="size-4 text-white" />
               </div>
-              <span className="text-lg font-bold tracking-tight text-white">
-                Cita<span className="text-emerald-400">Sync</span>
+              <span className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+                Cita
+                <span className="text-blue-600 dark:text-blue-500">Sync</span>
               </span>
-            </div>
-            <p className="text-slate-400 text-xs leading-relaxed max-w-sm">
-              La plataforma SaaS especializada en la gestión de citas,
-              reservaciones y sucursales online para PyMEs en Latinoamérica.
+            </Link>
+
+            <p className="text-xs text-gray-500 dark:text-neutral-400 leading-relaxed max-w-sm">
+              Plataforma integral de agendamiento online, gestión multi-sucursal
+              y cobro de anticipos para negocios y prestadores de servicios en
+              Latinoamérica.
             </p>
-            <div className="flex items-center gap-3 text-slate-400 pt-2">
+
+            {/* Social & Theme Controls */}
+            <div className="flex items-center gap-3 pt-2">
+              <ThemeToggle />
               <a
-                href="#"
-                className="hover:text-white transition-colors"
-                aria-label="Sitio Web"
+                href="https://citasync.com"
+                className="p-2 rounded-xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-neutral-400 transition-colors"
+                aria-label="Sitio Web Global"
               >
-                <Globe className="w-4 h-4" />
+                <Globe className="size-4" />
               </a>
               <a
-                href="#"
-                className="hover:text-white transition-colors"
-                aria-label="Comunidad"
+                href="https://twitter.com"
+                className="p-2 rounded-xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-neutral-400 transition-colors"
+                aria-label="Comunidad y Novedades"
               >
-                <MessageSquare className="w-4 h-4" />
+                <Share2 className="size-4" />
               </a>
               <a
-                href="#"
-                className="hover:text-white transition-colors"
-                aria-label="Compartir"
+                href="https://wa.me"
+                className="p-2 rounded-xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-neutral-400 transition-colors"
+                aria-label="Soporte WhatsApp"
               >
-                <Share2 className="w-4 h-4" />
+                <MessageSquare className="size-4" />
               </a>
             </div>
           </div>
 
-          {/* Industriales */}
+          {/* Col 1: Producto */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-white uppercase tracking-wider">
-              Industrias
-            </h4>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Barberías y Peluquerías
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Clínicas Médicas & Dentales
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Spas y Centros de Estética
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Gimnasios y Fisioterapia
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Talleres Automotrices
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Funcionalidades */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-white uppercase tracking-wider">
-              Funcionalidades
+            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+              Producto
             </h4>
             <ul className="space-y-2">
               <li>
                 <a
-                  href="#sucursales"
-                  className="hover:text-white transition-colors"
+                  href="#caracteristicas"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
-                  Gestión Multi-Sucursal
+                  Multi-Sucursal
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Recordatorios por WhatsApp
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a
+                  href="#caracteristicas"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
                   Cobro de Anticipos
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Sincronización de Calendarios
+                <a
+                  href="#caracteristicas"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Recordatorios WhatsApp
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#impacto"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Calculadora de Impacto
                 </a>
               </li>
               <li>
                 <a
                   href="#precios"
-                  className="hover:text-white transition-colors"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
-                  Planes y Precios
+                  Planes & Tarifas
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Col 2: Soluciones */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-white uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+              Sectores
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Barberías y Salones
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Clínicas y Consultorios
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Spas y Masajes
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Estudios de Tatuajes
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Centros de Fisioterapia
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 3: Empresa & Legal */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
               Legal & Soporte
             </h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Privacidad de Datos
-                </a>
+                <Link
+                  href="/login"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Acceso al Panel
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Términos de Servicio
-                </a>
+                <Link
+                  href="/register"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Registrar Negocio
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Seguridad de la Información
-                </a>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Política de Privacidad
+                </span>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Centro de Ayuda
-                </a>
+                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
+                  Términos del Servicio
+                </span>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Contacto de Ventas
+                <a
+                  href="#faq"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Preguntas Frecuentes
                 </a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-gray-200 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-neutral-500 gap-4">
           <p>
-            © {new Date().getFullYear()} CitaSync SaaS Inc. Todos los derechos
+            © {currentYear} CitaSync Technologies Inc. Todos los derechos
             reservados.
           </p>
-          <p className="flex items-center gap-1">
-            Creado con{" "}
-            <Heart className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />{" "}
-            para hacer crecer tu negocio.
+          <p className="flex items-center gap-1.5">
+            Hecho con{" "}
+            <Heart className="size-3.5 text-red-500 fill-red-500 inline-block" />{" "}
+            para potenciar a las PyMEs en Latinoamérica.
           </p>
         </div>
       </div>
