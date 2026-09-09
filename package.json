@@ -17,6 +17,7 @@
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "sileo": "^0.1.5",
     "stripe": "^22.6.1"
   },
   "devDependencies": {

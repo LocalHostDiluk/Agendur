@@ -1,17 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Lock,
-  Mail,
-  Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-  ArrowRight,
-} from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
+import { notify } from "@/lib/utils/toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,11 +12,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "auth-code-error") {
+      notify.error(
+        "Enlace inválido o expirado",
+        "El enlace de verificación ya no es válido o ha expirado. Por favor solicita uno nuevo o inicia sesión.",
+      );
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
@@ -42,10 +44,11 @@ export default function LoginPage() {
       }
 
       // Redirección directa al Dashboard principal
+      notify.success("¡Bienvenido de nuevo!", "Sesión iniciada correctamente");
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión.");
+      notify.error(err, "Error al iniciar sesión.");
       setLoading(false);
     }
   };
@@ -60,13 +63,6 @@ export default function LoginPage() {
           Ingresa al panel administrativo de tu negocio y gestiona tus citas.
         </p>
       </div>
-
-      {error && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2.5">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-          <span>{error}</span>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

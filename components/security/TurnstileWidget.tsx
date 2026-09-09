@@ -14,7 +14,7 @@ declare global {
           "error-callback"?: (error: unknown) => void;
           "expired-callback"?: () => void;
           theme?: "light" | "dark" | "auto";
-          size?: "normal" | "compact";
+          size?: "normal" | "compact" | "invisible";
         },
       ) => string;
       reset: (widgetId?: string) => void;
@@ -29,6 +29,7 @@ interface TurnstileWidgetProps {
   onError?: (error: unknown) => void;
   onExpire?: () => void;
   className?: string;
+  size?: "normal" | "compact" | "invisible";
 }
 
 export default function TurnstileWidget({
@@ -36,6 +37,7 @@ export default function TurnstileWidget({
   onError,
   onExpire,
   className = "",
+  size = "normal",
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -66,6 +68,7 @@ export default function TurnstileWidget({
           widgetIdRef.current = window.turnstile.render(containerRef.current, {
             sitekey: siteKey,
             theme: "auto",
+            size: size,
             callback: (token: string) => {
               onVerify(token);
             },
@@ -108,12 +111,20 @@ export default function TurnstileWidget({
         }
       }
     };
-  }, [siteKey, onVerify, onError, onExpire]);
+  }, [siteKey, size, onVerify, onError, onExpire]);
+
+  const isInvisible = size === "invisible";
 
   return (
-    <div className={`flex justify-center my-3 min-h-[65px] ${className}`}>
+    <div
+      className={
+        isInvisible
+          ? className
+          : `flex justify-center my-3 min-h-[65px] ${className}`
+      }
+    >
       <div ref={containerRef} />
-      {!loaded && (
+      {!loaded && !isInvisible && (
         <div className="text-xs text-slate-400 dark:text-slate-500 py-4 flex items-center gap-2">
           <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
           <span>Cargando verificación de seguridad...</span>

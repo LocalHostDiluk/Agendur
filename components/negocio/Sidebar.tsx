@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Store, Calendar, LogOut, ExternalLink, ArrowLeft } from "lucide-react";
+import {
+  LayoutDashboard,
+  Store,
+  Calendar,
+  LogOut,
+  ExternalLink,
+  ArrowLeft,
+} from "lucide-react";
+import { notify } from "@/lib/utils/toast";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -26,11 +34,19 @@ export function Sidebar() {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "No se pudo cerrar la sesión.");
+      }
+      notify.success("Sesión cerrada", "Has cerrado sesión correctamente.");
       router.push("/login");
       router.refresh();
-    } catch {
+    } catch (err: unknown) {
+      notify.error(err, "No se pudo cerrar la sesión.");
       router.push("/login");
+    } finally {
+      setLoggingOut(false);
     }
   };
 

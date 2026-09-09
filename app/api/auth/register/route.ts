@@ -135,18 +135,25 @@ export async function POST(request: Request) {
       ? `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`
       : baseSlug;
 
-    // 3. Registrar usuario en Supabase Auth mediante Admin API con email_confirm: true
-    // Esto evita invocar el servicio de correo por defecto de Supabase que tiene un límite estricto de 3-4 correos/hora (over_email_send_rate_limit)
-    const { data: authData, error: authError } =
-      await admin.auth.admin.createUser({
-        email: email.trim().toLowerCase(),
-        password,
-        email_confirm: true,
-        user_metadata: {
+    // 3. Registrar usuario en Supabase Auth con Resend Custom SMTP
+    const origin =
+      request.headers.get("origin") ||
+      request.headers.get("referer") ||
+      "http://localhost:3000";
+    const callbackUrl = new URL("/api/auth/callback", origin).toString();
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        emailRedirectTo: callbackUrl,
+        data: {
           nombre_comercial: nombreComercial.trim(),
           telefono: telefono || null,
+          giro_comercial: giroComercial.trim(),
         },
-      });
+      },
+    });
 
     if (authError || !authData.user) {
       let errorMessage =
@@ -164,6 +171,19 @@ export async function POST(request: Request) {
       }
       return NextResponse.json(
         { success: false, ok: false, error: errorMessage },
+        { status: 400 },
+      );
+    }
+
+    // Detección anti-enumeración de Supabase (identities vacías si ya existe la cuenta)
+    if (authData.user.identities && authData.user.identities.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          ok: false,
+          error:
+            "Ya existe una cuenta registrada con este correo electrónico. Por favor inicia sesión.",
+        },
         { status: 400 },
       );
     }
@@ -239,20 +259,13 @@ export async function POST(request: Request) {
       Sentry.captureException(subError);
     }
 
-    // 7. Iniciar sesión automáticamente en el cliente SSR para establecer cookies de sesión
-    try {
-      await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-    } catch (sessionError) {
-      Sentry.captureException(sessionError);
-    }
+    const needsEmailConfirmation = !authData.session;
 
     return NextResponse.json(
       {
         success: true,
         ok: true,
+        needsEmailConfirmation,
         user: {
           id: authData.user.id,
           email: authData.user.email,

@@ -11,10 +11,11 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  AlertCircle,
   ArrowRight,
+  MailCheck,
 } from "lucide-react";
 import TurnstileWidget from "@/components/security/TurnstileWidget";
+import { notify } from "@/lib/utils/toast";
 
 const GIROS_PREDEFINIDOS = [
   "Barbería / Peluquería",
@@ -38,13 +39,30 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
+    // Validaciones preventivas en cliente con mensajes amigables
+    if (!nombreComercial.trim()) {
+      notify.warning(
+        "Nombre del negocio requerido",
+        "Por favor ingresa el nombre comercial de tu negocio.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      notify.warning(
+        "Contraseña muy corta",
+        "La contraseña debe tener al menos 6 caracteres.",
+      );
+      setLoading(false);
+      return;
+    }
 
     const giroFinal =
       giroComercial === "Otro"
@@ -71,15 +89,78 @@ export default function RegisterPage() {
       }
 
       // Redirigir al dashboard del negocio
+      if (data.needsEmailConfirmation) {
+        setRegisteredEmail(email.trim());
+        setLoading(false);
+        notify.info(
+          "¡Verifica tu correo!",
+          "Te hemos enviado un enlace para activar tu cuenta.",
+        );
+        return;
+      }
+
+      notify.success(
+        "¡Bienvenido a CitaSync!",
+        "Tu cuenta ha sido creada exitosamente.",
+      );
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Error al registrar cuenta.",
-      );
+      // Auto-resetear token y widget para evitar token_already_redeemed en reintentos
+      setTurnstileKey((prev) => prev + 1);
+      setTurnstileToken(null);
+      notify.error(err, "Error al registrar cuenta.");
       setLoading(false);
     }
   };
+
+  // Pantalla de Confirmación de Correo Enviado (Resend SMTP)
+  if (registeredEmail) {
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6 text-center transition-colors duration-200">
+        <div className="mx-auto w-16 h-16 bg-indigo-50 dark:bg-indigo-950/60 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+          <MailCheck className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-bounce" />
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            ¡Verifica tu Correo Electrónico!
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+            Hemos enviado un enlace de confirmación a{" "}
+            <span className="font-semibold text-slate-900 dark:text-white">
+              {registeredEmail}
+            </span>
+            .
+          </p>
+        </div>
+
+        <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 text-xs text-slate-500 dark:text-slate-400 text-left space-y-2">
+          <p className="font-medium text-slate-700 dark:text-slate-300">
+            📌 Próximos pasos:
+          </p>
+          <ol className="list-decimal pl-4 space-y-1">
+            <li>Abre tu bandeja de entrada en el correo indicado.</li>
+            <li>Haz clic en el enlace seguro de confirmación.</li>
+            <li>Serás redirigido automáticamente a tu nuevo Dashboard.</li>
+          </ol>
+          <p className="pt-2 text-[11px] text-slate-400">
+            * Si no lo ves en unos segundos, revisa tu carpeta de Spam o Correo
+            no deseado.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-500/20 transition-all"
+          >
+            Ir a Iniciar Sesión <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6 transition-colors duration-200">
@@ -92,13 +173,6 @@ export default function RegisterPage() {
           mismo.
         </p>
       </div>
-
-      {error && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2.5">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-          <span>{error}</span>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Nombre Comercial */}
@@ -202,7 +276,13 @@ export default function RegisterPage() {
         </div>
 
         {/* Verificación Anti-Spam (Cloudflare Turnstile) */}
-        <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
+        <TurnstileWidget
+          key={turnstileKey}
+          onVerify={(token) => setTurnstileToken(token)}
+          onError={() => setTurnstileToken(null)}
+          onExpire={() => setTurnstileToken(null)}
+          size="normal"
+        />
 
         <button
           type="submit"
