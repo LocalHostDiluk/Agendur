@@ -1,54 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Store, User, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Badge } from "@/components/ui";
+import { useAuthMe, useSucursales } from "@/lib/hooks";
 
 export interface HeaderProps {
   onMenuToggle?: () => void;
 }
 
-interface UserProfile {
-  email: string;
-  nombreNegocio: string;
-  sucursalesActivas: number;
-}
-
 export function Header({ onMenuToggle }: HeaderProps) {
-  const [profile, setProfile] = useState<UserProfile>({
-    email: "admin@empresa.com",
-    nombreNegocio: "CitaSync Negocio",
-    sucursalesActivas: 1,
-  });
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.ok && json.data) {
-          setProfile({
-            email: json.data.user?.email || "admin@empresa.com",
-            nombreNegocio: json.data.negocio?.nombre_comercial || "Mi Negocio",
-            sucursalesActivas: 1,
-          });
-        }
-      })
-      .catch(() => {});
-
-    // Consultar cantidad de sucursales
-    fetch("/api/negocio/sucursales")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && Array.isArray(json.sucursales)) {
-          setProfile((prev) => ({
-            ...prev,
-            sucursalesActivas: json.sucursales.length || 1,
-          }));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data: profile } = useAuthMe();
+  const { data: sucursales } = useSucursales();
+  const nombreNegocio = profile?.negocio?.nombre_comercial ?? "—";
+  const email = profile?.user?.email ?? "—";
+  const sucursalesActivas = sucursales ? sucursales.sucursales.length : "—";
 
   return (
     <header className="h-16 bg-white/80 dark:bg-neutral-900/80 border-b border-gray-200 dark:border-neutral-700 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md transition-colors duration-200">
@@ -66,11 +32,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <div className="flex items-center gap-x-2.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50/80 dark:bg-neutral-800/60 text-xs">
           <Store className="size-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <span className="font-medium text-gray-800 dark:text-neutral-200 truncate max-w-[120px] sm:max-w-[200px]">
-            {profile.nombreNegocio}
+            {nombreNegocio}
           </span>
           <span className="text-gray-300 dark:text-neutral-600">|</span>
           <Badge variant="neutral" size="sm" className="font-normal text-[11px]">
-            {profile.sucursalesActivas} {profile.sucursalesActivas === 1 ? "Sede" : "Sedes"}
+            {sucursalesActivas} {sucursalesActivas === 1 ? "Sede" : "Sedes"}
           </Badge>
         </div>
       </div>
@@ -87,10 +53,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
           </div>
           <div className="hidden sm:block text-start">
             <p className="text-xs font-semibold text-gray-900 dark:text-white leading-none truncate max-w-[150px]">
-              {profile.nombreNegocio}
+              {nombreNegocio}
             </p>
             <p className="text-[11px] text-gray-500 dark:text-neutral-400 truncate max-w-[150px] mt-0.5">
-              {profile.email}
+              {email}
             </p>
           </div>
         </div>

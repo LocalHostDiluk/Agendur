@@ -25,9 +25,10 @@ export function useDisponibilidad(params: DisponibilidadParams) {
       if (params.fecha) searchParams.set("fecha", params.fecha);
       if (params.profesionalId) searchParams.set("profesionalId", params.profesionalId);
       const qs = searchParams.toString();
-      return apiFetch<{ slots: string[] }>(`/api/cliente/disponibilidad?${qs}`);
+      return apiFetch<{ horarios: string[] }>(`/api/cliente/disponibilidad?${qs}`);
     },
     enabled: Boolean(params.sucursalId && params.servicioId && params.fecha),
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 }

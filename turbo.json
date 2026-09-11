@@ -2,8 +2,8 @@
   "$schema": "https://turborepo.com/schema.json",
   "tasks": {
     "build": {
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "cache": false,
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
     },
     "lint": {
       "outputs": []

@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock next/navigation
 let currentPathname = "/dashboard";
@@ -17,11 +18,20 @@ import { Header } from "@/components/negocio/Header";
 import NegocioLayout from "@/app/(negocio)/layout";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
+function renderWithQueryClient(element: React.ReactElement) {
+  const queryClient = new QueryClient();
+  const html = renderToStaticMarkup(
+    React.createElement(QueryClientProvider, { client: queryClient }, element),
+  );
+  queryClient.clear();
+  return html;
+}
+
 describe("Administrative Shell - Preline UI v5", () => {
   describe("Sidebar Component", () => {
     it("renderiza navegación corporativa con paleta neutra de Preline UI", () => {
       currentPathname = "/dashboard";
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(Sidebar, { isOpen: false }),
       );
 
@@ -50,7 +60,7 @@ describe("Administrative Shell - Preline UI v5", () => {
     });
 
     it("maneja estado responsive: drawer cerrado (-translate-x-full) y sin backdrop", () => {
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(Sidebar, { isOpen: false }),
       );
 
@@ -61,7 +71,7 @@ describe("Administrative Shell - Preline UI v5", () => {
     });
 
     it("maneja estado responsive: drawer abierto (translate-x-0) y con backdrop móvil", () => {
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(Sidebar, { isOpen: true }),
       );
 
@@ -72,7 +82,7 @@ describe("Administrative Shell - Preline UI v5", () => {
 
     it("destaca ruta activa y estilo hover moderno en rutas secundarias", () => {
       currentPathname = "/sucursales";
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(Sidebar, { isOpen: false }),
       );
 
@@ -85,7 +95,7 @@ describe("Administrative Shell - Preline UI v5", () => {
 
   describe("Header Component", () => {
     it("renderiza navbar con estilo Preline UI y backdrop blur", () => {
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(
           ThemeProvider,
           null,
@@ -103,7 +113,7 @@ describe("Administrative Shell - Preline UI v5", () => {
     });
 
     it("incluye botón toggle de menú móvil para pantallas pequeñas (md:hidden)", () => {
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(
           ThemeProvider,
           null,
@@ -116,7 +126,7 @@ describe("Administrative Shell - Preline UI v5", () => {
     });
 
     it("renderiza píldora de negocio con componente Badge y ThemeToggle", () => {
-      const html = renderToStaticMarkup(
+      const html = renderWithQueryClient(
         React.createElement(
           ThemeProvider,
           null,

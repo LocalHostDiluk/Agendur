@@ -5,7 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthMe, type AuthMeResponse } from "@/lib/hooks/use-auth-me";
 import { useCatalogo } from "@/lib/hooks/use-catalogo";
 import { useDisponibilidad, type DisponibilidadParams } from "@/lib/hooks/use-disponibilidad";
-import { useCitasNegocio, useUpdateCitaEstado, type CitasFiltros } from "@/lib/hooks/use-negocio-data";
+import { useCrearReserva } from "@/lib/hooks/use-reserva";
+import {
+  useCitasNegocio,
+  useConfiguracion,
+  useSucursales,
+  useSuscripcion,
+  useUpdateCitaEstado,
+  type CitasFiltros,
+} from "@/lib/hooks/use-negocio-data";
 import type { Cita, EstadoCita } from "@/lib/types";
 
 // Helper para montar hooks en entorno SSR/Bun sin navegador
@@ -151,6 +159,50 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
   });
 
   // ============================================================================
+  // C.1.1 Datos del negocio
+  // ============================================================================
+  describe("1.1 hooks de datos del negocio", () => {
+    it("deben consultar sus endpoints con claves de caché separadas", async () => {
+      const requestedUrls: string[] = [];
+      globalThis.fetch = mock((url: string | URL | Request) => {
+        requestedUrls.push(String(url));
+        return Promise.resolve(
+          new Response(JSON.stringify({}), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }) as unknown as typeof fetch;
+
+      renderHookInContext(() => useSuscripcion(), queryClient);
+      renderHookInContext(() => useSucursales(), queryClient);
+      renderHookInContext(() => useConfiguracion(), queryClient);
+
+      const suscripcion = queryClient.getQueryCache().find({
+        queryKey: ["negocio", "suscripcion"],
+      });
+      const sucursales = queryClient.getQueryCache().find({
+        queryKey: ["negocio", "sucursales"],
+      });
+      const configuracion = queryClient.getQueryCache().find({
+        queryKey: ["negocio", "configuracion"],
+      });
+
+      await Promise.all([
+        (suscripcion?.options.queryFn as () => Promise<unknown>)(),
+        (sucursales?.options.queryFn as () => Promise<unknown>)(),
+        (configuracion?.options.queryFn as () => Promise<unknown>)(),
+      ]);
+
+      expect(requestedUrls).toEqual([
+        "/api/negocio/suscripcion",
+        "/api/negocio/sucursales",
+        "/api/negocio/configuracion",
+      ]);
+    });
+  });
+
+  // ============================================================================
   // C.2 useCatalogo
   // ============================================================================
   describe("2. useCatalogo (lib/hooks/use-catalogo.ts)", () => {
@@ -225,7 +277,7 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
       expect(h3.fetchStatus).toBe("idle");
     });
 
-    it("debe tener enabled: true, staleTime de 1 minuto (60,000 ms) y queryKey completa cuando se proveen requeridos", () => {
+    it("debe tener enabled: true, staleTime de 30 segundos, refetch al enfocar y queryKey completa cuando se proveen requeridos", () => {
       const params: DisponibilidadParams = {
         sucursalId: "suc-1",
         servicioId: "srv-2",
@@ -239,17 +291,18 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
         queryKey: ["cliente", "disponibilidad", "suc-1", "srv-2", "2026-09-20", "prof-3"],
       });
       expect(query).toBeDefined();
-      expect((query?.options as { staleTime?: number })?.staleTime).toBe(60 * 1000);
+      expect((query?.options as { staleTime?: number; refetchOnWindowFocus?: boolean })?.staleTime).toBe(30 * 1000);
+      expect((query?.options as { refetchOnWindowFocus?: boolean })?.refetchOnWindowFocus).toBe(true);
     });
 
     it("queryFn debe construir los searchParams correctamente incluyendo profesionalId opcional", async () => {
       let requestedUrl = "";
-      const mockSlots = { slots: ["09:00", "09:30", "10:00"] };
+      const mockHorarios = { horarios: ["09:00", "09:30", "10:00"] };
 
       globalThis.fetch = mock((url: string | URL | Request) => {
         requestedUrl = String(url);
         return Promise.resolve(
-          new Response(JSON.stringify(mockSlots), {
+          new Response(JSON.stringify(mockHorarios), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           })
@@ -268,11 +321,11 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
         queryKey: ["cliente", "disponibilidad", "suc-A", "srv-B", "2026-09-22", "prof-C"],
       });
 
-      const result = await (query?.options.queryFn as () => Promise<{ slots: string[] }>)();
+      const result = await (query?.options.queryFn as () => Promise<{ horarios: string[] }>)();
       expect(requestedUrl).toBe(
         "/api/cliente/disponibilidad?sucursalId=suc-A&servicioId=srv-B&fecha=2026-09-22&profesionalId=prof-C"
       );
-      expect(result).toEqual(mockSlots);
+      expect(result).toEqual(mockHorarios);
     });
 
     it("queryFn debe omitir profesionalId si no se especifica", async () => {
@@ -280,7 +333,7 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
       globalThis.fetch = mock((url: string | URL | Request) => {
         requestedUrl = String(url);
         return Promise.resolve(
-          new Response(JSON.stringify({ slots: [] }), {
+          new Response(JSON.stringify({ horarios: [] }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           })
@@ -298,7 +351,7 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
         queryKey: ["cliente", "disponibilidad", "suc-A", "srv-B", "2026-09-22", undefined],
       });
 
-      await (query?.options.queryFn as () => Promise<{ slots: string[] }>)();
+      await (query?.options.queryFn as () => Promise<{ horarios: string[] }>)();
       expect(requestedUrl).toBe(
         "/api/cliente/disponibilidad?sucursalId=suc-A&servicioId=srv-B&fecha=2026-09-22"
       );
@@ -306,9 +359,56 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
   });
 
   // ============================================================================
-  // C.4 useCitasNegocio y useUpdateCitaEstado
+  // C.4 useCrearReserva
   // ============================================================================
-  describe("4. useCitasNegocio & useUpdateCitaEstado (lib/hooks/use-negocio-data.ts)", () => {
+  describe("4. useCrearReserva (lib/hooks/use-reserva.ts)", () => {
+    it("debe crear la reserva sin reintentos e invalidar la disponibilidad", async () => {
+      let requestedUrl = "";
+      let requestedMethod = "";
+      let requestedBody = "";
+      const reserva = {
+        sucursalId: "suc-1",
+        servicioId: "srv-1",
+        profesionalId: "prof-1",
+        clienteNombre: "Ana",
+        clienteApellido: "Pérez",
+        clientePhone: "+528111111111",
+        clienteEmail: "ana@example.com",
+        fecha: "2026-09-22",
+        hora: "10:00",
+      };
+
+      globalThis.fetch = mock((url: string | URL | Request, init?: RequestInit) => {
+        requestedUrl = String(url);
+        requestedMethod = init?.method || "GET";
+        requestedBody = String(init?.body || "");
+        return Promise.resolve(
+          new Response(JSON.stringify({ cita: { id: "cita-1" } }), {
+            status: 201,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }) as unknown as typeof fetch;
+
+      const invalidateQueriesSpy = spyOn(queryClient, "invalidateQueries");
+      const mutationHook = renderHookInContext(() => useCrearReserva(), queryClient);
+
+      await mutationHook.mutateAsync(reserva);
+
+      expect(requestedUrl).toBe("/api/cliente/reservas");
+      expect(requestedMethod).toBe("POST");
+      expect(JSON.parse(requestedBody)).toEqual(reserva);
+      expect(queryClient.getMutationCache().getAll()[0]?.options.retry).toBe(false);
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+        queryKey: ["cliente", "disponibilidad"],
+      });
+    });
+  });
+
+  // ============================================================================
+  // C.5 useCitasNegocio y useUpdateCitaEstado
+  // ============================================================================
+  describe("5. useCitasNegocio & useUpdateCitaEstado (lib/hooks/use-negocio-data.ts)", () => {
     it("useCitasNegocio debe registrar queryKey ['negocio', 'citas', filtros] y staleTime de 30 segundos", () => {
       const filtros: CitasFiltros = {
         sucursalId: "suc-1",

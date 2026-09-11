@@ -1,12 +1,40 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/query/api-client";
-import type { Cita, EstadoCita } from "@/lib/types";
+import type { Cita, EstadoCita, NegocioConfig, Sucursal } from "@/lib/types";
+import type { SubscriptionUsageStats } from "@/lib/payments/types";
 
 export interface CitasFiltros {
   sucursalId?: string;
   fechaInicio?: string;
   fechaFin?: string;
   estado?: EstadoCita;
+}
+
+export function useSucursales() {
+  return useQuery({
+    queryKey: ["negocio", "sucursales"],
+    queryFn: () => apiFetch<{ sucursales: Sucursal[] }>("/api/negocio/sucursales"),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useSuscripcion() {
+  return useQuery({
+    queryKey: ["negocio", "suscripcion"],
+    queryFn: () => apiFetch<{ data: SubscriptionUsageStats }>("/api/negocio/suscripcion"),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useConfiguracion() {
+  return useQuery({
+    queryKey: ["negocio", "configuracion"],
+    queryFn: () =>
+      apiFetch<{ configuracion: Omit<NegocioConfig, "whatsappNotificaciones"> }>(
+        "/api/negocio/configuracion",
+      ),
+    staleTime: 30 * 1000,
+  });
 }
 
 export function useCitasNegocio(filtros?: CitasFiltros) {

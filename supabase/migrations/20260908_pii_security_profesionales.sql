@@ -1,6 +1,8 @@
 -- ==============================================================================
 -- CitaSync: Mitigación de Fuga de PII en Profesionales (PostgREST RLS Hardening)
 -- Fecha: 2026-09-08
+-- Este script implementa medidas de seguridad para proteger la información sensible (PII) de los profesionales en la base de datos, asegurando que solo se expongan los datos necesarios a través de vistas públicas y restringiendo el acceso directo a las columnas sensibles.
+-- Ya fue aplicado en el entorno de producción para cumplir con las mejores prácticas de seguridad y privacidad.
 -- ==============================================================================
 
 -- 1. Revocar permisos de lectura de columnas sensibles (email, telefono) a roles públicos

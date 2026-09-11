@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { notify } from "@/lib/utils/toast";
 import { Badge } from "@/components/ui";
+import { useAuthMe } from "@/lib/hooks";
 
 export interface SidebarProps {
   isOpen?: boolean;
@@ -23,20 +24,9 @@ export interface SidebarProps {
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [negocioSlug, setNegocioSlug] = useState<string>("barber-club");
   const [loggingOut, setLoggingOut] = useState(false);
-
-  useEffect(() => {
-    // Obtener datos de negocio activo
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.ok && json.data?.negocio?.slug) {
-          setNegocioSlug(json.data.negocio.slug);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data: profile } = useAuthMe();
+  const negocioSlug = profile?.negocio?.slug;
 
   // Cerrar drawer con tecla Escape cuando esté abierto
   useEffect(() => {
@@ -167,7 +157,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         {/* Footer Actions */}
         <div className="pt-4 border-t border-gray-200 dark:border-neutral-700 space-y-2">
           <Link
-            href={`/reserva/${negocioSlug}`}
+            href={negocioSlug ? `/reserva/${negocioSlug}` : "/"}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 hover:bg-gray-100 dark:hover:bg-neutral-750 border border-gray-200 dark:border-neutral-700 transition-colors shadow-2xs"

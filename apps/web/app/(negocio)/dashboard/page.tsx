@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -14,127 +14,32 @@ import {
   Check,
 } from "lucide-react";
 import { notify } from "@/lib/utils/toast";
-
-interface DashboardData {
-  negocioNombre: string;
-  negocioSlug: string;
-  planNombre: string;
-  sucursalesUsadas: number;
-  sucursalesLimite: number;
-  citasHoy: number;
-  citasPendientes: number;
-  citas: Array<{
-    id: string;
-    cliente: string;
-    telefono: string;
-    sucursal: string;
-    servicio: string;
-    hora: string;
-    fecha: string;
-    estado: string;
-    precio: number;
-  }>;
-}
+import { useAuthMe, useCitasNegocio, useSuscripcion } from "@/lib/hooks";
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData>({
-    negocioNombre: "Mi Negocio",
-    negocioSlug: "mi-negocio",
-    planNombre: "Emprendedor",
-    sucursalesUsadas: 1,
-    sucursalesLimite: 3,
-    citasHoy: 4,
-    citasPendientes: 1,
-    citas: [
-      {
-        id: "1",
-        cliente: "Carlos Mendoza",
-        telefono: "+52 55 1234 5678",
-        sucursal: "Sucursal Matriz",
-        servicio: "Corte Clásico & Estilo",
-        fecha: "Hoy",
-        hora: "10:00 hrs",
-        estado: "confirmada",
-        precio: 350,
-      },
-      {
-        id: "2",
-        cliente: "Ana Sofía Gómez",
-        telefono: "+52 55 8765 4321",
-        sucursal: "Sucursal Matriz",
-        servicio: "Tratamiento & Masaje",
-        fecha: "Hoy",
-        hora: "12:30 hrs",
-        estado: "confirmada",
-        precio: 650,
-      },
-      {
-        id: "3",
-        cliente: "Roberto Silva",
-        telefono: "+52 55 9876 1234",
-        sucursal: "Sucursal Norte",
-        servicio: "Consulta Especializada",
-        fecha: "Hoy",
-        hora: "16:00 hrs",
-        estado: "pendiente_pago",
-        precio: 500,
-      },
-      {
-        id: "4",
-        cliente: "Mariana Torres",
-        telefono: "+52 33 4567 8901",
-        sucursal: "Sucursal Matriz",
-        servicio: "Sesión Completa VIP",
-        fecha: "Mañana",
-        hora: "11:00 hrs",
-        estado: "confirmada",
-        precio: 950,
-      },
-    ],
-  });
-
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    // 1. Cargar datos del usuario y negocio
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.ok && json.data) {
-          const neg = json.data.negocio;
-          const sub = json.data.suscripcion;
-          setData((prev) => ({
-            ...prev,
-            negocioNombre: neg?.nombre_comercial || prev.negocioNombre,
-            negocioSlug: neg?.slug || prev.negocioSlug,
-            planNombre: sub?.plan_nombre || prev.planNombre,
-            sucursalesLimite: sub?.limite_sucursales || prev.sucursalesLimite,
-          }));
-        }
-      })
-      .catch(() => {});
-
-    // 2. Cargar datos de suscripción y límites
-    fetch("/api/negocio/suscripcion")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.ok && json.data) {
-          setData((prev) => ({
-            ...prev,
-            planNombre: json.data.suscripcion?.plan_nombre || prev.planNombre,
-            sucursalesUsadas:
-              json.data.sucursales_usadas ?? prev.sucursalesUsadas,
-            sucursalesLimite:
-              json.data.sucursales_limite ?? prev.sucursalesLimite,
-          }));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data: auth } = useAuthMe();
+  const { data: suscripcionResponse } = useSuscripcion();
+  const { data: citasResponse } = useCitasNegocio();
+  const negocio = auth?.negocio;
+  const suscripcion = suscripcionResponse?.data.suscripcion ?? auth?.suscripcion;
+  const citas = citasResponse?.citas ?? [];
+  const hoy = new Date().toISOString().slice(0, 10);
+  const citasHoy = citasResponse?.citas?.filter((cita) => cita.fecha === hoy);
+  const citasPendientes = citasHoy?.filter((cita) => cita.estado === "pendiente_pago");
+  const ingresosConfirmados = citasResponse?.citas
+    ?.filter((cita) => cita.estado === "confirmada")
+    .reduce((total, cita) => total + (cita.precio_total ?? 0), 0);
+  const negocioSlug = negocio?.slug;
+  const planNombre = suscripcion?.plan_nombre ?? "—";
+  const sucursalesUsadas = suscripcionResponse?.data.sucursales_usadas ?? "—";
+  const sucursalesLimite =
+    suscripcionResponse?.data.sucursales_limite ?? suscripcion?.limite_sucursales ?? "—";
 
   const copyBookingUrl = () => {
+    if (!negocioSlug) return;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/reserva/${data.negocioSlug}`;
+    const url = `${origin}/reserva/${negocioSlug}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     notify.success("Enlace copiado", "Se copió el enlace al portapapeles.");
@@ -176,12 +81,12 @@ export default function DashboardPage() {
       <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-slate-900 text-white shadow-xl shadow-indigo-600/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-xs font-semibold uppercase tracking-wider">
-            <span>Plan {data.planNombre}</span>
+            <span>Plan {planNombre}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
             <span className="text-emerald-300 font-normal">Activo</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Hola, {data.negocioNombre}
+            Hola, {negocio?.nombre_comercial ?? "—"}
           </h1>
           <p className="text-xs sm:text-sm text-indigo-100 max-w-xl">
             Tu portal de reservas está activo y listo para recibir clientes en
@@ -192,6 +97,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={copyBookingUrl}
+            disabled={!negocioSlug}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-xs font-semibold border border-white/20 transition-all active:scale-95"
           >
             {copied ? (
@@ -205,7 +111,7 @@ export default function DashboardPage() {
           </button>
 
           <Link
-            href={`/reserva/${data.negocioSlug}`}
+            href={negocioSlug ? `/reserva/${negocioSlug}` : "/"}
             target="_blank"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-indigo-50 text-xs font-bold shadow-md transition-all hover:scale-[1.02] active:scale-95"
           >
@@ -229,10 +135,10 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-              {data.citasHoy}
+              {citasHoy?.length ?? "—"}
             </span>
             <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
-              {data.citasPendientes} pendiente
+              {citasPendientes?.length ?? "—"} pendiente
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -252,9 +158,9 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-              {data.sucursalesUsadas}{" "}
+              {sucursalesUsadas}{" "}
               <span className="text-sm font-normal text-slate-400">
-                / {data.sucursalesLimite}
+                / {sucursalesLimite}
               </span>
             </span>
             <Link
@@ -265,7 +171,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Capacidad de tu plan: {data.sucursalesLimite} sedes
+            Capacidad de tu plan: {sucursalesLimite} sedes
           </p>
         </div>
 
@@ -281,14 +187,14 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-xl font-bold text-slate-900 dark:text-white capitalize">
-              {data.planNombre}
+              {planNombre}
             </span>
             <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800/60">
-              Vigente
+              {suscripcion?.estado ?? "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Facturación mensual activa
+            Facturación {suscripcion?.intervalo ?? "—"}
           </p>
         </div>
 
@@ -304,11 +210,13 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
-              $2,450{" "}
+              {ingresosConfirmados === undefined
+                ? "—"
+                : `$${ingresosConfirmados.toLocaleString("es-MX")}`} {" "}
               <span className="text-xs font-normal text-slate-500">MXN</span>
             </span>
             <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-              +18% sem.
+              Confirmadas
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -352,27 +260,29 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {data.citas.map((cita) => (
+              {citas.map((cita) => (
                 <tr
                   key={cita.id}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
                   <td className="py-3.5 px-4">
                     <p className="font-semibold text-slate-900 dark:text-white">
-                      {cita.cliente}
+                      {[cita.cliente_nombre ?? cita.clienteNombre, cita.cliente_apellido]
+                        .filter(Boolean)
+                        .join(" ") || "—"}
                     </p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      {cita.telefono}
+                      {cita.cliente_telefono ?? cita.clientePhone ?? "—"}
                     </p>
                   </td>
                   <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
                     <span className="inline-flex items-center gap-1.5">
                       <Store className="w-3.5 h-3.5 text-slate-400" />
-                      {cita.sucursal}
+                      {cita.sucursal_id ?? cita.sucursalId ?? "—"}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
-                    {cita.servicio}
+                    {cita.servicio_id ?? cita.servicioId ?? "—"}
                   </td>
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
@@ -380,12 +290,12 @@ export default function DashboardPage() {
                       <span className="font-medium">{cita.fecha}</span>
                       <span className="text-slate-400">·</span>
                       <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                        {cita.hora}
+                        {cita.hora_inicio ?? cita.hora ?? "—"}
                       </span>
                     </div>
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-                    ${cita.precio} MXN
+                    {cita.precio_total === undefined ? "—" : `$${cita.precio_total} MXN`}
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     {getStatusBadge(cita.estado)}
