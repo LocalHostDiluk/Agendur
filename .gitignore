@@ -50,5 +50,9 @@ SOLUCION-REFACT.md
 NEXT_SESSION.md
 AGENTS.md
 
-#git
+# git
 .gitignore
+
+# local config files
+/.agents
+/.codegraph
