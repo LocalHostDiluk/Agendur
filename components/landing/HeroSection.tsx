@@ -8,7 +8,6 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  Star,
   MapPin,
   MessageCircle,
   Scissors,
@@ -83,9 +82,7 @@ export function HeroSection() {
             {/* Soft Pill Badge */}
             <div className="inline-flex items-center gap-x-2 py-1.5 px-3.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-400 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
-              <span>
-                ✨ Nueva versión: Anticipos y recordatorios inteligentes
-              </span>
+              <span>Nueva versión: Anticipos y recordatorios inteligentes</span>
             </div>
 
             {/* Bold Headline */}
@@ -140,54 +137,6 @@ export function HeroSection() {
                 Prueba de 14 días sin tarjeta de crédito. Configuración en 3
                 minutos.
               </p>
-            </div>
-
-            {/* Social Proof Badges */}
-            <div className="pt-3 border-t border-gray-200 dark:border-neutral-800/80 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-2 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80"
-                    alt="Usuario CitaSync"
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80"
-                    alt="Usuario CitaSync"
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
-                    src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=80&q=80"
-                    alt="Usuario CitaSync"
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="inline-block size-8 rounded-full ring-2 ring-white dark:ring-neutral-900 object-cover"
-                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80"
-                    alt="Usuario CitaSync"
-                  />
-                </div>
-                <div className="text-left">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="size-3.5 fill-amber-400 text-amber-400"
-                      />
-                    ))}
-                    <span className="font-bold text-xs text-gray-800 dark:text-neutral-200 ml-1">
-                      4.9/5
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-neutral-400">
-                    +1,200 negocios gestionando sus citas
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 

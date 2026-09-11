@@ -3,8 +3,8 @@
 export function Navbar() {
   return (
     // ========== HEADER ==========
-    <header className="sticky top-4 inset-x-0 flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full before:absolute before:inset-0 before:max-w-5xl before:mx-2 lg:before:mx-auto before:rounded-[26px] before:bg-navbar before:border before:border-navbar-line">
-      <nav className="relative max-w-5xl w-full flex flex-wrap md:flex-nowrap basis-full items-center justify-between py-2 ps-5 pe-2 md:py-0 mx-2 lg:mx-auto">
+    <header className="sticky top-4 inset-x-0 flex flex-wrap md:justify-start md:flex-nowrap z-40 w-full before:absolute before:inset-0 before:max-w-5xl before:mx-2 xl:before:mx-auto sm:max-xl:before:mr-20 before:rounded-[26px] before:bg-navbar before:border before:border-navbar-line">
+      <nav className="relative max-w-5xl w-full flex flex-wrap md:flex-nowrap basis-full items-center justify-between py-2 ps-5 pe-2 md:py-0 mx-2 sm:max-xl:mr-20 xl:mx-auto">
         <div className="flex items-center">
           {/* Logo */}
           <a
@@ -37,16 +37,22 @@ export function Navbar() {
                 stroke="currentColor"
                 strokeWidth="2"
               />
-              <circle cx="13" cy="16.5214" r="5" className="fill-primary" fill="currentColor" />
+              <circle
+                cx="13"
+                cy="16.5214"
+                r="5"
+                className="fill-primary"
+                fill="currentColor"
+              />
             </svg>
           </a>
           {/* End Logo */}
         </div>
 
         {/* Button Group */}
-        <div className="md:order-3 flex items-center gap-x-2 sm:gap-x-3">
+        <div className="md:order-3 flex items-center gap-x-2 sm:gap-x-3 shrink-0">
           <a
-            className="hidden sm:inline-flex items-center justify-center py-2 px-3 text-sm font-medium text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:outline-hidden transition-colors"
+            className="hidden sm:inline-flex items-center justify-center py-2 px-3.5 text-sm sm:text-[15px] font-semibold text-nowrap whitespace-nowrap text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
             href="/login"
           >
             Iniciar Sesión
@@ -54,7 +60,7 @@ export function Navbar() {
 
           <div>
             <a
-              className="group inline-flex items-center gap-x-2 py-2 px-3.5 bg-primary border border-primary-line text-primary-foreground font-medium text-sm text-nowrap rounded-[26px] hover:opacity-90 focus:outline-hidden transition-all shadow-xs"
+              className="group inline-flex items-center gap-x-2 py-2 px-3.5 bg-primary border border-primary-line text-primary-foreground font-medium text-sm text-nowrap whitespace-nowrap rounded-[26px] hover:opacity-90 focus:outline-hidden transition-all shadow-xs"
               href="/register"
             >
               Comenzar Gratis
@@ -118,7 +124,7 @@ export function Navbar() {
           <div className="overflow-hidden overflow-y-auto max-h-[75vh] [&::-webkit-scrollbar]:w-0">
             <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-y-3 pt-6 pb-2 md:py-0 md:ps-7">
               <a
-                className="md:px-3 md:py-4 text-sm focus:outline-hidden text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:text-navbar-2-nav-foreground-focus"
+                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
                 href="#"
               >
                 Inicio
@@ -129,7 +135,7 @@ export function Navbar() {
                 <button
                   id="hs-pro-ancarc"
                   type="button"
-                  className="hs-dropdown-toggle md:px-3 md:py-4 w-full md:w-auto flex items-center text-sm text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:outline-hidden focus:text-navbar-2-nav-foreground-focus"
+                  className="hs-dropdown-toggle md:px-3 md:py-4 w-full md:w-auto flex items-center text-sm font-semibold text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors cursor-pointer"
                   aria-haspopup="menu"
                   aria-expanded="false"
                   aria-label="Dropdown"
@@ -158,48 +164,49 @@ export function Navbar() {
                   aria-labelledby="hs-pro-ancarc"
                 >
                   <div className="flex flex-col gap-y-1">
-                    {/* Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                      <div className="p-5 md:min-h-50 flex flex-col justify-between bg-layer rounded-t-xl md:rounded-tr-none md:rounded-tl-xl">
-                        {/* Heading */}
-                        <div className="mb-4">
-                          <a
-                            className="group flex items-center gap-x-2 font-semibold text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
-                            href="#caracteristicas"
-                          >
-                            Funcionalidades Clave
-                            <span className="ms-auto size-6 flex shrink-0 justify-center items-center bg-primary text-primary-foreground rounded-sm">
-                              <svg
-                                className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M5 12h14"></path>
-                                <path d="m12 5 7 7-7 7"></path>
-                              </svg>
-                            </span>
-                          </a>
-                        </div>
+                    {/* Funcionalidades Clave Card */}
+                    <div className="p-5 bg-layer rounded-t-xl">
+                      {/* Heading */}
+                      <div className="mb-4">
+                        <a
+                          className="group inline-flex items-center gap-x-2 font-semibold text-sm text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
+                          href="#caracteristicas"
+                        >
+                          Funcionalidades Clave
+                          <span className="size-6 flex shrink-0 justify-center items-center bg-primary text-primary-foreground rounded-sm">
+                            <svg
+                              className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M5 12h14"></path>
+                              <path d="m12 5 7 7-7 7"></path>
+                            </svg>
+                          </span>
+                        </a>
+                      </div>
 
-                        {/* List */}
+                      {/* 2-column balanced grid with 6 items */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                        {/* Columna 1 */}
                         <ul className="flex flex-col">
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
+                          <li className="py-2 first:pt-0 border-t border-line-1 first:border-t-0">
                             <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
+                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
                               href="#caracteristicas"
                             >
-                              <span className="size-1 bg-primary rounded-full"></span>
+                              <span className="size-1.5 bg-primary rounded-full"></span>
                               Agenda en Tiempo Real
                               <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
                                 <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
+                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
                                   xmlns="http://www.w3.org/2000/svg"
                                   width="24"
                                   height="24"
@@ -217,16 +224,16 @@ export function Navbar() {
                             </a>
                           </li>
 
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
+                          <li className="py-2 border-t border-line-1">
                             <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
+                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
                               href="#caracteristicas"
                             >
-                              <span className="size-1 bg-primary rounded-full"></span>
+                              <span className="size-1.5 bg-primary rounded-full"></span>
                               Cobro de Anticipos
                               <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
                                 <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
+                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
                                   xmlns="http://www.w3.org/2000/svg"
                                   width="24"
                                   height="24"
@@ -244,43 +251,16 @@ export function Navbar() {
                             </a>
                           </li>
 
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
+                          <li className="py-2 border-t border-line-1">
                             <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
+                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
                               href="#caracteristicas"
                             >
-                              <span className="size-1 bg-primary rounded-full"></span>
+                              <span className="size-1.5 bg-primary rounded-full"></span>
                               Recordatorios WhatsApp
                               <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
                                 <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1 bg-primary rounded-full"></span>
-                              Portal Autoservicio 24/7
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
+                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
                                   xmlns="http://www.w3.org/2000/svg"
                                   width="24"
                                   height="24"
@@ -298,46 +278,46 @@ export function Navbar() {
                             </a>
                           </li>
                         </ul>
-                      </div>
 
-                      <div className="p-5 md:min-h-50 flex flex-col justify-between bg-layer md:rounded-tr-xl">
-                        <div className="mb-4">
-                          <a
-                            className="group flex items-center gap-x-3 font-semibold text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
-                            href="#caracteristicas"
-                          >
-                            Gestión Operativa
-                            <span className="ms-auto size-6 flex shrink-0 justify-center items-center bg-primary text-primary-foreground rounded-sm">
-                              <svg
-                                className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M5 12h14"></path>
-                                <path d="m12 5 7 7-7 7"></path>
-                              </svg>
-                            </span>
-                          </a>
-                        </div>
-
+                        {/* Columna 2 */}
                         <ul className="flex flex-col">
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
+                          <li className="py-2 md:first:pt-0 border-t border-line-1 md:first:border-t-0">
                             <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
+                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
                               href="#caracteristicas"
                             >
-                              <span className="size-1 bg-primary rounded-full"></span>
+                              <span className="size-1.5 bg-primary rounded-full"></span>
+                              Portal Autoservicio 24/7
+                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
+                                <svg
+                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M5 12h14"></path>
+                                  <path d="m12 5 7 7-7 7"></path>
+                                </svg>
+                              </span>
+                            </a>
+                          </li>
+
+                          <li className="py-2 border-t border-line-1">
+                            <a
+                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
+                              href="#caracteristicas"
+                            >
+                              <span className="size-1.5 bg-primary rounded-full"></span>
                               Control Multi-Sucursal
                               <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
                                 <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
+                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
                                   xmlns="http://www.w3.org/2000/svg"
                                   width="24"
                                   height="24"
@@ -355,43 +335,16 @@ export function Navbar() {
                             </a>
                           </li>
 
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
+                          <li className="py-2 border-t border-line-1">
                             <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
+                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
                               href="#caracteristicas"
                             >
-                              <span className="size-1 bg-primary rounded-full"></span>
+                              <span className="size-1.5 bg-primary rounded-full"></span>
                               Sincronización Google Calendar
                               <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
                                 <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-
-                          <li className="py-2 first:pt-0 last:pb-0 first:border-t-0 border-t border-line-1">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-navbar-2-nav-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
-                              href="#impacto"
-                            >
-                              <span className="size-1 bg-primary rounded-full"></span>
-                              Métricas y Reducción de No-Shows
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
+                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
                                   xmlns="http://www.w3.org/2000/svg"
                                   width="24"
                                   height="24"
@@ -413,13 +366,14 @@ export function Navbar() {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-2.5 bg-layer rounded-b-xl">
+                    <div className="p-2.5 bg-layer rounded-b-xl border-t border-line-1">
                       <div className="flex flex-wrap justify-between items-center gap-1">
                         <a
-                          className="py-1.5 ps-3 pe-2 group flex items-center gap-x-1 font-medium text-sm text-foreground hover:text-primary-hover focus:text-primary-focus focus:outline-hidden"
+                          className="py-1.5 ps-3 pe-2 group flex items-center gap-x-1 font-medium text-sm text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
                           href="#impacto"
                         >
-                          Comprueba el impacto real de CitaSync frente a la gestión manual
+                          Comprueba el impacto real de CitaSync frente a la
+                          gestión manual
                           <svg
                             className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
                             xmlns="http://www.w3.org/2000/svg"
@@ -438,7 +392,7 @@ export function Navbar() {
                         </a>
 
                         <a
-                          className="py-1.5 px-3 font-medium text-sm text-primary rounded-full hover:bg-muted-hover focus:outline-hidden focus:bg-muted-focus"
+                          className="py-1.5 px-3 font-semibold text-sm text-primary rounded-full hover:bg-muted-hover focus:outline-hidden focus:bg-muted-focus transition-colors"
                           href="#precios"
                         >
                           Ver Planes
@@ -449,78 +403,22 @@ export function Navbar() {
                 </div>
               </div>
 
-              {/* Dropdown Link: Sectores */}
-              <div className="hs-dropdown [--strategy:static] md:[--strategy:absolute] [--adaptive:none] md:[--trigger:hover] [--auto-close:inside] md:inline-block">
-                <button
-                  id="hs-pro-ansct"
-                  type="button"
-                  className="hs-dropdown-toggle md:px-3 md:py-4 w-full md:w-auto flex items-center text-sm focus:outline-hidden text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:text-navbar-2-nav-foreground-focus"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-label="Dropdown"
-                >
-                  Sectores
-                  <svg
-                    className="hs-dropdown-open:-rotate-180 md:hs-dropdown-open:rotate-0 duration-300 ms-auto md:ms-1 shrink-0 size-3.5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
-
-                <div
-                  className="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] lg:duration-150 hs-dropdown-open:opacity-100 opacity-0 relative w-full md:w-56 hidden z-10 top-full rounded-2xl bg-dropdown border-4 border-dropdown-line md:shadow-xl before:absolute before:-top-4 before:inset-s-0 before:w-full before:h-5 md:after:hidden mt-2 md:mt-0"
-                  role="menu"
-                  aria-orientation="vertical"
-                  aria-labelledby="hs-pro-ansct"
-                >
-                  <div className="p-5 flex flex-col gap-y-3">
-                    <a
-                      className="text-sm hover:text-primary-hover focus:outline-hidden focus:text-primary-focus text-navbar-2-nav-foreground"
-                      href="#impacto"
-                    >
-                      Barberías &amp; Salones
-                    </a>
-                    <a
-                      className="text-sm hover:text-primary-hover focus:outline-hidden focus:text-primary-focus text-navbar-2-nav-foreground"
-                      href="#impacto"
-                    >
-                      Clínicas &amp; Spas
-                    </a>
-                    <a
-                      className="text-sm hover:text-primary-hover focus:outline-hidden focus:text-primary-focus text-navbar-2-nav-foreground"
-                      href="#impacto"
-                    >
-                      Fisioterapia &amp; Salud
-                    </a>
-                  </div>
-                </div>
-              </div>
-
               <a
-                className="md:px-3 md:py-4 text-sm focus:outline-hidden text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:text-navbar-2-nav-foreground-focus"
+                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
                 href="#impacto"
               >
                 Impacto
               </a>
 
               <a
-                className="md:px-3 md:py-4 text-sm focus:outline-hidden text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:text-navbar-2-nav-foreground-focus"
+                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
                 href="#precios"
               >
                 Precios
               </a>
 
               <a
-                className="md:px-3 md:py-4 text-sm focus:outline-hidden text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:text-navbar-2-nav-foreground-focus"
+                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
                 href="#faq"
               >
                 FAQ
@@ -528,7 +426,7 @@ export function Navbar() {
 
               <div className="pt-2 md:hidden border-t border-line-1">
                 <a
-                  className="block py-2 text-sm font-medium text-navbar-2-nav-foreground hover:text-navbar-2-nav-foreground-hover focus:outline-hidden"
+                  className="block py-2 text-sm font-semibold text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
                   href="/login"
                 >
                   Iniciar Sesión

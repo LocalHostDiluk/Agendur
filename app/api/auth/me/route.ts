@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { apiError } from "@/lib/utils/api-error";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 export async function GET() {
   try {
@@ -15,10 +14,6 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json(
-        { success: false, error: "No autorizado. No existe sesión activa." },
-        { status: 401 },
-      );
       return apiError("No autorizado. No existe sesión activa.", undefined, {
         status: 401,
       });
@@ -80,20 +75,11 @@ export async function GET() {
       suscripcion,
     };
 
-    return NextResponse.json({
-      success: true,
-      ok: true,
+    return apiSuccess({
       data: responseData,
       ...responseData,
     });
   } catch (error) {
-    Sentry.captureException(error);
-    const message =
-      error instanceof Error ? error.message : "Error al obtener sesión.";
-    return NextResponse.json(
-      { success: false, ok: false, error: message },
-      { status: 500 },
-    );
     return apiError(error, "Error al obtener sesión.");
   }
 }

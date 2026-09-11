@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { Sidebar } from "@/components/negocio/Sidebar";
 import { Header } from "@/components/negocio/Header";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 export default function NegocioLayout({ children }: LayoutProps<"/">) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,7 +16,9 @@ export default function NegocioLayout({ children }: LayoutProps<"/">) {
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuToggle={toggleSidebar} />
-        <main className="p-4 sm:p-6 lg:p-8 flex-1">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8 flex-1">
+          <QueryProvider>{children}</QueryProvider>
+        </main>
       </div>
     </div>
   );

@@ -97,6 +97,32 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+html,
+body,
+header,
+nav,
+main,
+section,
+footer,
+div,
+a,
+button,
+input,
+p,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+::before,
+::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @keyframes marquee {
   0% {
     transform: translateX(0%);
@@ -110,4 +136,9 @@ body {
   display: flex;
   width: max-content;
   animation: marquee 35s linear infinite;
+}
+
+.animate-marquee,
+.animate-marquee > * {
+  transition: none;
 }

@@ -24,7 +24,6 @@ import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { ImpactChartSection } from "@/components/landing/ImpactChartSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
-import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
 import LandingPage from "@/app/(landing)/page";
 
@@ -52,13 +51,16 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
       expect(html).toContain("fill-primary");
       expect(html).toContain("Inicio");
       expect(html).toContain("Características");
-      expect(html).toContain("Sectores");
       expect(html).toContain("Impacto");
       expect(html).toContain("Precios");
       expect(html).toContain("FAQ");
+      expect(html).toContain("Funcionalidades Clave");
       expect(html).toContain("Agenda en Tiempo Real");
       expect(html).toContain("Cobro de Anticipos");
       expect(html).toContain("Recordatorios WhatsApp");
+      expect(html).toContain("Control Multi-Sucursal");
+      expect(html).toContain("Sincronización Google Calendar");
+      expect(html).not.toContain("Gestión Operativa");
     });
 
     it("incluye botón CTA Comenzar Gratis, Iniciar Sesión y toggle de menú colapsable Preline", () => {
@@ -78,7 +80,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
     it("renderiza píldora badge, titular audaz y subtítulo orientado a beneficios", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
       expect(html).toContain(
-        "✨ Nueva versión: Anticipos y recordatorios inteligentes",
+        "Nueva versión: Anticipos y recordatorios inteligentes",
       );
       expect(html).toContain("El software de citas que");
       expect(html).toContain("elimina el ausentismo");
@@ -88,13 +90,13 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
       );
     });
 
-    it("incluye input de micro-captura de slug y prueba social", () => {
+    it("incluye input de micro-captura de slug y garantía de 14 días sin sección de calificación", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
       expect(html).toContain("citasync.com/");
       expect(html).toContain("tu-marca");
       expect(html).toContain("Comenzar Gratis");
-      expect(html).toContain("+1,200 negocios gestionando sus citas");
-      expect(html).toContain("4.9/5");
+      expect(html).toContain("Prueba de 14 días sin tarjeta de crédito");
+      expect(html).not.toContain("4.9/5");
     });
 
     it("incluye tarjeta interactiva con servicios, profesional y anticipo", () => {
@@ -220,20 +222,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
     });
   });
 
-  describe("8. CTASection Component", () => {
-    it("renderiza banner de cierre de alto contraste con enlaces y badges", () => {
-      const html = renderWithTheme(React.createElement(CTASection));
-      expect(html).toContain(
-        "¿Listo para digitalizar la agenda de tus sucursales?",
-      );
-      expect(html).toContain('href="/register"');
-      expect(html).toContain('href="/reserva/barber-shop"');
-      expect(html).toContain("14 días de prueba gratis");
-      expect(html).toContain("Sin tarjeta de crédito");
-    });
-  });
-
-  describe("9. Footer Component", () => {
+  describe("8. Footer Component", () => {
     it("renderiza layout corporativo con enlaces, ThemeToggle y copyright dinámico", () => {
       const html = renderWithTheme(React.createElement(Footer));
       const year = new Date().getFullYear().toString();
@@ -246,15 +235,16 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
     });
   });
 
-  describe("10. LandingPage Complete Integration", () => {
-    it("renderiza todas las secciones en orden con soporte a modo claro y oscuro", () => {
+  describe("9. LandingPage Complete Integration", () => {
+    it("renderiza todas las secciones en orden con soporte a modo claro y oscuro sin CTA final", () => {
       const html = renderWithTheme(React.createElement(LandingPage));
       expect(html).toContain("bg-white");
       expect(html).toContain("dark:bg-neutral-950");
       expect(html).toContain("text-gray-900");
       expect(html).toContain("dark:text-neutral-100");
+      expect(html).toContain("hs-dark-mode");
 
-      // Verify sections appear in expected sequence
+      // Verify sections appear in expected sequence (FAQ directly to Footer)
       const posNav = html.indexOf("<header");
       const posHero = html.indexOf("citasync.com/");
       const posMarquee = html.indexOf("animate-marquee");
@@ -262,9 +252,6 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
       const posImpact = html.indexOf('id="impacto"');
       const posPricing = html.indexOf('id="precios"');
       const posFaq = html.indexOf('id="faq"');
-      const posCta = html.indexOf(
-        "¿Listo para digitalizar la agenda de tus sucursales?",
-      );
       const posFooter = html.indexOf("<footer");
 
       expect(posNav).toBeGreaterThan(-1);
@@ -274,8 +261,12 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
       expect(posImpact).toBeGreaterThan(posFeatures);
       expect(posPricing).toBeGreaterThan(posImpact);
       expect(posFaq).toBeGreaterThan(posPricing);
-      expect(posCta).toBeGreaterThan(posFaq);
-      expect(posFooter).toBeGreaterThan(posCta);
+      expect(posFooter).toBeGreaterThan(posFaq);
+
+      // Verify CTASection is completely removed
+      expect(html).not.toContain(
+        "¿Listo para digitalizar la agenda de tus sucursales?",
+      );
     });
   });
 });
