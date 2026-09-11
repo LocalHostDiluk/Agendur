@@ -183,3 +183,196 @@ bun run build
 ## Alcance de calidad
 
 El proyecto usa TypeScript estricto, ESLint 9 con la configuración de Next y pruebas con `bun test`. La aplicación añade cabeceras de seguridad, sanea redirecciones, normaliza errores de API y usa políticas RLS. Estas medidas no sustituyen la ejecución de migraciones ni la configuración de los secretos de producción.
+
+
+
+
+
+## Recomendaciones para la evolución del producto
+
+Esta sección parte de un objetivo concreto: lanzar en 2–3 meses un MVP para decenas o cientos de negocios, tolerar picos de reservas concurrentes y hacer **imposible** el doble agendamiento desde el punto de vista del producto. El estado de las migraciones y del SQL queda fuera de esta evaluación.
+
+### Decisión arquitectónica recomendada
+
+Adoptar un **monorepo con un monolito modular orientado a dominios**, usando Bun Workspaces y Turborepo. Es una decisión de organización, construcción y límites de código; no es una promesa de permanecer para siempre en una sola aplicación.
+
+La evolución buscada es:
+
+```text
+Hoy                         Próximo MVP                      Cuando la evidencia lo exija
+-----------------------     -----------------------------    --------------------------------
+Una app Next.js        ->   Monorepo + monolito modular  ->  Servicios extraídos mediante
+con módulos mezclados       + worker de tareas asíncronas     patrón Strangler
+
+app / componentes / lib     apps/web + paquetes con           worker, notificaciones, reporting
+                             dependencias explícitas            o API pública independientes
+```
+
+El monolito modular es el punto de partida correcto porque conserva transacciones, despliegue y depuración simples mientras se definen fronteras que después pueden extraerse. Un microservicio debe nacer de una presión observable —carga distinta, despliegue independiente, dependencia especializada o un equipo propietario—, no de una previsión abstracta.
+
+**No recomendaría ahora:** cambiar Next.js, crear un backend NestJS paralelo, GraphQL, Kubernetes, micro-frontends o un bus de eventos como infraestructura central. Todos añaden superficies operativas sin resolver primero la integridad de la reserva ni acelerar el lanzamiento.
+
+### Estructura objetivo del monorepo
+
+La primera versión debe seguir siendo deliberadamente pequeña. Un monorepo con una sola aplicación también es válido: Turborepo puede adoptarse de forma incremental, ejecuta los scripts ya existentes y aporta grafo de tareas y caché compartida cuando el equipo y CI comiencen a repetir trabajo. [Documentación de Turborepo](https://turborepo.dev/docs)
+
+```text
+apps/
+  web/                         # Única aplicación Next.js desplegable al inicio
+  worker/                      # Añadir solo al activar tareas durables de notificación
+
+packages/
+  contracts/                   # Esquemas runtime, DTOs, errores públicos y eventos
+  domain/                      # Reglas puras: reservas, suscripciones y límites
+  ui/                          # Componentes verdaderamente reutilizables y tokens visuales
+  config-eslint/               # Configuración compartida y reglas de límites
+  config-typescript/           # `tsconfig` base por tipo de paquete
+
+docs/
+  adr/                         # Decisiones de arquitectura breves y versionadas
+  runbooks/                    # Incidentes operativos, reservas y webhooks
+```
+
+No conviene crear `apps/api`, `apps/admin`, un paquete por cada archivo ni una librería interna de utilidades genérica. Deben añadirse solo cuando haya un consumidor o despliegue adicional. Next.js ya puede compilar paquetes locales mediante `transpilePackages`, y Turbopack puede configurarse con la raíz del workspace si hiciera falta; no se requiere una capa de bundling adicional. [Guía de paquetes locales de Next.js](https://nextjs.org/docs/pages/api-reference/config/next-config-js/transpilePackages), [configuración de Turbopack](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack).
+
+#### Reglas de dependencia
+
+```text
+app/route handler o feature UI
+        ↓
+application use case
+        ↓
+domain (sin Next.js, Supabase, Stripe ni UI)
+        ↓
+ports / interfaces
+        ↓
+adapters de infraestructura (Supabase, Stripe, Turnstile, mensajería)
+```
+
+- `domain` no importa framework ni SDK de terceros; concentra reglas y tipos de negocio verificables.
+- Los Route Handlers son adaptadores HTTP delgados: parsean, autorizan, invocan un caso de uso y traducen el resultado HTTP.
+- La UI no importa clientes administrativos, lógica de dominio ni modelos de persistencia.
+- Cada integración externa queda detrás de un puerto: conservar el patrón actual de pagos y ampliarlo a notificaciones, cache o analítica si se introducen.
+- Usar reglas de imports y `turbo boundaries` en CI para impedir dependencias cruzadas; las convenciones sin verificación se degradan rápidamente con seis personas.
+
+### Patrón estándar para el código nuevo
+
+No hace falta imponer Clean Architecture ceremonial en cada botón. Sí hace falta un estándar para los dominios con impacto operativo.
+
+| Necesidad | Estándar recomendado | Aplicación inicial |
+| --- | --- | --- |
+| Reglas críticas | **Use cases / Application Service** | `CrearReserva`, `ConsultarDisponibilidad`, `CambiarEstadoCita`, `IniciarSuscripción`. |
+| Dominio | **Functional core, imperative shell** | Cálculos de horarios, validaciones y transiciones como funciones puras; I/O en adaptadores. |
+| Proveedores externos | **Ports and Adapters** | Mantener `PaymentGatewayAdapter`; definir equivalentes para notificaciones y trabajos durables. |
+| Errores | **Errores de dominio tipados + un traductor HTTP único** | Sustituir respuestas y `throw` heterogéneos por un catálogo estable: validación, no autorizado, conflicto, límite y proveedor no disponible. |
+| Contratos | **Schema-first en runtime** | Esquemas compartidos para entradas, salidas y eventos; TypeScript solo no valida tráfico HTTP. Adoptar Zod como única librería de validación si se necesita una. |
+| Lecturas y comandos | **Separación ligera de comandos/queries** | Commands cambian estado e idempotencia; queries devuelven read models. No implementar CQRS con infraestructura separada. |
+| Asincronía | **Cola durable + consumidores idempotentes** | Email, WhatsApp, reintentos de proveedor y proyecciones nunca deben vivir dentro de la respuesta de una reserva. |
+| UI remota | **Server Components por defecto; React Query para interacción** | Catálogo público cacheable/lecturas en servidor; mutations, filtros y estado interactivo con un único cliente de query. |
+
+Todo nuevo módulo debe incluir: dueño de dominio, contrato de entrada/salida, caso de uso, pruebas de comportamiento, política de errores y una prohibición explícita de importar capas externas. Esto unifica el diseño sin forzar clases, factories o repositorios donde no aportan valor.
+
+### Integridad de reservas y picos concurrentes
+
+La integridad es la prioridad de producto. La interfaz puede mostrar presencia o bloquear visualmente un slot, pero la fuente de verdad debe seguir siendo el flujo de confirmación en servidor.
+
+1. Definir `CrearReserva` como comando idempotente: el cliente envía una clave de idempotencia y reintentar una petición no puede crear dos resultados.
+2. Mantener un único punto de decisión de disponibilidad y conflicto; no duplicar la regla entre página, Route Handler y servicio.
+3. Tratar un conflicto como resultado esperado de negocio, no como una excepción opaca: devolver al usuario slots alternativos o una instrucción clara para actualizar disponibilidad.
+4. Hacer que los efectos secundarios —WhatsApp, email, analítica— se ejecuten después de aceptar la reserva y sean reintentables. Su fallo no debe revertir ni ocultar una cita válida.
+5. Antes de abrir a negocios reales, ejecutar una prueba de concurrencia que lance múltiples intentos sobre el mismo slot y demuestre que solo hay una reserva aceptada.
+
+El `worker` se justifica en cuanto existan notificaciones reales, reintentos o tareas de más de unos segundos. Para el plazo del MVP, elegir **un** servicio de funciones/cola durables gestionado o un worker propio con una cola administrada; no construir una cola casera. La elección debe garantizar reintentos acotados, idempotencia, dead-letter/visibilidad de fallos y trazabilidad por `bookingId`.
+
+### Plan de entrega en 2–3 meses
+
+| Etapa | Resultado verificable | Prioridad |
+| --- | --- | --- |
+| Semanas 1–2 | Decisión de arquitectura en ADR, contrato de módulos, workspace Turborepo mínimo, CI que instala/lint/typecheck/test/build y un entorno de staging. | Bloqueante |
+| Semanas 2–4 | Portal público conectado a catálogo y disponibilidad reales; comando de reserva único e idempotente; prueba de concurrencia y flujo de conflicto usable. | Bloqueante |
+| Semanas 4–6 | Panel de agendas, sucursales y suscripción consumiendo la API real; estandarización de contratos, errores, validación y React Query. | Alta |
+| Semanas 6–8 | Notificaciones con trabajo durable, webhooks observables y reintentables, métricas de negocio, alertas y runbooks. | Alta |
+| Semanas 8–12 | Prueba de carga, hardening de despliegue, piloto controlado, corrección por telemetría y expansión gradual. | Alta |
+
+Una refactorización estructural no debe retrasar el flujo crítico. Mover el proyecto a `apps/web` y crear configuración compartida es razonable al inicio; extraer paquetes de dominio debe suceder por cortes verticales, empezando por reservas. El objetivo de cada etapa es una capacidad demostrable, no “terminar la arquitectura”.
+
+### Operación, fiabilidad y observabilidad
+
+Definir objetivos antes de medirlos. Como punto de partida para el MVP:
+
+- tasa de reservas aceptadas y confirmadas, conflictos por slot, latencia p95/p99 de disponibilidad y creación, errores por proveedor, backlog/reintentos de trabajos y resultado de webhooks;
+- un identificador de correlación desde la petición hasta la reserva, trabajo asíncrono y notificación;
+- logs estructurados y sin PII sensible; Sentry debe recibir contexto de negocio seguro, no correos, teléfonos ni cuerpos completos;
+- alertas accionables: caída de reservas, aumento de conflictos, retraso/fallos en jobs, webhooks fallidos y errores 5xx sostenidos;
+- runbooks cortos para doble reserva reportada, indisponibilidad de Supabase/Stripe, webhook atrasado y fallo de notificaciones;
+- despliegues progresivos, rollback sencillo y feature flags para activar por negocio las funcionalidades de mayor riesgo.
+
+Proponer un SLO inicial de disponibilidad de reserva y API, junto con un presupuesto de error, es más útil que prometer “alta disponibilidad” sin medida. El equipo debe decidir la cifra antes del piloto y revisarla cada mes con datos reales.
+
+### Calidad, pruebas y entrega continua
+
+La suite debe proteger comportamientos de negocio, no solo líneas de código.
+
+| Nivel | Qué debe probar | Herramienta sugerida |
+| --- | --- | --- |
+| Dominio | Horarios, transiciones de cita, límites, precios y errores. | Bun test; pruebas rápidas y deterministas. |
+| Integración | Route Handlers, autenticación, contratos y adaptadores. | Bun test contra un entorno aislado de integración. |
+| End-to-end | Registro, confirmación, reserva, conflicto, panel y checkout simulado. | Playwright. |
+| Carga | Picos de disponibilidad y el mismo slot solicitado en paralelo. | k6. |
+| Seguridad de cadena | Dependencias, secretos y análisis estático. | Dependabot/Renovate, secret scanning, CodeQL o equivalente. |
+
+El pipeline de pull request debe fallar si no pasan formato/lint, tipos, pruebas afectadas, build y pruebas de contrato. El pipeline de despliegue debe promover primero a staging y conservar artefactos, resultados y una ruta de rollback. Turborepo debe configurar correctamente inputs, outputs y variables de entorno antes de habilitar Remote Cache: sus logs son artefactos de caché y no deben contener secretos. [Remote Caching de Turborepo](https://turborepo.dev/docs/core-concepts/remote-caching), [configuración de tareas](https://turborepo.dev/docs/reference/configuration).
+
+### Organización de equipo y gobernanza técnica
+
+Antes de que se integren las seis personas, establecer reglas simples y automatizadas:
+
+- **Ownership:** una persona responsable y un suplente por reservas, facturación, identidad/plataforma y experiencia de negocio; ownership no significa que solo esa persona pueda cambiar el módulo.
+- **CODEOWNERS y revisiones:** cambios de contratos, pagos, autenticación e infraestructura requieren revisión de dueño; los demás cambios una revisión mínima.
+- **ADRs cortos:** registrar decisiones irreversibles o costosas —monorepo, validación, jobs, despliegue, observabilidad y contratos— con contexto, decisión, consecuencias y fecha de revisión.
+- **Definition of Done:** contrato, pruebas apropiadas, métrica/log, manejo de error, accesibilidad básica y documentación operacional cuando cambia un flujo crítico.
+- **Convenciones únicas:** nomenclatura, imports, errores, validación, commits y versionado de contratos se automatizan con ESLint, TypeScript, scripts de Turborepo y plantillas de pull request.
+- **Ritmo:** PRs pequeños, una decisión por PR, feature flags para cambios incompletos y sesiones semanales de revisión de incidentes/deuda con evidencia.
+
+No crear un “equipo de plataforma” de una persona al inicio. La plataforma debe ser una responsabilidad compartida hasta que la operación genere trabajo suficiente para especializarla.
+
+### Frameworks y herramientas: qué mantener, adoptar y posponer
+
+| Decisión | Recomendación | Motivo |
+| --- | --- | --- |
+| Next.js + React | **Mantener** | Ya cubre UI, backend HTTP, SSR y despliegue del MVP. Next.js admite organización por feature o ruta; la consistencia importa más que una estructura “canónica”. [Guía oficial](https://nextjs.org/docs/app/getting-started/project-structure) |
+| Tailwind + Lucide + Sileo | **Mantener** | No son el cuello de botella; consolidar tokens y componentes antes de sustituir librerías. |
+| TanStack React Query | **Mantener y unificar** | Usarlo como estándar de mutations y datos interactivos; eliminar gradualmente `fetch` ad hoc de la UI. |
+| Turborepo + Bun Workspaces | **Adoptar ahora, mínimo** | Mejora el ciclo de seis desarrolladores y CI; Remote Cache se activa después de configurar bien las tareas. |
+| Zod | **Adoptar para contratos HTTP/eventos** | Unifica validación runtime y tipos compartidos. Evitar coexistencia de varios validadores. |
+| Worker/cola durable | **Adoptar al activar mensajería real** | Aísla efectos lentos y reintentos del camino de reserva. |
+| Playwright y k6 | **Adoptar antes del piloto** | Protegen los dos riesgos principales: flujo completo y concurrencia. |
+| Storybook | **Posponer** | Añadir cuando haya diseño compartido activo o más de una superficie consumiendo `packages/ui`. |
+| OpenAPI/SDK público | **Posponer** | El BFF actual es interno; publicarlo antes de tener consumidores externos congela contratos innecesariamente. |
+| Micro-frontends/Multi-Zones | **Posponer** | Next.js los reserva para grupos de páginas poco relacionadas con ciclos de liberación propios; no existe esa presión todavía. [Multi-Zones](https://nextjs.org/docs/app/guides/multi-zones) |
+| Kubernetes, Kafka, GraphQL, ORM nuevo | **No adoptar para el MVP** | No atacan el riesgo dominante y aumentan la carga operativa. |
+
+Turbopack ya es el bundler predeterminado de Next.js 16; no hay que añadir otra herramienta para lograr compilación incremental. Medir compilaciones y bundles antes de optimizar: Next.js incluye trazas de Turbopack y herramientas de análisis para investigar problemas reales. [Entorno local](https://nextjs.org/docs/app/guides/local-development), [bundling](https://nextjs.org/docs/pages/guides/package-bundling).
+
+### Criterios para extraer servicios sin “tirar” el sistema
+
+Un paquete se convierte en aplicación o servicio independiente solo al cumplir al menos dos de estos criterios:
+
+1. necesita escalar o desplegarse a un ritmo claramente distinto de `web`;
+2. procesa tareas largas, reintentos o alto volumen y no debe compartir el ciclo de petición;
+3. posee un dominio con contratos estables y un owner de equipo claro;
+4. requiere permisos, dependencia tecnológica o política de disponibilidad distinta;
+5. sus fallos se deben aislar para no bloquear la creación de una cita.
+
+Probable orden de extracción: **worker de notificaciones** → **reportes/analítica** → **API pública**, si aparecen clientes externos. Pagos y reservas deben permanecer cerca mientras la consistencia y el equipo se beneficien de una operación coordinada. Cada extracción debe conservar el contrato existente, migrar por un feature flag y tener telemetría que pruebe que redujo un problema concreto.
+
+### Primeras decisiones que deben quedar por escrito
+
+1. Aceptar el monorepo Turborepo como estructura de colaboración, no como justificación de múltiples apps.
+2. Elegir el estándar de contratos y validación runtime; uno solo.
+3. Definir `CrearReserva` como el primer módulo de dominio y la referencia para el resto de patrones.
+4. Elegir plataforma de jobs durables antes de conectar WhatsApp/email reales.
+5. Acordar SLOs, métricas, alertas, entornos y rollback antes del piloto.
+6. Adoptar ADRs, ownership y Definition of Done antes de incorporar al equipo.
+
+La meta no es conseguir una arquitectura “de empresa” antes de vender. Es crear límites que hagan que el MVP sea confiable hoy y extraíble mañana.
