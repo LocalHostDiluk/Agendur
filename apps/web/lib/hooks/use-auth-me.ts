@@ -10,6 +10,9 @@ export interface AuthMeResponse {
   } | null;
   negocio: Negocio | null;
   suscripcion: Suscripcion | null;
+  perfil?: { nombres: string; apellidos: string; telefono: string | null; locale: string } | null;
+  sucursalesCount?: number;
+  onboardingStatus?: "required" | "complete";
 }
 
 export function useAuthMe() {

@@ -10,6 +10,8 @@ export interface Negocio {
   logo_url: string | null;
   giro_comercial: string;
   moneda_principal: string; // default 'MXN'
+  pais?: string | null;
+  zona_horaria?: string | null;
   porcentaje_anticipo_default: number;
   created_at: string;
   updated_at: string;
@@ -172,4 +174,6 @@ export interface NegocioConfig {
   whatsappNotificaciones: boolean;
   cobroAnticipoObligatorio: boolean;
   porcentajeAnticipo: number;
+  pais?: string | null;
+  zonaHoraria?: string | null;
 }

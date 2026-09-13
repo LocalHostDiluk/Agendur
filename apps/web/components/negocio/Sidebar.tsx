@@ -27,6 +27,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const [loggingOut, setLoggingOut] = useState(false);
   const { data: profile } = useAuthMe();
   const negocioSlug = profile?.negocio?.slug;
+  const pendingOnboarding = profile?.onboardingStatus === "required";
 
   // Cerrar drawer con tecla Escape cuando esté abierto
   useEffect(() => {
@@ -157,17 +158,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         {/* Footer Actions */}
         <div className="pt-4 border-t border-gray-200 dark:border-neutral-700 space-y-2">
           <Link
-            href={negocioSlug ? `/reserva/${negocioSlug}` : "/"}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={pendingOnboarding ? "/onboarding" : negocioSlug ? `/reserva/${negocioSlug}` : "/"}
+            target={pendingOnboarding ? undefined : "_blank"}
+            rel={pendingOnboarding ? undefined : "noopener noreferrer"}
             className="w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 hover:bg-gray-100 dark:hover:bg-neutral-750 border border-gray-200 dark:border-neutral-700 transition-colors shadow-2xs"
           >
             <span className="flex items-center gap-x-2">
               <ExternalLink className="size-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Ver Portal Cliente</span>
+              <span>{pendingOnboarding ? "Completar negocio" : "Ver Portal Cliente"}</span>
             </span>
             <span className="text-[10px] text-gray-400 dark:text-neutral-500 uppercase tracking-wider font-semibold">
-              En vivo
+              {pendingOnboarding ? "Pendiente" : "En vivo"}
             </span>
           </Link>
 

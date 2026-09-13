@@ -28,7 +28,16 @@ CREATE TABLE IF NOT EXISTS public.negocios (
   logo_url TEXT NULL,
   giro_comercial TEXT NOT NULL,
   moneda_principal VARCHAR(3) NOT NULL DEFAULT 'MXN',
+  pais VARCHAR(2) NOT NULL DEFAULT 'MX'
+    CONSTRAINT negocios_pais_formato_check CHECK (pais ~ '^[A-Z]{2}$'),
+  zona_horaria VARCHAR(50) NOT NULL DEFAULT 'America/Mexico_City',
   porcentaje_anticipo_default NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (porcentaje_anticipo_default BETWEEN 0 AND 100),
+  telefono_cliente_requerido BOOLEAN NOT NULL DEFAULT true,
+  email_cliente_requerido BOOLEAN NOT NULL DEFAULT false,
+  notas_cliente_habilitadas BOOLEAN NOT NULL DEFAULT true,
+  politica_cancelacion TEXT NULL,
+  CONSTRAINT negocios_contacto_reserva_requerido_check
+    CHECK (telefono_cliente_requerido OR email_cliente_requerido),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -39,6 +48,39 @@ CREATE INDEX IF NOT EXISTS idx_negocios_slug ON public.negocios(slug);
 CREATE TRIGGER tr_negocios_updated_at
   BEFORE UPDATE ON public.negocios
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- ------------------------------------------------------------------------------
+-- 2A. TABLA: perfiles_usuario (Identidad del Administrador)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.perfiles_usuario (
+  usuario_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombres TEXT NOT NULL CHECK (btrim(nombres) <> ''),
+  apellidos TEXT NOT NULL CHECK (btrim(apellidos) <> ''),
+  telefono TEXT NULL CHECK (
+    telefono IS NULL OR telefono ~ '^\+[1-9][0-9]{1,14}$'
+  ),
+  locale TEXT NOT NULL DEFAULT 'es-MX' CHECK (btrim(locale) <> ''),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TRIGGER tr_perfiles_usuario_updated_at
+  BEFORE UPDATE ON public.perfiles_usuario
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- ------------------------------------------------------------------------------
+-- 2B. TABLA: consentimientos_usuario (Registro Append-Only)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.consentimientos_usuario (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  documento TEXT NOT NULL CHECK (btrim(documento) <> ''),
+  version TEXT NOT NULL CHECK (btrim(version) <> ''),
+  aceptado_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_consentimientos_usuario_usuario_id
+  ON public.consentimientos_usuario(usuario_id);
 
 -- ------------------------------------------------------------------------------
 -- 3. TABLA: sucursales (Sedes Comerciales del Negocio)
@@ -228,6 +270,8 @@ CREATE TRIGGER tr_suscripciones_updated_at
 
 -- Habilitar RLS en todas las tablas
 ALTER TABLE public.negocios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.perfiles_usuario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.consentimientos_usuario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sucursales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.servicios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profesionales ENABLE ROW LEVEL SECURITY;
@@ -236,6 +280,17 @@ ALTER TABLE public.horarios_sucursal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.horarios_profesional ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.citas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suscripciones ENABLE ROW LEVEL SECURITY;
+
+-- Grants explícitos para exposición controlada mediante Supabase Data API.
+REVOKE ALL PRIVILEGES ON TABLE public.perfiles_usuario
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL PRIVILEGES ON TABLE public.consentimientos_usuario
+  FROM PUBLIC, anon, authenticated, service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE public.perfiles_usuario TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.perfiles_usuario TO service_role;
+GRANT SELECT, INSERT ON TABLE public.consentimientos_usuario
+  TO authenticated, service_role;
 
 -- ------------------------------------------------------------------------------
 -- Políticas para: negocios
@@ -254,6 +309,43 @@ CREATE POLICY "Público puede ver negocios activos"
   FOR SELECT
   TO anon, authenticated
   USING (true);
+
+-- ------------------------------------------------------------------------------
+-- Políticas para: perfiles_usuario
+-- ------------------------------------------------------------------------------
+CREATE POLICY "Usuario puede consultar su perfil"
+  ON public.perfiles_usuario
+  FOR SELECT
+  TO authenticated
+  USING ((SELECT auth.uid()) = usuario_id);
+
+CREATE POLICY "Usuario puede crear su perfil"
+  ON public.perfiles_usuario
+  FOR INSERT
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = usuario_id);
+
+CREATE POLICY "Usuario puede actualizar su perfil"
+  ON public.perfiles_usuario
+  FOR UPDATE
+  TO authenticated
+  USING ((SELECT auth.uid()) = usuario_id)
+  WITH CHECK ((SELECT auth.uid()) = usuario_id);
+
+-- ------------------------------------------------------------------------------
+-- Políticas para: consentimientos_usuario
+-- ------------------------------------------------------------------------------
+CREATE POLICY "Usuario puede consultar sus consentimientos"
+  ON public.consentimientos_usuario
+  FOR SELECT
+  TO authenticated
+  USING ((SELECT auth.uid()) = usuario_id);
+
+CREATE POLICY "Usuario puede registrar sus consentimientos"
+  ON public.consentimientos_usuario
+  FOR INSERT
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = usuario_id);
 
 -- ------------------------------------------------------------------------------
 -- Políticas para: sucursales

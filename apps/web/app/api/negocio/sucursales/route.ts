@@ -76,21 +76,67 @@ export async function POST(request: NextRequest) {
       return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const { nombre, direccion, ciudad, telefono } = body;
+    const body: unknown = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return apiError("Datos de sucursal inválidos.", undefined, { status: 400 });
+    }
+    const input = body as Record<string, unknown>;
+    const text = (key: string) => typeof input[key] === "string" ? (input[key] as string).trim() : "";
+    const nombre = text("nombre");
+    const direccion = text("direccion");
+    const ciudad = text("ciudad");
+    const telefono = text("telefono");
 
-    if (!nombre || !direccion || !ciudad || !telefono) {
+    if (!nombre || !direccion || !ciudad || !telefono ||
+      nombre.length > 120 || direccion.length > 250 || ciudad.length > 120 || telefono.length > 20) {
       return apiError(
-        "Campos requeridos faltantes: nombre, direccion, ciudad, telefono.",
+        "Campos de sucursal inválidos: nombre, direccion, ciudad, telefono.",
         undefined,
         { status: 400, code: "MISSING_REQUIRED_FIELDS" }
       );
     }
 
+    const { count, error: countError } = await adminClient
+      .from("sucursales")
+      .select("id", { count: "exact", head: true })
+      .eq("negocio_id", negocio.id);
+    if (countError || typeof count !== "number") {
+      return apiError(countError || "No se pudo contar sucursales.", "No se pudo validar la sucursal.", { status: 503 });
+    }
+    if (input.primeraSucursal === true && count > 0) {
+      return apiError("La primera sucursal ya existe. Actualiza la página.", undefined, { status: 409, code: "FIRST_BRANCH_EXISTS" });
+    }
+
+    const estadoProvincia = text("estado_provincia");
+    const codigoPostal = text("codigo_postal");
+    const zonaHoraria = text("zona_horaria");
+    if (count === 0 && (!estadoProvincia || !codigoPostal || !zonaHoraria || !/^\+[1-9][0-9]{1,14}$/.test(telefono))) {
+      return apiError("La primera sucursal requiere ubicación, código postal, teléfono internacional y zona horaria reales.", undefined, { status: 400 });
+    }
+    if (estadoProvincia.length > 120 || codigoPostal.length > 10 ||
+      (codigoPostal && !/^[A-Za-z0-9 -]{3,10}$/.test(codigoPostal)) ||
+      zonaHoraria.length > 60) {
+      return apiError("Ubicación o código postal inválidos.", undefined, { status: 400 });
+    }
+    if (zonaHoraria) {
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: zonaHoraria });
+      } catch {
+        return apiError("Zona horaria inválida.", undefined, { status: 400 });
+      }
+    }
+
     // Validar que la suscripción no esté vencida (HTTP 402 si expiró)
     await assertActiveSubscription(negocio.id);
 
-    const nuevaSucursal = await createSucursal(negocio.id, body);
+    const nuevaSucursal = await createSucursal(negocio.id, {
+      nombre, direccion, ciudad, telefono,
+      estado_provincia: estadoProvincia || undefined,
+      codigo_postal: codigoPostal || undefined,
+      zona_horaria: zonaHoraria || undefined,
+      es_matriz: count === 0 || input.es_matriz === true,
+      activa: count === 0 || input.activa !== false,
+    });
 
     return apiSuccess({ sucursal: nuevaSucursal }, 201);
   } catch (error: unknown) {

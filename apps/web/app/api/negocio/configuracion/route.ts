@@ -21,7 +21,7 @@ export async function GET() {
 
     const { data: negocio, error: negError } = await supabase
       .from("negocios")
-      .select("id, nombre_comercial, slug, logo_url, giro_comercial, moneda_principal, porcentaje_anticipo_default")
+      .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
 
@@ -37,6 +37,8 @@ export async function GET() {
         logoUrl: negocio.logo_url,
         giroComercial: negocio.giro_comercial,
         monedaPrincipal: negocio.moneda_principal,
+        pais: negocio.pais ?? null,
+        zonaHoraria: negocio.zona_horaria ?? null,
         porcentajeAnticipo: Number(negocio.porcentaje_anticipo_default),
         cobroAnticipoObligatorio: Number(negocio.porcentaje_anticipo_default) > 0,
       },
@@ -77,15 +79,46 @@ export async function PUT(request: NextRequest) {
     // Validar que la suscripción no esté vencida (HTTP 402 si expiró)
     await assertActiveSubscription(negocio.id);
 
-    const body = await request.json().catch(() => ({}));
+    const body: unknown = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return apiError("Configuración inválida.", undefined, { status: 400 });
+    }
+    const input = body as Record<string, unknown>;
     const updatePayload: Record<string, unknown> = {};
 
-    if (body.nombreNegocio !== undefined) updatePayload.nombre_comercial = body.nombreNegocio;
-    if (body.logoUrl !== undefined) updatePayload.logo_url = body.logoUrl;
-    if (body.giroComercial !== undefined) updatePayload.giro_comercial = body.giroComercial;
-    if (body.monedaPrincipal !== undefined) updatePayload.moneda_principal = body.monedaPrincipal;
-    if (body.porcentajeAnticipo !== undefined) {
-      const p = Number(body.porcentajeAnticipo);
+    if (input.nombreNegocio !== undefined) {
+      if (typeof input.nombreNegocio !== "string" || !input.nombreNegocio.trim() || input.nombreNegocio.trim().length > 200) {
+        return apiError("Nombre de negocio inválido.", undefined, { status: 400 });
+      }
+      updatePayload.nombre_comercial = input.nombreNegocio.trim();
+    }
+    if (input.giroComercial !== undefined) {
+      if (typeof input.giroComercial !== "string" || !input.giroComercial.trim() || input.giroComercial.trim().length > 200) {
+        return apiError("Giro comercial inválido.", undefined, { status: 400 });
+      }
+      updatePayload.giro_comercial = input.giroComercial.trim();
+    }
+    if (input.pais !== undefined) {
+      if (typeof input.pais !== "string" || !/^[A-Z]{2}$/.test(input.pais)) {
+        return apiError("País inválido (código de dos letras).", undefined, { status: 400 });
+      }
+      updatePayload.pais = input.pais;
+    }
+    if (input.zonaHoraria !== undefined) {
+      if (typeof input.zonaHoraria !== "string" || input.zonaHoraria.length > 60) {
+        return apiError("Zona horaria inválida.", undefined, { status: 400 });
+      }
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: input.zonaHoraria });
+      } catch {
+        return apiError("Zona horaria inválida.", undefined, { status: 400 });
+      }
+      updatePayload.zona_horaria = input.zonaHoraria;
+    }
+    if (input.logoUrl !== undefined) updatePayload.logo_url = input.logoUrl;
+    if (input.monedaPrincipal !== undefined) updatePayload.moneda_principal = input.monedaPrincipal;
+    if (input.porcentajeAnticipo !== undefined) {
+      const p = Number(input.porcentajeAnticipo);
       if (isNaN(p) || p < 0 || p > 100) {
         return apiError(
           "El porcentaje de anticipo debe ser entre 0 y 100.",
@@ -100,7 +133,7 @@ export async function PUT(request: NextRequest) {
       .from("negocios")
       .update(updatePayload)
       .eq("id", negocio.id)
-      .select("id, nombre_comercial, slug, logo_url, giro_comercial, moneda_principal, porcentaje_anticipo_default")
+      .select("*")
       .single();
 
     if (updateError || !updated) {
@@ -115,6 +148,8 @@ export async function PUT(request: NextRequest) {
         logoUrl: updated.logo_url,
         giroComercial: updated.giro_comercial,
         monedaPrincipal: updated.moneda_principal,
+        pais: updated.pais ?? null,
+        zonaHoraria: updated.zona_horaria ?? null,
         porcentajeAnticipo: Number(updated.porcentaje_anticipo_default),
         cobroAnticipoObligatorio: Number(updated.porcentaje_anticipo_default) > 0,
       },

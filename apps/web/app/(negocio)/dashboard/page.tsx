@@ -14,18 +14,19 @@ import {
   Check,
 } from "lucide-react";
 import { notify } from "@/lib/utils/toast";
+import { getBusinessToday } from "@/lib/utils/business-date";
 import { useAuthMe, useCitasNegocio, useSuscripcion } from "@/lib/hooks";
 
 export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
-  const { data: auth } = useAuthMe();
+  const { data: auth, isLoading: authLoading, isError: authError } = useAuthMe();
   const { data: suscripcionResponse } = useSuscripcion();
   const { data: citasResponse } = useCitasNegocio();
   const negocio = auth?.negocio;
   const suscripcion = suscripcionResponse?.data.suscripcion ?? auth?.suscripcion;
   const citas = citasResponse?.citas ?? [];
-  const hoy = new Date().toISOString().slice(0, 10);
-  const citasHoy = citasResponse?.citas?.filter((cita) => cita.fecha === hoy);
+  const hoy = getBusinessToday(negocio?.zona_horaria);
+  const citasHoy = hoy ? citasResponse?.citas?.filter((cita) => cita.fecha === hoy) : undefined;
   const citasPendientes = citasHoy?.filter((cita) => cita.estado === "pendiente_pago");
   const ingresosConfirmados = citasResponse?.citas
     ?.filter((cita) => cita.estado === "confirmada")
@@ -35,6 +36,30 @@ export default function DashboardPage() {
   const sucursalesUsadas = suscripcionResponse?.data.sucursales_usadas ?? "—";
   const sucursalesLimite =
     suscripcionResponse?.data.sucursales_limite ?? suscripcion?.limite_sucursales ?? "—";
+
+  if (authLoading) {
+    return <p role="status" className="text-sm text-slate-600 dark:text-slate-300">Cargando tu negocio…</p>;
+  }
+  if (authError || !auth) {
+    return <p role="alert" className="text-sm text-red-700 dark:text-red-300">No pudimos cargar tu negocio. Recarga la página o vuelve a iniciar sesión.</p>;
+  }
+
+  if (auth?.onboardingStatus === "required") {
+    return (
+      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Hola, {auth.perfil?.nombres ?? auth.user?.email ?? "bienvenido"}
+        </h1>
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+          Tu negocio aún no tiene una primera sucursal. Completa tus datos y registra una ubicación real antes de publicar tu portal de reservas.
+        </p>
+        <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">0 sedes registradas</p>
+        <Link href="/onboarding" className="mt-5 inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">
+          Registrar primera sucursal
+        </Link>
+      </div>
+    );
+  }
 
   const copyBookingUrl = () => {
     if (!negocioSlug) return;

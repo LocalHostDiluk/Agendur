@@ -164,14 +164,14 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
-                  Política de Privacidad
-                </span>
+                <Link href="/privacidad" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  Privacidad (borrador)
+                </Link>
               </li>
               <li>
-                <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-default">
-                  Términos del Servicio
-                </span>
+                <Link href="/terminos" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  Términos (borrador)
+                </Link>
               </li>
               <li>
                 <a
@@ -188,8 +188,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-200 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-neutral-500 gap-4">
           <p>
-            © {currentYear} CitaSync Technologies Inc. Todos los derechos
-            reservados.
+            © {currentYear} CitaSync. Identidad legal del operador pendiente de confirmar.
           </p>
           <p className="flex items-center gap-1.5">
             Hecho con{" "}

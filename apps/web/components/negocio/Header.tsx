@@ -14,6 +14,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const { data: sucursales } = useSucursales();
   const nombreNegocio = profile?.negocio?.nombre_comercial ?? "—";
   const email = profile?.user?.email ?? "—";
+  const nombrePersona = [profile?.perfil?.nombres, profile?.perfil?.apellidos].filter(Boolean).join(" ") || email;
   const sucursalesActivas = sucursales ? sucursales.sucursales.length : "—";
 
   return (
@@ -53,7 +54,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           </div>
           <div className="hidden sm:block text-start">
             <p className="text-xs font-semibold text-gray-900 dark:text-white leading-none truncate max-w-[150px]">
-              {nombreNegocio}
+              {nombrePersona}
             </p>
             <p className="text-[11px] text-gray-500 dark:text-neutral-400 truncate max-w-[150px] mt-0.5">
               {email}

@@ -23,14 +23,35 @@ export async function GET() {
     const admin = createAdminClient();
     const { data: negocio, error: negocioError } = await admin
       .from("negocios")
-      .select(
-        "id, nombre_comercial, slug, giro_comercial, logo_url, moneda_principal",
-      )
+      .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
 
     if (negocioError) {
-      Sentry.captureException(negocioError);
+      return apiError(negocioError, "No se pudo consultar el negocio.", { status: 503 });
+    }
+
+    // El perfil puede faltar en cuentas anteriores a Puerta 1. La tabla puede
+    // no existir aún en una instalación donde la migración se aplica a mano.
+    const { data: perfil, error: perfilError } = await admin
+      .from("perfiles_usuario")
+      .select("nombres, apellidos, telefono, locale")
+      .eq("usuario_id", user.id)
+      .maybeSingle();
+    if (perfilError && !["42P01", "PGRST205"].includes(perfilError.code)) {
+      return apiError(perfilError, "No se pudo consultar el perfil.", { status: 503 });
+    }
+
+    let sucursalesCount = 0;
+    if (negocio?.id) {
+      const { count, error: sucursalesError } = await admin
+        .from("sucursales")
+        .select("id", { count: "exact", head: true })
+        .eq("negocio_id", negocio.id);
+      if (sucursalesError || typeof count !== "number") {
+        return apiError(sucursalesError || "No se pudo contar sucursales.", "No se pudo consultar las sucursales.", { status: 503 });
+      }
+      sucursalesCount = count;
     }
 
     // 3. Obtener suscripción
@@ -62,6 +83,8 @@ export async function GET() {
           logo_url: negocio.logo_url,
           monedaPrincipal: negocio.moneda_principal,
           moneda_principal: negocio.moneda_principal,
+          pais: negocio.pais ?? null,
+          zona_horaria: negocio.zona_horaria ?? null,
         }
       : null;
 
@@ -73,6 +96,9 @@ export async function GET() {
       },
       negocio: negocioPayload,
       suscripcion,
+      perfil: perfilError ? null : perfil,
+      sucursalesCount,
+      onboardingStatus: negocio && sucursalesCount > 0 ? "complete" : "required",
     };
 
     return apiSuccess({

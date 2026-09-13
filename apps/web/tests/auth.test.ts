@@ -6,6 +6,7 @@ import { POST as logoutHandler } from "@/app/api/auth/logout/route";
 import { GET as callbackHandler } from "@/app/api/auth/callback/route";
 import * as nextHeaders from "next/headers";
 import * as supabaseServer from "@/lib/supabase/server";
+import * as supabaseAdmin from "@/lib/supabase/admin";
 import * as ssr from "@supabase/ssr";
 import { getClientIp } from "@/lib/security/rate-limit";
 import { NextRequest } from "next/server";
@@ -13,6 +14,161 @@ import { proxy } from "@/proxy";
 
 describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
   describe("POST /api/auth/register", () => {
+    const validRegistration = {
+      email: "admin@example.com",
+      password: "una-clave-segura-123",
+      confirmarPassword: "una-clave-segura-123",
+      nombres: "Ana",
+      apellidos: "López",
+      nombreComercial: "Mi Negocio",
+      giroComercial: "Barbería",
+      aceptaTerminos: true,
+      aceptaPrivacidad: true,
+      termsVersionAccepted: "v1",
+      privacyVersionAccepted: "v2",
+    };
+
+    const registrationRequest = (body: Record<string, unknown>) =>
+      new Request("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+    it("exige identidad, confirmación de contraseña y ambos consentimientos", async () => {
+      const cases = [
+        [{ nombres: " " }, "nombres"],
+        [{ apellidos: " " }, "apellidos"],
+        [{ password: "12345678901", confirmarPassword: "12345678901" }, "12 caracteres"],
+        [{ confirmarPassword: "otra-clave-segura-123" }, "coinciden"],
+        [{ aceptaTerminos: false }, "Términos"],
+        [{ aceptaPrivacidad: false }, "Privacidad"],
+      ] as const;
+
+      for (const [change, message] of cases) {
+        const response = await registerHandler(registrationRequest({ ...validRegistration, ...change }));
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toContain(message);
+      }
+    });
+
+    it("no crea el usuario si falta la configuración legal", async () => {
+      const signUp = spyOn(supabaseServer, "createClient");
+      const previous = process.env.NEXT_PUBLIC_TERMS_VERSION;
+      delete process.env.NEXT_PUBLIC_TERMS_VERSION;
+      try {
+        const response = await registerHandler(registrationRequest(validRegistration));
+        expect(response.status).toBe(503);
+        expect(signUp).not.toHaveBeenCalled();
+      } finally {
+        signUp.mockRestore();
+        if (previous === undefined) delete process.env.NEXT_PUBLIC_TERMS_VERSION;
+        else process.env.NEXT_PUBLIC_TERMS_VERSION = previous;
+      }
+    });
+
+    it("crea perfil, dos consentimientos y negocio sin sucursal ficticia", async () => {
+      const keys = [
+        "NEXT_PUBLIC_TERMS_URL", "NEXT_PUBLIC_TERMS_VERSION",
+        "NEXT_PUBLIC_PRIVACY_URL", "NEXT_PUBLIC_PRIVACY_VERSION",
+      ] as const;
+      const previous = keys.map((key) => process.env[key]);
+      process.env.NEXT_PUBLIC_TERMS_URL = "https://example.test/terms/v1";
+      process.env.NEXT_PUBLIC_TERMS_VERSION = "v1";
+      process.env.NEXT_PUBLIC_PRIVACY_URL = "https://example.test/privacy/v2";
+      process.env.NEXT_PUBLIC_PRIVACY_VERSION = "v2";
+
+      const inserts: Array<{ table: string; rows: unknown }> = [];
+      let callbackUrl = "";
+      let signUpCalls = 0;
+      let schemaAvailable = false;
+      let subscriptionFails = false;
+      let deleteCalls = 0;
+      let obfuscated = false;
+      let existingUnconfirmed = false;
+      const serverSpy = spyOn(supabaseServer, "createClient").mockResolvedValue({
+        auth: {
+          signUp: async ({ options }: { options: { emailRedirectTo: string; data: { registration_nonce: string } } }) => {
+            signUpCalls++;
+            callbackUrl = options.emailRedirectTo;
+            return { data: { user: { id: "user-1", email: "admin@example.com", user_metadata: existingUnconfirmed ? {} : { registration_nonce: options.data?.registration_nonce }, identities: obfuscated ? [] : [{ provider: "email", user_id: "user-1" }] }, session: null }, error: null };
+          },
+        },
+      } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
+      const adminSpy = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
+        auth: { admin: { deleteUser: async () => { deleteCalls++; return { error: null }; } } },
+        from: (table: string) => ({
+          select: () => ({
+            limit: async () => ({ error: schemaAvailable ? null : { message: "identity_data not installed" } }),
+            eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+          }),
+          insert: (rows: unknown) => {
+            inserts.push({ table, rows });
+            if (table === "suscripciones" && subscriptionFails) {
+              return Promise.resolve({ error: { message: "trial failed" } });
+            }
+            return table === "negocios"
+              ? { select: () => ({ single: async () => ({ data: { id: "negocio-1", nombre_comercial: "Mi Negocio", slug: "mi-negocio", giro_comercial: "Barbería" }, error: null }) }) }
+              : Promise.resolve({ error: null });
+          },
+        }),
+      }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
+
+      try {
+        const staleDocument = await registerHandler(registrationRequest({
+          ...validRegistration,
+          privacyVersionAccepted: "v1",
+        }));
+        expect(staleDocument.status).toBe(409);
+        expect(signUpCalls).toBe(0);
+
+        const unavailable = await registerHandler(registrationRequest(validRegistration));
+        expect(unavailable.status).toBe(503);
+        expect(signUpCalls).toBe(0);
+        schemaAvailable = true;
+
+        obfuscated = true;
+        const existingAccount = await registerHandler(registrationRequest(validRegistration));
+        expect(existingAccount.status).toBe(400);
+        expect(deleteCalls).toBe(0);
+        obfuscated = false;
+
+        existingUnconfirmed = true;
+        const existingUnconfirmedAccount = await registerHandler(registrationRequest(validRegistration));
+        expect(existingUnconfirmedAccount.status).toBe(400);
+        expect(deleteCalls).toBe(0);
+        expect(inserts).toHaveLength(0);
+        existingUnconfirmed = false;
+
+        const response = await registerHandler(registrationRequest(validRegistration));
+        expect(response.status).toBe(201);
+        const data = await response.json();
+        expect(data.onboardingStatus).toBe("required");
+        expect(data.needsEmailConfirmation).toBe(true);
+        expect(inserts.map((entry) => entry.table)).toEqual([
+          "perfiles_usuario", "consentimientos_usuario", "negocios", "suscripciones",
+        ]);
+        expect(inserts[0].rows).toEqual({ usuario_id: "user-1", nombres: "Ana", apellidos: "López" });
+        expect(inserts[1].rows).toEqual([
+          { usuario_id: "user-1", documento: "terminos_servicio", version: "v1" },
+          { usuario_id: "user-1", documento: "aviso_privacidad", version: "v2" },
+        ]);
+        expect(callbackUrl).toBe("http://localhost:3000/api/auth/callback");
+        expect(signUpCalls).toBe(3);
+
+        subscriptionFails = true;
+        const failedTrial = await registerHandler(registrationRequest(validRegistration));
+        expect(failedTrial.status).toBe(500);
+        expect(deleteCalls).toBe(1);
+      } finally {
+        adminSpy.mockRestore();
+        serverSpy.mockRestore();
+        keys.forEach((key, index) => {
+          if (previous[index] === undefined) delete process.env[key];
+          else process.env[key] = previous[index];
+        });
+      }
+    });
     it("debería retornar 400 si el email es inválido o no existe", async () => {
       const request = new Request("http://localhost:3000/api/auth/register", {
         method: "POST",
@@ -33,7 +189,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       expect(json.error).toContain("correo electrónico válido");
     });
 
-    it("debería retornar 400 si la contraseña tiene menos de 6 caracteres", async () => {
+    it("debería retornar 400 si la contraseña tiene menos de 12 caracteres", async () => {
       const request = new Request("http://localhost:3000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,7 +206,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
 
       const json = await response.json();
       expect(json.success).toBe(false);
-      expect(json.error).toContain("al menos 6 caracteres");
+      expect(json.error).toContain("al menos 12 caracteres");
     });
 
     it("debería retornar 400 si falta el nombre comercial", async () => {
@@ -59,7 +215,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "test@example.com",
-          password: "password123",
+          password: "password123456",
           nombreComercial: "",
           giroComercial: "Barbería",
         }),
@@ -79,7 +235,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "test@example.com",
-          password: "password123",
+          password: "password123456",
           nombreComercial: "Mi Negocio",
           giroComercial: "",
         }),
