@@ -3,14 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLandingLanguage } from "./LandingLanguageContext";
-import {
-  Check,
-  Scissors,
-  MapPin,
-  Clock,
-  Calendar,
-  ShieldCheck,
-} from "lucide-react";
+import { Check } from "lucide-react";
 
 export function HeroSection() {
   const { t } = useLandingLanguage();

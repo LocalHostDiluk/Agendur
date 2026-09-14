@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useLandingLanguage } from "./LandingLanguageContext";
-import { Quote, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 export function SocialProofMarquee() {
   const { t } = useLandingLanguage();
@@ -63,7 +63,7 @@ export function SocialProofMarquee() {
                 {/* Cita */}
                 <div className="py-5">
                   <p className="text-sm text-ink/90 italic leading-relaxed">
-                    "{item.quote}"
+                    &ldquo;{item.quote}&rdquo;
                   </p>
                 </div>
 

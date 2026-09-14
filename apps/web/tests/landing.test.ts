@@ -17,255 +17,189 @@ mock.module("next/navigation", () => ({
 }));
 
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { LandingLanguageProvider } from "@/components/landing/LandingLanguageContext";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { SocialProofMarquee } from "@/components/landing/SocialProofMarquee";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { ImpactChartSection } from "@/components/landing/ImpactChartSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
+import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
 import LandingPage from "@/app/(landing)/page";
 
-// Helper to wrap with ThemeProvider
+// Helper to wrap with ThemeProvider & LandingLanguageProvider
 function renderWithTheme(component: React.ReactElement) {
   return renderToStaticMarkup(
-    React.createElement(ThemeProvider, null, component),
+    React.createElement(
+      LandingLanguageProvider,
+      null,
+      React.createElement(ThemeProvider, null, component),
+    ),
   );
 }
 
-describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => {
-  describe("1. Navbar Component (Floating Navbar with CTA)", () => {
-    it("renderiza floating pill header con pseudo-elemento before y clases de Preline", () => {
+describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => {
+  describe("1. Navbar Component", () => {
+    it("renderiza navegación corporativa con logotipo Agendur y enlaces", () => {
       const html = renderWithTheme(React.createElement(Navbar));
-      expect(html).toContain("sticky top-4");
-      expect(html).toContain("before:max-w-5xl");
-      expect(html).toContain("before:rounded-[26px]");
-      expect(html).toContain("before:bg-navbar");
-      expect(html).toContain("before:border-navbar-line");
-    });
-
-    it("incluye logotipo Preline SVG y enlaces principales de Agendur con dropdowns", () => {
-      const html = renderWithTheme(React.createElement(Navbar));
-      expect(html).toContain('aria-label="Preline"');
-      expect(html).toContain("fill-primary");
-      expect(html).toContain("Inicio");
-      expect(html).toContain("Características");
-      expect(html).toContain("Impacto");
+      expect(html).toContain("Agendur");
+      expect(html).toContain("Producto");
       expect(html).toContain("Precios");
-      expect(html).toContain("FAQ");
-      expect(html).toContain("Funcionalidades Clave");
-      expect(html).toContain("Agenda en Tiempo Real");
-      expect(html).toContain("Cobro de Anticipos");
-      expect(html).toContain("Recordatorios WhatsApp");
-      expect(html).toContain("Control Multi-Sucursal");
-      expect(html).toContain("Sincronización Google Calendar");
-      expect(html).not.toContain("Gestión Operativa");
+      expect(html).toContain("Para tu negocio");
+      expect(html).toContain("Contacto");
     });
 
-    it("incluye botón CTA Comenzar Gratis, Iniciar Sesión y toggle de menú colapsable Preline", () => {
+    it("incluye selector de idioma ES/EN y enlace a iniciar sesión", () => {
       const html = renderWithTheme(React.createElement(Navbar));
-      expect(html).toContain("Comenzar Gratis");
+      expect(html).toContain("ES");
+      expect(html).toContain("EN");
+      expect(html).toContain('href="/login"');
+      expect(html).toContain("Iniciar sesión");
+    });
+
+    it("incluye botón CTA Reclama tus 14 días gratis con enlace a registro", () => {
+      const html = renderWithTheme(React.createElement(Navbar));
+      expect(html).toContain("Reclama tus 14 días gratis");
       expect(html).toContain('href="/register"');
-      expect(html).toContain("Iniciar Sesión");
-      expect(html).toContain("bg-primary");
-      expect(html).toContain("text-primary-foreground");
-      expect(html).toContain("hs-collapse-toggle");
-      expect(html).toContain('data-hs-collapse="#hs-pro-an"');
-      expect(html).toContain('id="hs-pro-an"');
     });
   });
 
   describe("2. HeroSection Component", () => {
-    it("renderiza píldora badge, titular audaz y subtítulo orientado a beneficios", () => {
+    it("renderiza titular principal y subtítulo de la marca", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
+      expect(html).toContain("Deja de perseguir citas. Que te busquen a ti.");
       expect(html).toContain(
-        "Nueva versión: Anticipos y recordatorios inteligentes",
-      );
-      expect(html).toContain("El software de citas que");
-      expect(html).toContain("elimina el ausentismo");
-      expect(html).toContain("llena tu agenda en piloto automático");
-      expect(html).toContain(
-        "Permite a tus clientes agendar en menos de 30 segundos",
+        "Agendur organiza tu negocio, tus sucursales y tus recordatorios",
       );
     });
 
-    it("incluye input de micro-captura de slug y garantía de 14 días sin sección de calificación", () => {
+    it("incluye llamada a la acción sin requerimiento de tarjeta", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
-      expect(html).toContain("agendur.com/");
-      expect(html).toContain("tu-marca");
-      expect(html).toContain("Comenzar Gratis");
-      expect(html).toContain("Prueba de 14 días sin tarjeta de crédito");
-      expect(html).not.toContain("4.9/5");
+      expect(html).toContain("Reclama tus 14 días gratis");
+      expect(html).toContain("Sin tarjeta.");
+      expect(html).toContain("Ve cómo funciona");
     });
 
-    it("incluye tarjeta interactiva con servicios, profesional y anticipo", () => {
+    it("incluye ticket de turno interactivo con detalles de servicio", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
-      expect(html).toContain("agendur.com/reserva/live");
-      expect(html).toContain("Corte &amp; Barba Master");
-      expect(html).toContain("Anticipo Requerido (50%)");
-      expect(html).toContain("Simular Confirmación de Cita");
+      expect(html).toContain("Ticket de turno");
+      expect(html).toContain("Corte &amp; Barba Master · Sucursal Centro");
+      expect(html).toContain("Mateo Silva");
+      expect(html).toContain("Confirmado");
     });
   });
 
-  describe("3. SocialProofMarquee Component", () => {
-    it("renderiza ticker accesible con sectores e indicadores de confianza", () => {
-      const html = renderWithTheme(React.createElement(SocialProofMarquee));
-      expect(html).toContain("Barberías");
-      expect(html).toContain("Salones de Belleza");
-      expect(html).toContain("Spas &amp; Masajes");
-      expect(html).toContain("Clínicas Dentales");
-      expect(html).toContain("Consultorios Médicos");
-      expect(html).toContain("99.9% Uptime");
-      expect(html).toContain("Sin comisiones por cita");
-      expect(html).toContain("Pasarela Stripe y Cobro Manual");
-    });
-
-    it("incluye clases de animación marquee con respeto a prefers-reduced-motion", () => {
-      const html = renderWithTheme(React.createElement(SocialProofMarquee));
-      expect(html).toContain("animate-marquee");
-      expect(html).toContain("motion-reduce:animate-none");
-      expect(html).toContain("hover:[animation-play-state:paused]");
+  describe("3. HowItWorksSection Component", () => {
+    it("renderiza los tres pasos con iconos de industrias", () => {
+      const html = renderWithTheme(React.createElement(HowItWorksSection));
+      expect(html).toContain("Cómo funciona");
+      expect(html).toContain("Registra tu negocio");
+      expect(html).toContain("Comparte tu link");
+      expect(html).toContain("Agendur les recuerda por ti");
+      expect(html).toContain("Clínica");
+      expect(html).toContain("Barbería");
+      expect(html).toContain("Spa");
     });
   });
 
   describe("4. FeaturesSection Component", () => {
-    it("renderiza Bento Grid asimétrico con 4 cuadrantes creativos", () => {
+    it("renderiza bento grid con portal público y diferenciadores clave", () => {
       const html = renderWithTheme(React.createElement(FeaturesSection));
-      expect(html).toContain('id="caracteristicas"');
-      // Cuadrante 1 (span 2 cols)
-      expect(html).toContain(
-        "Agenda y Disponibilidad Multi-Sucursal en Tiempo Real",
-      );
-      expect(html).toContain("Sucursal Polanco");
-      // Cuadrante 2
-      expect(html).toContain("Cobro de Anticipos y Pagos Online");
-      expect(html).toContain("-85% Ausencias");
-      // Cuadrante 3
-      expect(html).toContain("Recordatorios por WhatsApp y Email");
-      // Cuadrante 4 (span 2 cols)
-      expect(html).toContain("Portal de Autoservicio para Clientes Móviles");
-      expect(html).toContain("/reserva/[slug]");
+      expect(html).toContain('id="diferenciadores"');
+      expect(html).toContain("Tu negocio, tu link");
+      expect(html).toContain("negocio.agendur.app");
+      expect(html).toContain("Multi-sucursal, un solo panel");
+      expect(html).toContain("WhatsApp/SMS que sí llegan");
+      expect(html).toContain("Cobra un anticipo, no pierdas el lugar");
     });
   });
 
-  describe("5. ImpactChartSection Component", () => {
-    it("renderiza gráfica interactiva de impacto y selector de sectores", () => {
-      const html = renderWithTheme(React.createElement(ImpactChartSection));
-      expect(html).toContain('id="impacto"');
-      expect(html).toContain(
-        "¿Por qué elegir Agendur frente a la gestión manual?",
-      );
-      expect(html).toContain("Belleza &amp; Barbería");
-      expect(html).toContain("Salud &amp; Clínicas");
-      expect(html).toContain("Bienestar &amp; Spas");
-    });
-
-    it("incluye comparativas visuales y tarjeta de retorno de inversión (ROI)", () => {
-      const html = renderWithTheme(React.createElement(ImpactChartSection));
-      expect(html).toContain("-85% ausentismo");
-      expect(html).toContain("+17.5 hrs ahorradas");
-      expect(html).toContain("38% agendadas de noche");
-      expect(html).toContain("Retorno de Inversión (ROI)");
-      expect(html).toContain("$1,250 USD");
+  describe("5. SocialProofMarquee Component", () => {
+    it("renderiza métricas destacadas y testimonios", () => {
+      const html = renderWithTheme(React.createElement(SocialProofMarquee));
+      expect(html).toContain("+500");
+      expect(html).toContain("negocios ya usan Agendur");
+      expect(html).toContain("-30%");
+      expect(html).toContain("12,000+");
+      expect(html).toContain("Dr. Alejandro Ramos");
+      expect(html).toContain("Mateo Silva");
+      expect(html).toContain("Valeria Ríos");
+      expect(html).toContain("Clínica San Lucas");
+      expect(html).toContain("Barbería El Galgo");
     });
   });
 
   describe("6. PricingSection Component", () => {
-    it("renderiza los 3 planes de Preline UI y el switcher mensual/anual", () => {
+    it("renderiza los 3 tickets de planes y el toggle de periodos simétrico", () => {
       const html = renderWithTheme(React.createElement(PricingSection));
       expect(html).toContain('id="precios"');
-      expect(html).toContain("Emprendedor");
-      expect(html).toContain("PYME Crecimiento");
-      expect(html).toContain("Multi-Sucursal Enterprise");
-      expect(html).toContain("Más Popular");
-      expect(html).toContain("Ahorra 20%");
-      expect(html).toContain('role="switch"');
-      expect(html).toContain('href="/register?plan=emprendedor"');
-      expect(html).toContain('href="/register?plan=pyme"');
+      expect(html).toContain("03 / Precios claros");
+      expect(html).toContain("Un plan que sí te queda.");
+      expect(html).toContain("Starter");
+      expect(html).toContain("Pro");
+      expect(html).toContain("Business");
+      expect(html).toContain("Mensual");
+      expect(html).toContain("Anual");
+      expect(html).toContain("-20%");
+      expect(html).toContain("price-toggle");
     });
   });
 
   describe("7. FAQSection Component", () => {
-    it("renderiza acordeón accesible con preguntas frecuentes y atributos WAI-ARIA", () => {
+    it("renderiza acordeón accesible con preguntas frecuentes", () => {
       const html = renderWithTheme(React.createElement(FAQSection));
       expect(html).toContain('id="faq"');
-      expect(html).toContain("max-w-340");
-      expect(html).toContain("hs-accordion-group");
-      expect(html).toContain("hs-accordion-toggle");
-      expect(html).toContain("Preguntas Frecuentes");
+      expect(html).toContain("Preguntas frecuentes");
+      expect(html).toContain("¿Necesito tarjeta para probarlo?");
       expect(html).toContain(
-        "Resolvemos tus dudas principales para que des el paso hacia la automatización de tu agenda.",
+        "¿Puedo tener varias sucursales con un solo plan?",
       );
-      expect(html).toContain(
-        "¿Se requiere tarjeta de crédito para iniciar la prueba de 14 días?",
-      );
-      expect(html).toContain(
-        "¿Cómo funciona el portal de reservas para mis clientes?",
-      );
-      expect(html).toContain(
-        "¿Puedo administrar múltiples sucursales con personal y horarios diferentes?",
-      );
-      expect(html).toContain(
-        "¿Cómo se manejan los anticipos y qué pasarelas de pago se admiten?",
-      );
-      expect(html).toContain(
-        "¿Cómo funcionan los recordatorios automáticos por WhatsApp?",
-      );
-      expect(html).toContain(
-        "¿Puedo sincronizar mi agenda con Google Calendar?",
-      );
-      expect(html).toContain('aria-expanded="true"');
-      expect(html).toContain('role="region"');
-      expect(html).toContain("hs-accordion-active:hidden");
-      expect(html).toContain("hs-accordion-active:block");
+      expect(html).toContain("¿Cómo llegan los recordatorios a mis clientes?");
     });
   });
 
-  describe("8. Footer Component", () => {
-    it("renderiza layout corporativo con enlaces, ThemeToggle y copyright dinámico", () => {
+  describe("8. CTASection y Footer Component", () => {
+    it("renderiza el bloque de llamada a la acción final", () => {
+      const html = renderWithTheme(React.createElement(CTASection));
+      expect(html).toContain("¿Seguimos perdiendo citas o las ordenamos?");
+      expect(html).toContain("Reclama tus 14 días gratis");
+    });
+
+    it("renderiza el footer con enlaces corporativos y selector de idioma", () => {
       const html = renderWithTheme(React.createElement(Footer));
-      const year = new Date().getFullYear().toString();
       expect(html).toContain("Agendur");
-      expect(html).toContain(year);
-      expect(html).toContain('href="#caracteristicas"');
-      expect(html).toContain('href="#precios"');
-      expect(html).toContain("Alternar tema");
+      expect(html).toContain("Idioma:");
+      expect(html).toContain("ES");
+      expect(html).toContain("EN");
+      expect(html).toContain("© 2026 Agendur Inc.");
     });
   });
 
   describe("9. LandingPage Complete Integration", () => {
-    it("renderiza todas las secciones en orden con soporte a modo claro y oscuro sin CTA final", () => {
+    it("renderiza todas las secciones en el orden correcto", () => {
       const html = renderWithTheme(React.createElement(LandingPage));
-      expect(html).toContain("bg-white");
-      expect(html).toContain("dark:bg-neutral-950");
-      expect(html).toContain("text-gray-900");
-      expect(html).toContain("dark:text-neutral-100");
-      expect(html).toContain("hs-dark-mode");
 
-      // Verify sections appear in expected sequence (FAQ directly to Footer)
       const posNav = html.indexOf("<header");
-      const posHero = html.indexOf("agendur.com/");
-      const posMarquee = html.indexOf("animate-marquee");
-      const posFeatures = html.indexOf('id="caracteristicas"');
-      const posImpact = html.indexOf('id="impacto"');
+      const posHero = html.indexOf("Deja de perseguir citas");
+      const posHow = html.indexOf("Cómo funciona");
+      const posFeatures = html.indexOf('id="diferenciadores"');
+      const posProof = html.indexOf(
+        "Dueños de negocio que ya no persiguen clientes",
+      );
       const posPricing = html.indexOf('id="precios"');
       const posFaq = html.indexOf('id="faq"');
       const posFooter = html.indexOf("<footer");
 
       expect(posNav).toBeGreaterThan(-1);
       expect(posHero).toBeGreaterThan(posNav);
-      expect(posMarquee).toBeGreaterThan(posHero);
-      expect(posFeatures).toBeGreaterThan(posMarquee);
-      expect(posImpact).toBeGreaterThan(posFeatures);
-      expect(posPricing).toBeGreaterThan(posImpact);
+      expect(posHow).toBeGreaterThan(posHero);
+      expect(posFeatures).toBeGreaterThan(posHow);
+      expect(posProof).toBeGreaterThan(posFeatures);
+      expect(posPricing).toBeGreaterThan(posProof);
       expect(posFaq).toBeGreaterThan(posPricing);
       expect(posFooter).toBeGreaterThan(posFaq);
-
-      // Verify CTASection is completely removed
-      expect(html).not.toContain(
-        "¿Listo para digitalizar la agenda de tus sucursales?",
-      );
     });
   });
 });

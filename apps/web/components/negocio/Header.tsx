@@ -90,7 +90,31 @@ export function Header({
 
   // Branch selector state
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return localStorage.getItem("agendur_selected_sucursal_id") || "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const saved = localStorage.getItem("agendur_selected_sucursal_id");
+        if (saved) setSelectedBranchId(saved);
+      } catch {}
+    };
+
+    window.addEventListener("agendur:branch-change", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener("agendur:branch-change", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, []);
+
   const activeBranch =
     sucursales.find((s) => s.id === selectedBranchId) || sucursales[0];
   const activeBranchName = activeBranch?.nombre || nombreNegocio;
@@ -323,6 +347,13 @@ export function Header({
                   onClick={() => {
                     setSelectedBranchId(sucursal.id);
                     setBranchDropdownOpen(false);
+                    try {
+                      localStorage.setItem(
+                        "agendur_selected_sucursal_id",
+                        sucursal.id,
+                      );
+                      window.dispatchEvent(new Event("agendur:branch-change"));
+                    } catch {}
                   }}
                   className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-surface-alt transition-colors ${
                     sucursal.id === activeBranch?.id

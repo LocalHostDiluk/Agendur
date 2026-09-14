@@ -7,8 +7,6 @@ import {
   Layers,
   MessageSquare,
   CreditCard,
-  CheckCircle2,
-  Calendar,
   Clock,
 } from "lucide-react";
 
