@@ -1,228 +1,168 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import {
-  Check,
-  Sparkles,
-  Building2,
-  ShieldCheck,
-  ArrowRight,
-} from "lucide-react";
+import React, { useState } from "react";
+import { useLandingLanguage } from "./LandingLanguageContext";
+import { Check } from "lucide-react";
 
 export function PricingSection() {
-  const [isAnnual, setIsAnnual] = useState(true);
+  const { lang, t } = useLandingLanguage();
+  const [annual, setAnnual] = useState(true);
 
-  const plans = [
-    {
-      id: "emprendedor",
-      name: "Emprendedor",
-      description:
-        "Para profesionales independientes, barberos y consultorios con 1 sucursal.",
-      monthlyPrice: 19,
-      annualPrice: 15,
-      features: [
-        "1 Sucursal registrada",
-        "Hasta 3 Profesionales / Agendas",
-        "Citas y reservas ilimitadas",
-        "Portal de autoservicio web 24/7",
-        "Recordatorios por correo y SMS",
-        "Sincronización con Google Calendar",
-        "Soporte estándar por email",
-      ],
-      popular: false,
-      ctaText: "Comenzar Prueba Gratis",
-      ctaLink: "/register?plan=emprendedor",
-    },
-    {
-      id: "pyme",
-      name: "PYME Crecimiento",
-      description:
-        "Para negocios consolidados, clínicas y spas con múltiples especialistas.",
-      monthlyPrice: 49,
-      annualPrice: 39,
-      features: [
-        "Hasta 5 Sucursales activas",
-        "Hasta 15 Profesionales / Agendas",
-        "Recordatorios automáticos por WhatsApp",
-        "Cobro de Anticipos (Stripe y Manual)",
-        "Control anti-ausentismo (No-shows)",
-        "Analítica e Historial de Clientes",
-        "Soporte prioritario por WhatsApp",
-      ],
-      popular: true,
-      ctaText: "Iniciar 14 Días Gratis",
-      ctaLink: "/register?plan=pyme",
-    },
-    {
-      id: "enterprise",
-      name: "Multi-Sucursal Enterprise",
-      description:
-        "Para franquicias y cadenas comerciales con requerimientos avanzados.",
-      monthlyPrice: 99,
-      annualPrice: 79,
-      features: [
-        "Sucursales y Sedes ilimitadas",
-        "Profesionales y Agendas ilimitadas",
-        "Dominio Propio (citas.tuempresa.com)",
-        "API Completa & Webhooks",
-        "Gestor de cuenta y onboarding dedicado",
-        "Capacitación en vivo para tu equipo",
-        "SLA de disponibilidad garantizado 99.9%",
-      ],
-      popular: false,
-      ctaText: "Contactar a Ventas",
-      ctaLink: "/register?plan=enterprise",
-    },
-  ];
+  const plans =
+    lang === "en"
+      ? [
+          {
+            name: "Starter",
+            detail:
+              "For solo practitioners, barbers, and independent consultancies.",
+            price: 29,
+            features: [
+              "1 branch included",
+              "Unlimited appointments & services",
+              "Booking page business.agendur.app",
+              "100 WhatsApp reminders / mo",
+              "Email support",
+            ],
+          },
+          {
+            name: "Pro",
+            detail:
+              "For growing businesses with teams of specialists and high demand.",
+            price: 59,
+            features: [
+              "Up to 3 branches",
+              "Online deposits & full pay",
+              "500 automated reminders / mo",
+              "Full exportable analytics",
+              "Priority WhatsApp support",
+            ],
+          },
+          {
+            name: "Business",
+            detail:
+              "For multi-branch groups and franchises needing centralized oversight.",
+            price: 119,
+            features: [
+              "Unlimited branches",
+              "Multiple Stripe accounts",
+              "Unlimited WhatsApp reminders",
+              "Multi-branch intelligence reports",
+              "Dedicated 24/7 advisor",
+            ],
+          },
+        ]
+      : [
+          {
+            name: "Starter",
+            detail:
+              "Para consultorios individuales, barberos y terapeutas independientes.",
+            price: 29,
+            features: [
+              "1 sucursal incluida",
+              "Citas y servicios ilimitados",
+              "Página de reservas negocio.agendur.app",
+              "100 recordatorios WhatsApp / mes",
+              "Soporte por correo",
+            ],
+          },
+          {
+            name: "Pro",
+            detail:
+              "Para negocios consolidados con equipo de especialistas y alta demanda.",
+            price: 59,
+            features: [
+              "Hasta 3 sucursales",
+              "Cobro de anticipos y pagos online",
+              "500 recordatorios automáticos / mes",
+              "Reportes completos y exportables",
+              "Soporte prioritario por WhatsApp",
+            ],
+          },
+          {
+            name: "Business",
+            detail:
+              "Para franquicias, cadenas y clínicas con múltiples ubicaciones activas.",
+            price: 119,
+            features: [
+              "Sucursales ilimitadas",
+              "Múltiples cuentas Stripe",
+              "Recordatorios WhatsApp ilimitados",
+              "Reportes avanzados multi-sede",
+              "Asesor dedicado 24/7",
+            ],
+          },
+        ];
 
   return (
-    <section
-      id="precios"
-      className="py-16 sm:py-24 bg-gray-50/60 dark:bg-neutral-950/50 relative transition-colors"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-400 text-xs font-semibold uppercase tracking-wider">
-            <Building2 className="size-3.5" />
-            Planes Transparentes y Escalables
+    <section className="section paper pricing" id="precios">
+      <div className="wrap">
+        <div className="pricing-header">
+          <div className="pricing-title-wrap">
+            <p className="eyebrow">
+              {lang === "en" ? "03 / Clear pricing" : "03 / Precios claros"}
+            </p>
+            <h2 className="section-title">{t.priceTitle}</h2>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Invierte en orden y multiplica las citas de tu negocio
-          </h2>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-neutral-400">
-            Todos los planes incluyen 14 días de prueba gratuita sin tarjeta de
-            crédito. Cancela en cualquier momento con un solo clic.
-          </p>
-
-          {/* Billing Switcher Toggle */}
-          <div className="pt-4 flex items-center justify-center gap-3">
-            <span
-              className={`text-sm font-medium transition-colors ${
-                !isAnnual
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-500 dark:text-neutral-400"
-              }`}
-            >
-              Facturación Mensual
-            </span>
-
+          <div className="price-toggle">
             <button
               type="button"
-              role="switch"
-              aria-checked={isAnnual}
-              aria-label="Alternar facturación mensual y anual"
-              onClick={() => setIsAnnual(!isAnnual)}
-              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-300 dark:bg-neutral-700 transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 data-[checked=true]:bg-blue-600"
-              data-checked={isAnnual}
+              onClick={() => setAnnual(false)}
+              className={!annual ? "is-active" : ""}
             >
-              <span
-                className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                  isAnnual ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-
-            <span
-              className={`text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                isAnnual
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-500 dark:text-neutral-400"
-              }`}
-            >
-              Facturación Anual
-              <span className="inline-flex items-center py-0.5 px-2 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                Ahorra 20%
+              {lang === "en" ? "Monthly" : "Mensual"}
+              <span className="placeholder" aria-hidden="true">
+                &nbsp;
               </span>
-            </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnnual(true)}
+              className={annual ? "is-active" : ""}
+            >
+              {lang === "en" ? "Annual" : "Anual"}
+              <span>{lang === "en" ? "-20%" : "-20%"}</span>
+            </button>
           </div>
         </div>
-
-        {/* Pricing Cards Grid */}
-        <div className="grid md:grid-cols-3 gap-8 items-stretch max-w-7xl mx-auto">
-          {plans.map((plan) => {
-            const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
-
-            return (
-              <div
-                key={plan.id}
-                className={`relative flex flex-col justify-between p-7 sm:p-8 rounded-2xl bg-white dark:bg-neutral-900 transition-all ${
-                  plan.popular
-                    ? "border-2 border-blue-600 dark:border-blue-500 shadow-xl shadow-blue-500/10 -translate-y-1 lg:-translate-y-2"
-                    : "border border-gray-200 dark:border-neutral-800 shadow-xs hover:border-gray-300 dark:hover:border-neutral-700"
-                }`}
-              >
-                {/* Popular Badge */}
-                {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 py-1 px-3.5 rounded-full bg-blue-600 text-white text-xs font-bold uppercase tracking-wider shadow-md">
-                    <Sparkles className="size-3.5" />
-                    Más Popular
-                  </div>
-                )}
-
-                <div>
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                      {plan.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1 min-h-[32px]">
-                      {plan.description}
-                    </p>
-                  </div>
-
-                  {/* Price */}
-                  <div className="mb-6 flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-gray-900 dark:text-white">
-                      ${price}
+        <div className="plans">
+          {plans.map((plan, i) => (
+            <article className={`plan-ticket p-${i}`} key={plan.name}>
+              <div className="plan-head">
+                <div className="plan-title-row">
+                  <span className="plan-name">{plan.name}</span>
+                  {i === 1 && (
+                    <span className="popular">
+                      {lang === "en" ? "Most popular" : "Más elegido"}
                     </span>
-                    <span className="text-sm font-medium text-gray-500 dark:text-neutral-400">
-                      USD / mes
-                    </span>
-                    {isAnnual && (
-                      <span className="text-[11px] text-gray-400 dark:text-neutral-500 ml-1">
-                        (anual)
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Feature Checklist */}
-                  <ul className="space-y-3 mb-8 text-xs sm:text-sm text-gray-700 dark:text-neutral-300 border-t border-gray-100 dark:border-neutral-800 pt-6">
-                    {plan.features.map((feature, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-2.5">
-                        <Check className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  )}
                 </div>
-
-                {/* CTA Button */}
-                <div>
-                  <Link
-                    href={plan.ctaLink}
-                    className={`w-full py-3 px-4 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${
-                      plan.popular
-                        ? "bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 shadow-md shadow-blue-500/20 hover:scale-[1.01]"
-                        : "bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-800 dark:text-neutral-200"
-                    }`}
-                  >
-                    {plan.ctaText}
-                    <ArrowRight className="size-4" />
-                  </Link>
+                <p>{plan.detail}</p>
+                <div className="price">
+                  <small>$</small>
+                  <strong>
+                    {annual ? Math.round(plan.price * 0.8) : plan.price}
+                  </strong>
+                  <span> / mes</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Guarantee Banner */}
-        <div className="mt-12 text-center text-xs text-gray-500 dark:text-neutral-400 flex items-center justify-center gap-2">
-          <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
-          <span>
-            Garantía de satisfacción: cancela cuando quieras, sin cláusulas de
-            permanencia.
-          </span>
+              <div className="perforation">
+                <i />
+                <span>{lang === "en" ? "Includes:" : "Incluye:"}</span>
+                <i />
+              </div>
+              <ul>
+                {plan.features.map((f) => (
+                  <li key={f}>
+                    <Check size={16} strokeWidth={1.75} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a className="outline-button" href="#contacto">
+                {lang === "en" ? "Start for free" : "Empieza gratis"}
+              </a>
+            </article>
+          ))}
         </div>
       </div>
     </section>

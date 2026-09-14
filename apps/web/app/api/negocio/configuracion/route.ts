@@ -39,6 +39,10 @@ export async function GET() {
         monedaPrincipal: negocio.moneda_principal,
         pais: negocio.pais ?? null,
         zonaHoraria: negocio.zona_horaria ?? null,
+        telefonoClienteRequerido: negocio.telefono_cliente_requerido,
+        emailClienteRequerido: negocio.email_cliente_requerido,
+        notasClienteHabilitadas: negocio.notas_cliente_habilitadas,
+        politicaCancelacion: negocio.politica_cancelacion,
         porcentajeAnticipo: Number(negocio.porcentaje_anticipo_default),
         cobroAnticipoObligatorio: Number(negocio.porcentaje_anticipo_default) > 0,
       },
@@ -68,7 +72,7 @@ export async function PUT(request: NextRequest) {
 
     const { data: negocio, error: negError } = await supabase
       .from("negocios")
-      .select("id")
+      .select("id, telefono_cliente_requerido, email_cliente_requerido")
       .eq("owner_id", user.id)
       .maybeSingle();
 
@@ -129,6 +133,34 @@ export async function PUT(request: NextRequest) {
       updatePayload.porcentaje_anticipo_default = p;
     }
 
+    for (const [key, column] of [
+      ["telefonoClienteRequerido", "telefono_cliente_requerido"],
+      ["emailClienteRequerido", "email_cliente_requerido"],
+      ["notasClienteHabilitadas", "notas_cliente_habilitadas"],
+    ] as const) {
+      if (input[key] !== undefined) {
+        if (typeof input[key] !== "boolean") {
+          return apiError(`${key} debe ser booleano.`, undefined, { status: 400 });
+        }
+        updatePayload[column] = input[key];
+      }
+    }
+    if (
+      (updatePayload.telefono_cliente_requerido ?? negocio.telefono_cliente_requerido) === false &&
+      (updatePayload.email_cliente_requerido ?? negocio.email_cliente_requerido) === false
+    ) {
+      return apiError("Se requiere al menos un medio de contacto.", undefined, { status: 400 });
+    }
+    if (input.politicaCancelacion !== undefined) {
+      if (input.politicaCancelacion !== null &&
+          (typeof input.politicaCancelacion !== "string" || input.politicaCancelacion.length > 2000)) {
+        return apiError("Política de cancelación inválida (máximo 2000 caracteres).", undefined, { status: 400 });
+      }
+      updatePayload.politica_cancelacion = typeof input.politicaCancelacion === "string"
+        ? input.politicaCancelacion.trim() || null
+        : null;
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from("negocios")
       .update(updatePayload)
@@ -150,6 +182,10 @@ export async function PUT(request: NextRequest) {
         monedaPrincipal: updated.moneda_principal,
         pais: updated.pais ?? null,
         zonaHoraria: updated.zona_horaria ?? null,
+        telefonoClienteRequerido: updated.telefono_cliente_requerido,
+        emailClienteRequerido: updated.email_cliente_requerido,
+        notasClienteHabilitadas: updated.notas_cliente_habilitadas,
+        politicaCancelacion: updated.politica_cancelacion,
         porcentajeAnticipo: Number(updated.porcentaje_anticipo_default),
         cobroAnticipoObligatorio: Number(updated.porcentaje_anticipo_default) > 0,
       },

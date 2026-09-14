@@ -83,6 +83,13 @@ describe("Capa de Seguridad - Rate Limiting & Turnstile", () => {
       expect(blocked.success).toBe(false);
       expect(blocked.remaining).toBe(0);
     });
+
+    it("aísla los límites por prefijo de endpoint", async () => {
+      const request = new Request("http://localhost/api/test", { headers: { "x-real-ip": "198.51.100.77" } });
+      expect((await checkRateLimit(request, { limit: 1, windowMs: 10000, keyPrefix: "booking" })).success).toBe(true);
+      expect((await checkRateLimit(request, { limit: 1, windowMs: 10000, keyPrefix: "booking" })).success).toBe(false);
+      expect((await checkRateLimit(request, { limit: 1, windowMs: 10000, keyPrefix: "register" })).success).toBe(true);
+    });
   });
 
   describe("Verificación Cloudflare Turnstile (verifyTurnstileToken)", () => {

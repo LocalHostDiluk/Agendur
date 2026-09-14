@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useSyncExternalStore, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+  ReactNode,
+} from "react";
 
 type Theme = "light" | "dark";
 
@@ -12,7 +18,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_KEY = "citasync-theme";
+const THEME_KEY = "agendur-theme";
 
 function subscribe(callback: () => void) {
   window.addEventListener("storage", callback);
@@ -20,7 +26,9 @@ function subscribe(callback: () => void) {
 }
 
 function getSnapshot(): Theme {
-  return (localStorage.getItem(THEME_KEY) as Theme) === "dark" ? "dark" : "light";
+  return (localStorage.getItem(THEME_KEY) as Theme) === "dark"
+    ? "dark"
+    : "light";
 }
 
 function getServerSnapshot(): Theme {

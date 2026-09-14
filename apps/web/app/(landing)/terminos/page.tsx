@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalDraftShell } from "@/components/landing/LegalDraftShell";
 
 export const metadata: Metadata = {
-  title: "Términos del servicio — borrador | CitaSync",
+  title: "Términos del servicio — borrador | Agendur",
   robots: { index: false, follow: false },
 };
 
@@ -13,14 +13,14 @@ export default function TermsPage() {
   return (
     <LegalDraftShell title="Términos del servicio">
       <p>
-        Propuesta de condiciones para la plataforma CitaSync. Describe el alcance
+        Propuesta de condiciones para la plataforma Agendur. Describe el alcance
         técnico observado en el repositorio; no sustituye una oferta comercial,
         un contrato ni la revisión del operador y de asesoría jurídica.
       </p>
 
       <section className={sectionClass}>
         <h2 className={headingClass}>1. Quién presta el servicio</h2>
-        <p><strong>Pendiente:</strong> nombre o razón social del operador, domicilio, país de operación y canales verificables de soporte y reclamaciones. La marca CitaSync, por sí sola, no identifica a la parte contratante.</p>
+        <p><strong>Pendiente:</strong> nombre o razón social del operador, domicilio, país de operación y canales verificables de soporte y reclamaciones. La marca Agendur, por sí sola, no identifica a la parte contratante.</p>
       </section>
 
       <section className={sectionClass}>
@@ -31,7 +31,7 @@ export default function TermsPage() {
 
       <section className={sectionClass}>
         <h2 className={headingClass}>3. Cuentas y contenido del negocio</h2>
-        <p>La cuenta administrativa sirve para gestionar la información del negocio. Como condición propuesta, quien la administre debería mantener datos de contacto y catálogo correctos, proteger sus credenciales y contar con autorización para publicar datos de profesionales y atender reservas de clientes. CitaSync no presta los servicios profesionales anunciados por cada negocio.</p>
+        <p>La cuenta administrativa sirve para gestionar la información del negocio. Como condición propuesta, quien la administre debería mantener datos de contacto y catálogo correctos, proteger sus credenciales y contar con autorización para publicar datos de profesionales y atender reservas de clientes. Agendur no presta los servicios profesionales anunciados por cada negocio.</p>
         <p><strong>Pendiente:</strong> verificar el modelo de roles, edad mínima, usos prohibidos, suspensión y procedimiento de recuperación de cuenta antes de convertir estas condiciones en obligaciones vigentes.</p>
       </section>
 

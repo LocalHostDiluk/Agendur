@@ -1,348 +1,212 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useLandingLanguage } from "./LandingLanguageContext";
 import {
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  MapPin,
-  MessageCircle,
+  Check,
   Scissors,
-  Stethoscope,
-  Sparkle,
+  MapPin,
+  Clock,
+  Calendar,
+  ShieldCheck,
 } from "lucide-react";
 
 export function HeroSection() {
-  const router = useRouter();
-  const [slugInput, setSlugInput] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState("1");
-  const [selectedStaff, setSelectedStaff] = useState("Carlos Méndez");
-  const [selectedTime, setSelectedTime] = useState("16:30 hrs");
-  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const { t } = useLandingLanguage();
+  const [ticketNumber, setTicketNumber] = useState(47);
 
-  const services = [
-    {
-      id: "1",
-      name: "Corte & Barba Master",
-      duration: "45 min",
-      price: "$350 MXN",
-      anticipo: "$175 MXN (50%)",
-      icon: Scissors,
-    },
-    {
-      id: "2",
-      name: "Consulta Especializada",
-      duration: "30 min",
-      price: "$800 MXN",
-      anticipo: "$400 MXN (50%)",
-      icon: Stethoscope,
-    },
-    {
-      id: "3",
-      name: "Spa & Limpieza Facial",
-      duration: "60 min",
-      price: "$600 MXN",
-      anticipo: "$300 MXN (50%)",
-      icon: Sparkle,
-    },
-  ];
+  // ÚNICA animación de entrada orquestada: de 047 a 048 al cargar
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTicketNumber(48);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const staffList = [
-    { name: "Carlos Méndez", role: "Master Barber", badge: "Estrella" },
-    { name: "Dra. Sofía R.", role: "Especialista", badge: "Certificada" },
-    { name: "Laura Vega", role: "Cosmiatra Pro", badge: "Senior" },
-  ];
-
-  const currentService =
-    services.find((s) => s.id === selectedServiceId) ?? services[0];
-
-  const handleSlugSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanSlug = slugInput.trim();
-    if (cleanSlug) {
-      router.push(`/register?slug=${encodeURIComponent(cleanSlug)}`);
-    } else {
-      router.push("/register");
-    }
-  };
+  const formattedTicket =
+    ticketNumber < 100 ? `0${ticketNumber}` : `${ticketNumber}`;
 
   return (
-    <section className="relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-24 bg-white dark:bg-neutral-950 transition-colors">
-      {/* Background Gradient Highlights */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-blue-100/60 dark:bg-blue-900/15 blur-[120px] rounded-full -z-10" />
-      <div className="pointer-events-none absolute top-1/3 right-0 w-[400px] h-[400px] bg-indigo-100/50 dark:bg-indigo-900/10 blur-[100px] rounded-full -z-10" />
+    <section className="relative bg-ink text-paper pt-12 pb-20 lg:pt-20 lg:pb-32 overflow-hidden">
+      {/* Retícula sutil tipo pliego riso (sin gradientes) */}
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(#F3EEDF 1px, transparent 1px)`,
+          backgroundSize: "24px 24px",
+        }}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Left Column */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            {/* Soft Pill Badge */}
-            <div className="inline-flex items-center gap-x-2 py-1.5 px-3.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-400 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
-              <span>Nueva versión: Anticipos y recordatorios inteligentes</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid lg:grid-cols-12 gap-12 lg:gap-14 items-center">
+          {/* Columna Izquierda: Copy + CTAs */}
+          <div className="lg:col-span-7 space-y-6 text-left">
+            {/* Badge de turno en cabecera */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-grape text-paper text-xs font-mono font-medium border border-paper/20">
+              <span className="w-2 h-2 rounded-full bg-flame animate-pulse" />
+              <span>{t.hero.ticketLabel}</span>
             </div>
 
-            {/* Bold Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-[1.12]">
-              El software de citas que{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 dark:from-blue-400 dark:via-indigo-300 dark:to-teal-300">
-                elimina el ausentismo
-              </span>{" "}
-              y llena tu agenda en piloto automático
+            {/* H1 Principal sin negrita selectiva */}
+            <h1 className="font-bricolage font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tight text-paper leading-[1.12]">
+              {t.hero.h1}
             </h1>
 
-            {/* Benefits Subtitle */}
-            <p className="text-base sm:text-lg text-gray-600 dark:text-neutral-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
-              Permite a tus clientes agendar en menos de 30 segundos desde
-              cualquier dispositivo. Gestiona múltiples sucursales, asegura tus
-              ingresos cobrando anticipos y envía recordatorios automáticos por
-              WhatsApp.
+            {/* Subtítulo */}
+            <p className="text-base sm:text-lg lg:text-xl text-mist max-w-2xl font-normal leading-relaxed">
+              {t.hero.subtitle}
             </p>
 
-            {/* Slug Micro-Capture Bar */}
-            <div className="pt-2">
-              <form
-                onSubmit={handleSlugSubmit}
-                className="flex flex-col sm:flex-row items-stretch gap-2.5 max-w-lg mx-auto lg:mx-0"
-              >
-                <div className="relative flex-1 flex items-center rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xs focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden">
-                  <span className="pl-3.5 text-xs sm:text-sm text-gray-400 dark:text-neutral-500 select-none font-medium">
-                    citasync.com/
-                  </span>
-                  <input
-                    type="text"
-                    value={slugInput}
-                    onChange={(e) =>
-                      setSlugInput(
-                        e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                      )
-                    }
-                    placeholder="tu-marca"
-                    aria-label="Nombre de tu marca o negocio"
-                    className="w-full py-3 pr-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 bg-transparent focus:outline-hidden"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="py-3 px-6 inline-flex items-center justify-center gap-x-2 text-sm font-semibold rounded-xl border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 shadow-md shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+            {/* Bloque CTA Primario y Secundario */}
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-5">
+              <div className="flex flex-col items-start gap-1.5">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center px-7 py-4 bg-flame text-paper font-semibold text-base ticket-notch-tr hover:bg-flame/90 active:scale-[0.98] transition-transform focus:outline-hidden focus:ring-2 focus:ring-flame focus:ring-offset-2 focus:ring-offset-ink shadow-none"
                 >
-                  Comenzar Gratis
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
-              <p className="text-xs text-gray-500 dark:text-neutral-500 mt-2 text-center lg:text-left">
-                Prueba de 14 días sin tarjeta de crédito. Configuración en 3
-                minutos.
-              </p>
-            </div>
-          </div>
-
-          {/* Right Column: Preline UI Interactive Mockup Card */}
-          <div className="lg:col-span-5">
-            <div className="relative mx-auto max-w-md bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl shadow-xl transition-all">
-              {/* Card Window Topbar */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-neutral-800 bg-gray-50/75 dark:bg-neutral-900/90 rounded-t-2xl">
-                <div className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-full bg-red-400 inline-block" />
-                  <span className="size-2.5 rounded-full bg-amber-400 inline-block" />
-                  <span className="size-2.5 rounded-full bg-emerald-400 inline-block" />
-                  <span className="ml-2 font-mono text-[11px] text-gray-400 dark:text-neutral-500">
-                    citasync.com/reserva/live
-                  </span>
-                </div>
-                <span className="inline-flex items-center gap-x-1 py-0.5 px-2 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  En Vivo
+                  {t.hero.ctaPrimary}
+                </Link>
+                <span className="text-xs text-mist font-mono pl-1">
+                  {t.hero.ctaNote}
                 </span>
               </div>
 
-              {/* Card Body */}
-              <div className="p-5 space-y-4 text-left">
-                {/* Header info */}
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-neutral-800">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                      Barber & Spa Club Matriz
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5">
-                      <MapPin className="size-3 text-blue-600 dark:text-blue-400" />{" "}
-                      Sucursal Polanco • CDMX
-                    </p>
-                  </div>
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-neutral-400 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-md">
-                    24/7 Abierto
+              <a
+                href="#como-funciona"
+                className="inline-flex items-center text-sm font-medium text-paper/90 hover:text-paper underline underline-offset-8 decoration-grape decoration-2 hover:decoration-flame transition-colors pt-1"
+              >
+                {t.hero.secondaryLink}
+              </a>
+            </div>
+          </div>
+
+          {/* Columna Derecha: Ilustración Física del Ticket de Turno */}
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="relative w-full max-w-sm sm:max-w-md">
+              {/* Sello de Superposición Risográfica (mix-blend-multiply) */}
+              <div className="absolute -top-7 -right-5 z-20 flex items-center justify-center pointer-events-none">
+                {/* Círculo morado base */}
+                <div className="w-24 h-24 rounded-full bg-grape text-paper flex flex-col items-center justify-center border-2 border-ink shadow-none">
+                  <span className="text-[10px] uppercase tracking-wider font-mono opacity-80">
+                    {t.hero.stampText}
+                  </span>
+                  {/* Número en Space Mono con animación a 048 */}
+                  <span className="font-mono text-2xl font-bold tracking-normal transition-all duration-500">
+                    {formattedTicket}
                   </span>
                 </div>
 
-                {!bookingConfirmed ? (
-                  <>
-                    {/* 1. Interactive Service Selection */}
+                {/* Círculo naranja flame superpuesto con mix-blend-multiply para tono oscuro riso */}
+                <div className="absolute -bottom-2 -left-3 w-14 h-14 rounded-full bg-flame text-paper flex items-center justify-center riso-multiply border border-ink opacity-95">
+                  <span className="text-[9px] font-mono font-bold">ACTIVO</span>
+                </div>
+              </div>
+
+              {/* El Ticket Físico en color --paper */}
+              <div className="relative bg-paper text-ink border-2 border-ink shadow-none p-6 sm:p-7 overflow-hidden">
+                {/* Borde perforado decorativo en el lateral izquierdo */}
+                <div className="absolute left-0 top-0 bottom-0 w-2 flex flex-col justify-between py-2 -translate-x-1">
+                  {[...Array(12)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-2.5 h-2.5 rounded-full bg-ink -ml-1.5 my-1"
+                    />
+                  ))}
+                </div>
+
+                {/* Cabecera del Ticket */}
+                <div className="flex items-center justify-between pb-4 border-b border-ink/15 pl-3">
+                  <div>
+                    <span className="font-bricolage font-bold text-lg text-ink tracking-tight block">
+                      Agendur
+                    </span>
+                    <span className="text-[11px] font-mono text-mist">
+                      SUC-01 · CIUDAD
+                    </span>
+                  </div>
+                  <div className="text-right pr-12">
+                    <span className="text-xs font-mono font-medium text-ink bg-paper border border-ink/20 px-2 py-0.5 inline-block">
+                      {t.hero.ticketDate}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Detalles de la cita */}
+                <div className="py-5 space-y-4 pl-3">
+                  <div>
+                    <span className="text-xs text-mist block font-mono">
+                      Servicio
+                    </span>
+                    <h3 className="font-bricolage font-semibold text-base text-ink">
+                      {t.hero.ticketService}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
-                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-neutral-400 mb-1.5">
-                        1. Selecciona el Servicio
-                      </label>
-                      <div className="space-y-1.5">
-                        {services.map((srv) => {
-                          const isSelected = selectedServiceId === srv.id;
-                          return (
-                            <button
-                              type="button"
-                              key={srv.id}
-                              onClick={() => setSelectedServiceId(srv.id)}
-                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left text-xs transition-all ${
-                                isSelected
-                                  ? "border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 dark:border-blue-500 font-medium"
-                                  : "border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-800/60"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <div
-                                  className={`p-1.5 rounded-lg ${
-                                    isSelected
-                                      ? "bg-blue-600 text-white"
-                                      : "bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-300"
-                                  }`}
-                                >
-                                  <srv.icon className="size-3.5" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-gray-900 dark:text-white">
-                                    {srv.name}
-                                  </p>
-                                  <p className="text-[10px] text-gray-500 dark:text-neutral-400 flex items-center gap-1">
-                                    <Clock className="size-3" /> {srv.duration}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <span className="font-bold text-gray-900 dark:text-white">
-                                  {srv.price}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <span className="text-mist block font-mono">
+                        Especialista
+                      </span>
+                      <p className="font-medium text-ink">Mateo Silva</p>
                     </div>
-
-                    {/* 2. Staff and Time selectors */}
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-neutral-400 mb-1">
-                          Profesional
-                        </label>
-                        <select
-                          value={selectedStaff}
-                          onChange={(e) => setSelectedStaff(e.target.value)}
-                          className="w-full py-2 px-2.5 text-xs rounded-lg bg-gray-50 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-gray-800 dark:text-neutral-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-                        >
-                          {staffList.map((st) => (
-                            <option key={st.name} value={st.name}>
-                              {st.name} ({st.role})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-neutral-400 mb-1">
-                          Horario
-                        </label>
-                        <select
-                          value={selectedTime}
-                          onChange={(e) => setSelectedTime(e.target.value)}
-                          className="w-full py-2 px-2.5 text-xs rounded-lg bg-gray-50 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-gray-800 dark:text-neutral-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-                        >
-                          <option value="10:30 hrs">Hoy - 10:30 hrs</option>
-                          <option value="12:00 hrs">Hoy - 12:00 hrs</option>
-                          <option value="16:30 hrs">Hoy - 16:30 hrs</option>
-                          <option value="18:00 hrs">Mañana - 18:00 hrs</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Deposit Preview Badge */}
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="size-4 text-blue-600 dark:text-blue-400" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-800 dark:text-neutral-200">
-                            Anticipo Requerido (50%)
-                          </p>
-                          <p className="text-[10px] text-gray-500 dark:text-neutral-400">
-                            Stripe / Tarjeta o Transferencia
-                          </p>
-                        </div>
-                      </div>
-                      <span className="font-bold text-xs text-blue-700 dark:text-blue-400">
-                        {currentService.anticipo}
+                    <div>
+                      <span className="text-mist block font-mono">Estado</span>
+                      <span className="inline-flex items-center gap-1 text-mint font-semibold bg-mint/10 px-1.5 py-0.5 border border-mint/20">
+                        <Check className="w-3 h-3" strokeWidth={2.5} />
+                        {t.hero.ticketStatus}
                       </span>
                     </div>
-
-                    {/* Action Button */}
-                    <button
-                      type="button"
-                      onClick={() => setBookingConfirmed(true)}
-                      className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 shadow-sm transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <CheckCircle2 className="size-4" />
-                      Simular Confirmación de Cita
-                    </button>
-                  </>
-                ) : (
-                  /* Confirmed State Simulation */
-                  <div className="py-3 space-y-4 text-center">
-                    <div className="size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto ring-4 ring-emerald-50 dark:ring-emerald-900/30">
-                      <CheckCircle2 className="size-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-bold text-gray-900 dark:text-white">
-                        ¡Cita Agendada y Anticipo Pagado!
-                      </h4>
-                      <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">
-                        Servicio:{" "}
-                        <strong className="text-gray-900 dark:text-white">
-                          {currentService.name}
-                        </strong>{" "}
-                        ({currentService.price})
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-neutral-400">
-                        Con{" "}
-                        <strong className="text-gray-900 dark:text-white">
-                          {selectedStaff}
-                        </strong>{" "}
-                        el día de hoy a las{" "}
-                        <strong className="text-blue-600 dark:text-blue-400">
-                          {selectedTime}
-                        </strong>
-                        .
-                      </p>
-                    </div>
-
-                    {/* WhatsApp simulation */}
-                    <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-left text-xs space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold text-xs">
-                        <MessageCircle className="size-4 text-emerald-600 dark:text-emerald-400" />
-                        Recordatorio Inteligente por WhatsApp
-                      </div>
-                      <p className="text-[11px] text-gray-600 dark:text-neutral-400">
-                        Se enviará un mensaje 24h y 2h antes de la cita con
-                        confirmación de ubicación y calendarización en 1 clic.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setBookingConfirmed(false)}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                    >
-                      ← Cambiar configuración o servicio
-                    </button>
                   </div>
-                )}
+
+                  <div>
+                    <span className="text-mist block text-xs font-mono">
+                      Depósito
+                    </span>
+                    <p className="text-xs font-medium text-ink">
+                      {t.hero.ticketDeposit}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Línea de corte / perforación punteada con sacabocados laterales */}
+                <div className="relative my-2 -mx-7 border-t-2 border-dashed border-ink/25">
+                  <div className="absolute -left-3.5 -top-3 w-6 h-6 rounded-full bg-ink" />
+                  <div className="absolute -right-3.5 -top-3 w-6 h-6 rounded-full bg-ink" />
+                </div>
+
+                {/* Stub inferior del ticket con código de barras riso */}
+                <div className="pt-4 pl-3 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono text-mist uppercase tracking-wider block">
+                      Código de validación
+                    </span>
+                    {/* Código de barras en líneas sólidas */}
+                    <div className="flex items-center gap-[3px] h-7">
+                      <div className="w-[3px] h-full bg-ink" />
+                      <div className="w-[1px] h-full bg-ink" />
+                      <div className="w-[4px] h-full bg-ink" />
+                      <div className="w-[2px] h-full bg-ink" />
+                      <div className="w-[1px] h-full bg-ink" />
+                      <div className="w-[5px] h-full bg-ink" />
+                      <div className="w-[2px] h-full bg-ink" />
+                      <div className="w-[1px] h-full bg-ink" />
+                      <div className="w-[3px] h-full bg-ink" />
+                      <div className="w-[4px] h-full bg-ink" />
+                      <div className="w-[2px] h-full bg-ink" />
+                      <div className="w-[1px] h-full bg-ink" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[11px] font-mono font-bold text-grape block">
+                      AGENDUR.APP
+                    </span>
+                    <span className="text-[9px] font-mono text-mist">
+                      ID: #AG-8492
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

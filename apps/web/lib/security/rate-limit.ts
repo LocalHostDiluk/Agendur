@@ -1,5 +1,5 @@
 /**
- * Módulo de Rate Limiting por IP para CitaSync.
+ * Módulo de Rate Limiting por IP para Agendur.
  * Implementa el algoritmo Sliding Window con almacenamiento en memoria y auto-limpieza periódica.
  * Admite de forma transparente Upstash Redis si se configuran las variables de entorno:
  * UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN.

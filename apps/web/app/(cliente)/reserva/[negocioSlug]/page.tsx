@@ -8,7 +8,7 @@ export default async function ReservaNegocioPage({
   const { negocioSlug } = await params;
 
   return (
-    <main className="w-full">
+    <main>
       <BookingPortal negocioSlug={negocioSlug} />
     </main>
   );

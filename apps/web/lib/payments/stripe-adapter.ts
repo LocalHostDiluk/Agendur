@@ -110,7 +110,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
             price_data: {
               currency: "mxn",
               product_data: {
-                name: `CitaSync - Plan ${planConfig.titulo}`,
+                name: `Agendur - Plan ${planConfig.titulo}`,
                 description: `${planConfig.descripcion} (Facturación ${params.intervalo})`,
               },
               unit_amount:

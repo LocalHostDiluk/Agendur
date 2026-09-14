@@ -1,303 +1,175 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Building2,
-  MapPin,
-  Clock,
-  CheckCircle2,
-  MessageSquare,
-  ArrowLeft,
-} from "lucide-react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { notify } from "@/lib/utils/toast";
+import { useCatalogo } from "@/lib/hooks/use-catalogo";
+import { useDisponibilidad } from "@/lib/hooks/use-disponibilidad";
+import { useCrearReserva } from "@/lib/hooks/use-reserva";
+import { ApiClientError } from "@/lib/query/api-client";
+import type { Cita } from "@/lib/types";
 
-interface BookingPortalProps {
-  negocioSlug: string;
-}
+export function BookingPortal({ negocioSlug }: { negocioSlug: string }) {
+  const catalogo = useCatalogo(negocioSlug);
+  const reserva = useCrearReserva();
+  const [sucursalId, setSucursalId] = useState("");
+  const [servicioId, setServicioId] = useState("");
+  const [profesionalId, setProfesionalId] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [hora, setHora] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [email, setEmail] = useState("");
+  const [notas, setNotas] = useState("");
+  const [privacidad, setPrivacidad] = useState(false);
+  const [cancelacion, setCancelacion] = useState(false);
+  const [error, setError] = useState("");
+  const [cita, setCita] = useState<Cita | null>(null);
 
-export function BookingPortal({ negocioSlug }: BookingPortalProps) {
-  const [selectedBranch, setSelectedBranch] = useState("suc-1");
-  const [selectedService, setSelectedService] = useState("serv-1");
-  const [selectedStaff, setSelectedStaff] = useState("prof-1");
-  const [selectedTime, setSelectedTime] = useState("16:30");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const data = catalogo.data?.data;
+  const negocio = data?.negocio;
+  const sucursal = data?.sucursales.find((item) => item.id === sucursalId);
+  const servicio = data?.servicios.find((item) => item.id === servicioId);
+  const profesionales = data?.profesionales.filter(
+    (item) => item.sucursal_id === sucursal?.id && item.serviciosIds.includes(servicio?.id ?? ""),
+  ) ?? [];
+  const profesional = profesionales.find((item) => item.id === profesionalId);
+  const disponibilidad = useDisponibilidad({
+    sucursalId: sucursal?.id,
+    servicioId: servicio?.id,
+    profesionalId: profesional?.id,
+    fecha: fecha || undefined,
+  });
+  const horarios = disponibilidad.data?.horarios ?? [];
+  const horaDisponible = horarios.includes(hora) ? hora : "";
 
-  const sucursales = [
-    {
-      id: "suc-1",
-      nombre: "Sucursal Polanco",
-      direccion: "Av. Horacio 450, CDMX",
-      telf: "+52 55 4160 0001",
-    },
-    {
-      id: "suc-2",
-      nombre: "Sucursal Roma Norte",
-      direccion: "Colima 180, CDMX",
-      telf: "+52 55 4160 0002",
-    },
-    {
-      id: "suc-3",
-      nombre: "Sucursal Guadalajara",
-      direccion: "Av. Vallarta 1200, GDL",
-      telf: "+52 33 3810 0003",
-    },
-  ];
-
-  const servicios = [
-    {
-      id: "serv-1",
-      nombre: "Corte & Estilo Barberia Premium",
-      duracion: "45 min",
-      precio: "$350 MXN",
-    },
-    {
-      id: "serv-2",
-      nombre: "Tratamiento Facial & Barba Spa",
-      duracion: "60 min",
-      precio: "$650 MXN",
-    },
-    {
-      id: "serv-3",
-      nombre: "Servicio Completo VIP",
-      duracion: "90 min",
-      price: "$950 MXN",
-    },
-  ];
-
-  const personal = [
-    { id: "prof-1", nombre: "Carlos Méndez", especialidad: "Master Barber" },
-    { id: "prof-2", nombre: "Roberto Silva", especialidad: "Estilista Senior" },
-  ];
-
-  const handleBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/cliente/reservas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          negocioSlug,
-          sucursalId: selectedBranch,
-          servicioId: selectedService,
-          profesionalId: selectedStaff,
-          clienteNombre: name,
-          clientePhone: phone,
-          clienteEmail: "cliente@ejemplo.com",
-          fecha: new Date().toISOString().split("T")[0],
-          hora: selectedTime,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "No se pudo agendar la reservación.");
-      }
-
-      notify.success("¡Cita agendada!", "Tu cita ha sido reservada con éxito.");
-      setConfirmed(true);
-    } catch (err: unknown) {
-      notify.error(err, "No se pudo completar la reservación.");
-    } finally {
-      setLoading(false);
+  async function handleBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    if (!negocio || !sucursal || !servicio || !profesional || !fecha || !horaDisponible) {
+      setError("Selecciona una sucursal, servicio, profesional, fecha y horario disponible.");
+      return;
     }
-  };
+    try {
+      const result = await reserva.mutateAsync({
+        sucursalId: sucursal.id,
+        servicioId: servicio.id,
+        profesionalId: profesional.id,
+        fecha,
+        hora: horaDisponible,
+        clienteNombre: nombre.trim(),
+        clienteApellido: apellido.trim(),
+        clientePhone: telefono.trim() || null,
+        clienteEmail: email.trim() || null,
+        notasCliente: negocio.notas_cliente_habilitadas ? notas.trim() : undefined,
+        aceptaPrivacidad: privacidad,
+        aceptaPoliticaCancelacion: cancelacion,
+      });
+      setCita(result.cita);
+    } catch (cause) {
+      if (cause instanceof ApiClientError && cause.status === 409) {
+        setHora("");
+        await disponibilidad.refetch();
+        setError("Ese horario ya no está disponible. Elige uno de los horarios actualizados.");
+      } else {
+        setError(cause instanceof Error ? cause.message : "No se pudo completar la reserva.");
+      }
+    }
+  }
 
-  const branchObj = sucursales.find((s) => s.id === selectedBranch);
+  if (catalogo.isPending) return <p>Cargando catálogo…</p>;
+  if (catalogo.isError) return <p role="alert">No se pudo cargar el catálogo. <button type="button" onClick={() => catalogo.refetch()}>Reintentar</button></p>;
+  if (!negocio) return <p role="alert">Negocio no encontrado.</p>;
+
+  if (cita) return (
+    <section>
+      <h1>Reserva registrada</h1>
+      <p>{negocio.nombre_comercial}: {cita.fecha} a las {cita.hora_inicio?.slice(0, 5)}.</p>
+      <button type="button" onClick={() => {
+        setCita(null);
+        setHora("");
+        setPrivacidad(false);
+        setCancelacion(false);
+        reserva.reset();
+      }}>Agendar otra cita</button>
+    </section>
+  );
 
   return (
-    <div className="max-w-xl mx-auto py-12 px-4">
-      <div className="mb-6 flex justify-between items-center">
-        <Link
-          href="/"
-          className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Volver al Inicio
-        </Link>
-        <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-          PORTAL DE RESERVA PÚBLICO
-        </span>
-      </div>
-
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 pb-4 border-b border-slate-800">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold">
-            <Building2 className="w-6 h-6 text-slate-950" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white uppercase tracking-tight">
-              {negocioSlug.replace("-", " ")}
-            </h1>
-            <p className="text-xs text-slate-400 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Selecciona la
-              sucursal de tu preferencia
-            </p>
-          </div>
-        </div>
-
-        {!confirmed ? (
-          <form onSubmit={handleBooking} className="space-y-5">
-            {/* Step 1: Branch */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                1. Elige la Sucursal:
-              </label>
-              <div className="space-y-2">
-                {sucursales.map((suc) => (
-                  <div
-                    key={suc.id}
-                    onClick={() => setSelectedBranch(suc.id)}
-                    className={`p-3 rounded-xl border cursor-pointer text-xs transition-all ${
-                      selectedBranch === suc.id
-                        ? "bg-emerald-500/15 border-emerald-500 text-white font-medium"
-                        : "bg-slate-950/60 border-slate-800/80 text-slate-400 hover:border-slate-700"
-                    }`}
-                  >
-                    <p className="font-bold text-white">{suc.nombre}</p>
-                    <p className="text-[11px] text-slate-400">
-                      {suc.direccion}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Step 2: Service */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                2. Selecciona el Servicio:
-              </label>
-              <div className="space-y-2">
-                {servicios.map((serv) => (
-                  <div
-                    key={serv.id}
-                    onClick={() => setSelectedService(serv.id)}
-                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer text-xs transition-all ${
-                      selectedService === serv.id
-                        ? "bg-slate-800 border-emerald-500 text-white font-medium"
-                        : "bg-slate-950/60 border-slate-800/80 text-slate-400 hover:border-slate-700"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium text-white">{serv.nombre}</p>
-                      <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-500" />{" "}
-                        {serv.duracion}
-                      </p>
-                    </div>
-                    <span className="font-mono text-emerald-400 font-bold">
-                      {serv.precio}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Step 3: Date, Time & Customer details */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  Profesional
-                </label>
-                <select
-                  value={selectedStaff}
-                  onChange={(e) => setSelectedStaff(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
-                >
-                  {personal.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} ({p.especialidad})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  Horario Cita
-                </label>
-                <select
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="10:00">Hoy - 10:00 hrs</option>
-                  <option value="12:30">Hoy - 12:30 hrs</option>
-                  <option value="16:30">Hoy - 16:30 hrs</option>
-                  <option value="18:00">Mañana - 18:00 hrs</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <input
-                type="text"
-                placeholder="Tu Nombre Completo..."
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-              />
-              <input
-                type="tel"
-                placeholder="Tu Teléfono (para confirmación de WhatsApp)..."
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all"
-            >
-              {loading ? "Procesando Reserva..." : "Confirmar Cita Online"}
-            </button>
-          </form>
-        ) : (
-          <div className="py-8 space-y-5 text-center">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                ¡Cita Registrada Exitosamente!
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Te esperamos en{" "}
-                <strong className="text-white">{branchObj?.nombre}</strong> (
-                {branchObj?.direccion}) a las {selectedTime} hrs.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-left text-xs space-y-2">
-              <div className="flex items-center gap-2 text-emerald-300 font-semibold">
-                <MessageSquare className="w-4 h-4 text-emerald-400" />{" "}
-                Recordatorio enviado a {phone}
-              </div>
-              <p className="text-slate-400 text-[11px]">
-                Recibirás un recordatorio automático por WhatsApp 2 horas antes
-                de tu cita.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setConfirmed(false)}
-              className="text-xs text-slate-400 hover:text-white underline"
-            >
-              Agendar otra cita
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+    <section>
+      <p><Link href="/">Volver al inicio</Link></p>
+      <h1>Reservar en {negocio.nombre_comercial}</h1>
+      {data?.sucursales.length === 0 ? <p>No hay sucursales disponibles.</p> : null}
+      <form onSubmit={handleBooking}>
+        <fieldset>
+          <legend>Tu cita</legend>
+          <label htmlFor="reserva-sucursal">Sucursal</label>
+          <select id="reserva-sucursal" value={sucursal?.id ?? ""} required onChange={(event) => {
+            setSucursalId(event.target.value);
+            setServicioId("");
+            setProfesionalId("");
+            setFecha("");
+            setHora("");
+          }}>
+            <option value="">Selecciona una sucursal</option>
+            {data?.sucursales.map((item) => <option key={item.id} value={item.id}>{item.nombre} — {item.direccion}</option>)}
+          </select>
+          <label htmlFor="reserva-servicio">Servicio</label>
+          <select id="reserva-servicio" value={servicio?.id ?? ""} required disabled={!sucursal} onChange={(event) => {
+            setServicioId(event.target.value);
+            setProfesionalId("");
+            setFecha("");
+            setHora("");
+          }}>
+            <option value="">Selecciona un servicio</option>
+            {data?.servicios.map((item) => <option key={item.id} value={item.id}>{item.nombre} — {item.duracion_minutos} min — {item.precio} {negocio.moneda_principal}</option>)}
+          </select>
+          <label htmlFor="reserva-profesional">Profesional</label>
+          <select id="reserva-profesional" value={profesional?.id ?? ""} required disabled={!servicio} onChange={(event) => {
+            setProfesionalId(event.target.value);
+            setHora("");
+          }}>
+            <option value="">Selecciona un profesional</option>
+            {profesionales.map((item) => <option key={item.id} value={item.id}>{item.nombre} {item.apellido}</option>)}
+          </select>
+          {servicio && profesionales.length === 0 ? <p>No hay profesionales disponibles para este servicio en esta sucursal.</p> : null}
+          <label htmlFor="reserva-fecha">Fecha</label>
+          <input id="reserva-fecha" type="date" value={fecha} required disabled={!profesional} onChange={(event) => {
+            setFecha(event.target.value);
+            setHora("");
+          }} />
+          <label htmlFor="reserva-hora">Horario</label>
+          <select id="reserva-hora" value={horaDisponible} required disabled={!fecha || !profesional || disponibilidad.isFetching || disponibilidad.isError} onChange={(event) => setHora(event.target.value)}>
+            <option value="">Selecciona un horario</option>
+            {horarios.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          {disponibilidad.isFetching ? <p>Consultando horarios…</p> : null}
+          {disponibilidad.isError ? <p role="alert">No se pudieron consultar los horarios. <button type="button" onClick={() => disponibilidad.refetch()}>Reintentar</button></p> : null}
+          {fecha && !disponibilidad.isFetching && !disponibilidad.isError && horarios.length === 0 ? <p>No hay horarios disponibles para esa fecha.</p> : null}
+        </fieldset>
+        <fieldset>
+          <legend>Tus datos</legend>
+          <label htmlFor="reserva-nombre">Nombre</label>
+          <input id="reserva-nombre" value={nombre} required maxLength={100} onChange={(event) => setNombre(event.target.value)} />
+          <label htmlFor="reserva-apellido">Apellidos</label>
+          <input id="reserva-apellido" value={apellido} required maxLength={100} onChange={(event) => setApellido(event.target.value)} />
+          <label htmlFor="reserva-telefono">Teléfono{negocio.telefono_cliente_requerido ? " (obligatorio)" : " (opcional)"}</label>
+          <input id="reserva-telefono" type="tel" value={telefono} required={negocio.telefono_cliente_requerido} pattern="\+?[1-9][0-9]{7,14}" title="Usa 8 a 15 dígitos en formato internacional, sin espacios" onChange={(event) => setTelefono(event.target.value)} />
+          <label htmlFor="reserva-email">Correo electrónico{negocio.email_cliente_requerido ? " (obligatorio)" : " (opcional)"}</label>
+          <input id="reserva-email" type="email" value={email} required={negocio.email_cliente_requerido} maxLength={254} onChange={(event) => setEmail(event.target.value)} />
+          {negocio.notas_cliente_habilitadas ? <><label htmlFor="reserva-notas">Notas (opcional)</label><textarea id="reserva-notas" value={notas} maxLength={2000} onChange={(event) => setNotas(event.target.value)} /></> : null}
+        </fieldset>
+        <fieldset>
+          <legend>Consentimientos</legend>
+          <label><input type="checkbox" checked={privacidad} required onChange={(event) => setPrivacidad(event.target.checked)} /> Acepto el <Link href="/privacidad" target="_blank">aviso de privacidad</Link>.</label>
+          {negocio.politica_cancelacion?.trim() ? <>
+            <p>Política de cancelación: {negocio.politica_cancelacion}</p>
+            <label><input type="checkbox" checked={cancelacion} required onChange={(event) => setCancelacion(event.target.checked)} /> Acepto la política de cancelación.</label>
+          </> : null}
+        </fieldset>
+        {error ? <p role="alert">{error}</p> : null}
+        <button type="submit" disabled={reserva.isPending || !horaDisponible || disponibilidad.isFetching}>{reserva.isPending ? "Registrando…" : "Confirmar reserva"}</button>
+      </form>
+    </section>
   );
 }

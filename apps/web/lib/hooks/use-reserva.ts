@@ -7,12 +7,14 @@ export interface CrearReservaInput {
   servicioId: string;
   profesionalId: string;
   clienteNombre: string;
-  clienteApellido?: string;
-  clientePhone: string;
-  clienteEmail: string;
+  clienteApellido: string;
+  clientePhone?: string | null;
+  clienteEmail?: string | null;
   fecha: string;
   hora: string;
   notasCliente?: string;
+  aceptaPrivacidad: boolean;
+  aceptaPoliticaCancelacion?: boolean;
 }
 
 export function useCrearReserva() {

@@ -1,441 +1,203 @@
 "use client";
 
+import React, { useState } from "react";
+import Link from "next/link";
+import { useLandingLanguage } from "./LandingLanguageContext";
+import { Menu, X, Ticket } from "lucide-react";
+
 export function Navbar() {
+  const { lang, setLang, t } = useLandingLanguage();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    // ========== HEADER ==========
-    <header className="sticky top-4 inset-x-0 flex flex-wrap md:justify-start md:flex-nowrap z-40 w-full before:absolute before:inset-0 before:max-w-5xl before:mx-2 xl:before:mx-auto sm:max-xl:before:mr-20 before:rounded-[26px] before:bg-navbar before:border before:border-navbar-line">
-      <nav className="relative max-w-5xl w-full flex flex-wrap md:flex-nowrap basis-full items-center justify-between py-2 ps-5 pe-2 md:py-0 mx-2 sm:max-xl:mr-20 xl:mx-auto">
-        <div className="flex items-center">
-          {/* Logo */}
-          <a
-            className="flex-none rounded-md text-xl inline-block font-semibold focus:outline-hidden focus:opacity-80"
-            href="#"
-            aria-label="Preline"
+    <header className="sticky top-0 z-50 w-full bg-ink border-b border-paper/15 text-paper">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-18">
+          {/* Logo Agendur */}
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group focus:outline-hidden"
           >
-            <svg
-              className="w-28 h-auto"
-              width="116"
-              height="32"
-              viewBox="0 0 116 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M33.5696 30.8182V11.3182H37.4474V13.7003H37.6229C37.7952 13.3187 38.0445 12.9309 38.3707 12.5369C38.7031 12.1368 39.134 11.8045 39.6634 11.5398C40.1989 11.2689 40.8636 11.1335 41.6577 11.1335C42.6918 11.1335 43.6458 11.4044 44.5199 11.946C45.3939 12.4815 46.0926 13.291 46.6158 14.3743C47.139 15.4515 47.4006 16.8026 47.4006 18.4276C47.4006 20.0095 47.1451 21.3452 46.6342 22.4347C46.1295 23.518 45.4401 24.3397 44.5661 24.8999C43.6982 25.4538 42.7256 25.7308 41.6484 25.7308C40.8852 25.7308 40.2358 25.6046 39.7003 25.3523C39.1709 25.0999 38.737 24.7829 38.3984 24.4013C38.0599 24.0135 37.8014 23.6226 37.6229 23.2287H37.5028V30.8182H33.5696ZM37.4197 18.4091C37.4197 19.2524 37.5367 19.9879 37.7706 20.6158C38.0045 21.2436 38.343 21.733 38.7862 22.0838C39.2294 22.4285 39.768 22.6009 40.402 22.6009C41.0421 22.6009 41.5838 22.4254 42.027 22.0746C42.4702 21.7176 42.8056 21.2251 43.0334 20.5973C43.2673 19.9633 43.3842 19.2339 43.3842 18.4091C43.3842 17.5904 43.2704 16.8703 43.0426 16.2486C42.8149 15.6269 42.4794 15.1406 42.0362 14.7898C41.593 14.4389 41.0483 14.2635 40.402 14.2635C39.7618 14.2635 39.2202 14.4328 38.777 14.7713C38.34 15.1098 38.0045 15.59 37.7706 16.2116C37.5367 16.8333 37.4197 17.5658 37.4197 18.4091ZM49.2427 25.5V11.3182H53.0559V13.7926H53.2037C53.4622 12.9124 53.8961 12.2476 54.5055 11.7983C55.1149 11.3428 55.8166 11.1151 56.6106 11.1151C56.8076 11.1151 57.02 11.1274 57.2477 11.152C57.4754 11.1766 57.6755 11.2105 57.8478 11.2536V14.7436C57.6632 14.6882 57.4077 14.639 57.0815 14.5959C56.7553 14.5528 56.4567 14.5312 56.1859 14.5312C55.6073 14.5312 55.0903 14.6574 54.6348 14.9098C54.1854 15.156 53.8284 15.5007 53.5638 15.9439C53.3052 16.3871 53.176 16.898 53.176 17.4766V25.5H49.2427ZM64.9043 25.777C63.4455 25.777 62.1898 25.4815 61.1373 24.8906C60.0909 24.2936 59.2845 23.4503 58.7182 22.3608C58.1519 21.2652 57.8688 19.9695 57.8688 18.4737C57.8688 17.0149 58.1519 15.7346 58.7182 14.6328C59.2845 13.531 60.0816 12.6723 61.1096 12.0568C62.1437 11.4413 63.3563 11.1335 64.7474 11.1335C65.683 11.1335 66.5539 11.2843 67.3603 11.5859C68.1728 11.8814 68.8806 12.3277 69.4839 12.9247C70.0932 13.5218 70.5672 14.2727 70.9057 15.1776C71.2443 16.0762 71.4135 17.1288 71.4135 18.3352V19.4155H59.4384V16.978H67.7111C67.7111 16.4117 67.588 15.91 67.3418 15.473C67.0956 15.036 66.754 14.6944 66.317 14.4482C65.8861 14.1958 65.3844 14.0696 64.812 14.0696C64.2149 14.0696 63.6856 14.2081 63.2239 14.4851C62.7684 14.7559 62.4114 15.1222 62.1529 15.5838C61.8944 16.0393 61.762 16.5471 61.7559 17.1072V19.4247C61.7559 20.1264 61.8851 20.7327 62.1437 21.2436C62.4083 21.7545 62.7807 22.1484 63.2608 22.4254C63.741 22.7024 64.3103 22.8409 64.9689 22.8409C65.406 22.8409 65.8061 22.7794 66.1692 22.6562C66.5324 22.5331 66.8432 22.3485 67.1018 22.1023C67.3603 21.8561 67.5572 21.5545 67.6927 21.1974L71.3304 21.4375C71.1458 22.3116 70.7672 23.0748 70.1948 23.7273C69.6285 24.3736 68.896 24.8783 67.9974 25.2415C67.1048 25.5985 66.0738 25.777 64.9043 25.777ZM77.1335 6.59091V25.5H73.2003V6.59091H77.1335ZM79.5043 25.5V11.3182H83.4375V25.5H79.5043ZM81.4801 9.49006C80.8954 9.49006 80.3937 9.29616 79.9752 8.90838C79.5628 8.51444 79.3566 8.04356 79.3566 7.49574C79.3566 6.95407 79.5628 6.48935 79.9752 6.10156C80.3937 5.70762 80.8954 5.51065 81.4801 5.51065C82.0649 5.51065 82.5635 5.70762 82.9759 6.10156C83.3944 6.48935 83.6037 6.95407 83.6037 7.49574C83.6037 8.04356 83.3944 8.51444 82.9759 8.90838C82.5635 9.29616 82.0649 9.49006 81.4801 9.49006ZM89.7415 17.3011V25.5H85.8083V11.3182H89.5569V13.8203H89.723C90.037 12.9955 90.5632 12.343 91.3019 11.8629C92.0405 11.3767 92.9361 11.1335 93.9887 11.1335C94.9735 11.1335 95.8322 11.349 96.5647 11.7798C97.2971 12.2107 97.8665 12.8262 98.2728 13.6264C98.679 14.4205 98.8821 15.3684 98.8821 16.4702V25.5H94.9489V17.1719C94.9551 16.304 94.7335 15.6269 94.2841 15.1406C93.8348 14.6482 93.2162 14.402 92.4283 14.402C91.8989 14.402 91.4311 14.5159 91.0249 14.7436C90.6248 14.9714 90.3109 15.3037 90.0831 15.7408C89.8615 16.1716 89.7477 16.6918 89.7415 17.3011ZM107.665 25.777C106.206 25.777 104.951 25.4815 103.898 24.8906C102.852 24.2936 102.045 23.4503 101.479 22.3608C100.913 21.2652 100.63 19.9695 100.63 18.4737C100.63 17.0149 100.913 15.7346 101.479 14.6328C102.045 13.531 102.842 12.6723 103.87 12.0568C104.905 11.4413 106.117 11.1335 107.508 11.1335C108.444 11.1335 109.315 11.2843 110.121 11.5859C110.934 11.8814 111.641 12.3277 112.245 12.9247C112.854 13.5218 113.328 14.2727 113.667 15.1776C114.005 16.0762 114.174 17.1288 114.174 18.3352V19.4155H102.199V16.978H110.472C110.472 16.4117 110.349 15.91 110.103 15.473C109.856 15.036 109.515 14.6944 109.078 14.4482C108.647 14.1958 108.145 14.0696 107.573 14.0696C106.976 14.0696 106.446 14.2081 105.985 14.4851C105.529 14.7559 105.172 15.1222 104.914 15.5838C104.655 16.0393 104.523 16.5471 104.517 17.1072V19.4247C104.517 20.1264 104.646 20.7327 104.905 21.2436C105.169 21.7545 105.542 22.1484 106.022 22.4254C106.502 22.7024 107.071 22.8409 107.73 22.8409C108.167 22.8409 108.567 22.7794 108.93 22.6562C109.293 22.5331 109.604 22.3485 109.863 22.1023C110.121 21.8561 110.318 21.5545 110.454 21.1974L114.091 21.4375C113.907 22.3116 113.528 23.0748 112.956 23.7273C112.389 24.3736 111.657 24.8783 110.758 25.2415C109.866 25.5985 108.835 25.777 107.665 25.777Z"
-                className="fill-primary"
-                fill="currentColor"
-              />
-              <path
-                d="M1 29.5V16.5C1 9.87258 6.37258 4.5 13 4.5C19.6274 4.5 25 9.87258 25 16.5C25 23.1274 19.6274 28.5 13 28.5H12"
-                className="stroke-primary"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M5 29.5V16.66C5 12.1534 8.58172 8.5 13 8.5C17.4183 8.5 21 12.1534 21 16.66C21 21.1666 17.4183 24.82 13 24.82H12"
-                className="stroke-primary"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <circle
-                cx="13"
-                cy="16.5214"
-                r="5"
-                className="fill-primary"
-                fill="currentColor"
-              />
-            </svg>
-          </a>
-          {/* End Logo */}
-        </div>
+            <div className="w-8 h-8 bg-flame flex items-center justify-center ticket-notch-tr text-paper font-mono font-bold text-sm tracking-tight transition-transform group-hover:scale-105">
+              <Ticket className="w-4.5 h-4.5 text-paper" strokeWidth={2} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bricolage font-bold text-xl sm:text-2xl tracking-tight text-paper">
+                Agendur
+              </span>
+            </div>
+          </Link>
 
-        {/* Button Group */}
-        <div className="md:order-3 flex items-center gap-x-2 sm:gap-x-3 shrink-0">
-          <a
-            className="hidden sm:inline-flex items-center justify-center py-2 px-3.5 text-sm sm:text-[15px] font-semibold text-nowrap whitespace-nowrap text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
-            href="/login"
-          >
-            Iniciar Sesión
-          </a>
-
-          <div>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <a
-              className="group inline-flex items-center gap-x-2 py-2 px-3.5 bg-primary border border-primary-line text-primary-foreground font-medium text-sm text-nowrap whitespace-nowrap rounded-[26px] hover:opacity-90 focus:outline-hidden transition-all shadow-xs"
-              href="/register"
+              href="#diferenciadores"
+              className="text-paper/80 hover:text-paper transition-colors"
             >
-              Comenzar Gratis
+              {t.nav.product}
             </a>
+            <a
+              href="#precios"
+              className="text-paper/80 hover:text-paper transition-colors"
+            >
+              {t.nav.pricing}
+            </a>
+            <a
+              href="#como-funciona"
+              className="text-paper/80 hover:text-paper transition-colors"
+            >
+              {t.nav.forBusiness}
+            </a>
+            <a
+              href="#faq"
+              className="text-paper/80 hover:text-paper transition-colors"
+            >
+              {t.nav.contact}
+            </a>
+          </nav>
+
+          {/* Right Actions: Language Selector & CTA */}
+          <div className="hidden md:flex items-center gap-4">
+            {/* Language Selector ES/EN */}
+            <div className="flex items-center border border-paper/20 rounded-none bg-paper/5 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setLang("es")}
+                className={`px-2.5 py-1 transition-colors ${
+                  lang === "es"
+                    ? "bg-grape text-paper font-bold"
+                    : "text-paper/60 hover:text-paper"
+                }`}
+                aria-label="Cambiar idioma a Español"
+              >
+                ES
+              </button>
+              <button
+                type="button"
+                onClick={() => setLang("en")}
+                className={`px-2.5 py-1 transition-colors ${
+                  lang === "en"
+                    ? "bg-grape text-paper font-bold"
+                    : "text-paper/60 hover:text-paper"
+                }`}
+                aria-label="Switch language to English"
+              >
+                EN
+              </button>
+            </div>
+
+            <Link
+              href="/login"
+              className="text-xs sm:text-sm font-medium text-paper/80 hover:text-paper transition-colors px-2 py-1"
+            >
+              {t.nav.login}
+            </Link>
+
+            {/* CTA Ticket Button */}
+            <Link
+              href="/register"
+              className="relative inline-flex items-center justify-center px-4 py-2.5 bg-flame text-paper font-medium text-sm ticket-notch-tr hover:bg-flame/90 active:scale-[0.98] transition-all focus:outline-hidden focus:ring-2 focus:ring-flame focus:ring-offset-2 focus:ring-offset-ink"
+            >
+              {t.nav.cta}
+            </Link>
           </div>
 
-          <div className="md:hidden">
+          {/* Mobile Hamburger Button */}
+          <div className="flex items-center gap-3 md:hidden">
+            {/* Mobile Lang Selector */}
+            <div className="flex items-center border border-paper/20 bg-paper/5 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setLang("es")}
+                className={`px-2 py-0.5 ${
+                  lang === "es"
+                    ? "bg-grape text-paper font-bold"
+                    : "text-paper/60"
+                }`}
+              >
+                ES
+              </button>
+              <button
+                type="button"
+                onClick={() => setLang("en")}
+                className={`px-2 py-0.5 ${
+                  lang === "en"
+                    ? "bg-grape text-paper font-bold"
+                    : "text-paper/60"
+                }`}
+              >
+                EN
+              </button>
+            </div>
+
             <button
               type="button"
-              className="hs-collapse-toggle size-9 flex justify-center items-center text-sm font-semibold rounded-full bg-layer border border-layer-line text-layer-foreground disabled:opacity-50 disabled:pointer-events-none"
-              id="hs-pro-an-collapse"
-              aria-expanded="false"
-              aria-controls="hs-pro-an"
-              aria-label="Toggle navigation"
-              data-hs-collapse="#hs-pro-an"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 text-paper hover:text-flame transition-colors focus:outline-hidden"
+              aria-label="Toggle Navigation Menu"
             >
-              <svg
-                className="hs-collapse-open:hidden shrink-0 size-4"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="3" x2="21" y1="6" y2="6" />
-                <line x1="3" x2="21" y1="12" y2="12" />
-                <line x1="3" x2="21" y1="18" y2="18" />
-              </svg>
-              <svg
-                className="hs-collapse-open:block hidden shrink-0 size-4"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
-        {/* End Button Group */}
+      </div>
 
-        {/* Collapse */}
-        <div
-          id="hs-pro-an"
-          className="hs-collapse hidden overflow-hidden transition-all duration-300 basis-full grow md:block"
-          aria-labelledby="hs-pro-an-collapse"
-          role="region"
-        >
-          {/* Nav */}
-          <div className="overflow-hidden overflow-y-auto max-h-[75vh] [&::-webkit-scrollbar]:w-0">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-y-3 pt-6 pb-2 md:py-0 md:ps-7">
-              <a
-                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
-                href="#"
-              >
-                Inicio
-              </a>
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-ink border-b border-paper/20 px-4 pt-3 pb-6 space-y-4">
+          <nav className="flex flex-col space-y-3 text-base font-medium">
+            <a
+              href="#diferenciadores"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1 text-paper/80 hover:text-paper"
+            >
+              {t.nav.product}
+            </a>
+            <a
+              href="#precios"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1 text-paper/80 hover:text-paper"
+            >
+              {t.nav.pricing}
+            </a>
+            <a
+              href="#como-funciona"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1 text-paper/80 hover:text-paper"
+            >
+              {t.nav.forBusiness}
+            </a>
+            <a
+              href="#faq"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1 text-paper/80 hover:text-paper"
+            >
+              {t.nav.contact}
+            </a>
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1 text-paper/80 hover:text-paper"
+            >
+              {t.nav.login}
+            </Link>
+          </nav>
 
-              {/* Dropdown Link: Características (Mega Menu) */}
-              <div className="hs-dropdown [--strategy:static] md:[--strategy:absolute] [--adaptive:none] md:[--trigger:hover] [--auto-close:inside] md:inline-block">
-                <button
-                  id="hs-pro-ancarc"
-                  type="button"
-                  className="hs-dropdown-toggle md:px-3 md:py-4 w-full md:w-auto flex items-center text-sm font-semibold text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors cursor-pointer"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-label="Dropdown"
-                >
-                  Características
-                  <svg
-                    className="hs-dropdown-open:-rotate-180 md:hs-dropdown-open:rotate-0 duration-300 ms-auto md:ms-1 shrink-0 size-3.5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
-
-                <div
-                  className="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] lg:duration-150 hs-dropdown-open:opacity-100 opacity-0 relative w-full md:w-150 hidden z-10 top-full start-0 md:-start-10 rounded-2xl bg-dropdown border-4 border-dropdown-line md:shadow-xl before:absolute before:-top-4 before:inset-s-0 before:w-full before:h-5 md:after:hidden mt-2 md:mt-0"
-                  role="menu"
-                  aria-orientation="vertical"
-                  aria-labelledby="hs-pro-ancarc"
-                >
-                  <div className="flex flex-col gap-y-1">
-                    {/* Funcionalidades Clave Card */}
-                    <div className="p-5 bg-layer rounded-t-xl">
-                      {/* Heading */}
-                      <div className="mb-4">
-                        <a
-                          className="group inline-flex items-center gap-x-2 font-semibold text-sm text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
-                          href="#caracteristicas"
-                        >
-                          Funcionalidades Clave
-                          <span className="size-6 flex shrink-0 justify-center items-center bg-primary text-primary-foreground rounded-sm">
-                            <svg
-                              className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M5 12h14"></path>
-                              <path d="m12 5 7 7-7 7"></path>
-                            </svg>
-                          </span>
-                        </a>
-                      </div>
-
-                      {/* 2-column balanced grid with 6 items */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                        {/* Columna 1 */}
-                        <ul className="flex flex-col">
-                          <li className="py-2 first:pt-0 border-t border-line-1 first:border-t-0">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1.5 bg-primary rounded-full"></span>
-                              Agenda en Tiempo Real
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-
-                          <li className="py-2 border-t border-line-1">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1.5 bg-primary rounded-full"></span>
-                              Cobro de Anticipos
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-
-                          <li className="py-2 border-t border-line-1">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1.5 bg-primary rounded-full"></span>
-                              Recordatorios WhatsApp
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-                        </ul>
-
-                        {/* Columna 2 */}
-                        <ul className="flex flex-col">
-                          <li className="py-2 md:first:pt-0 border-t border-line-1 md:first:border-t-0">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1.5 bg-primary rounded-full"></span>
-                              Portal Autoservicio 24/7
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-
-                          <li className="py-2 border-t border-line-1">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1.5 bg-primary rounded-full"></span>
-                              Control Multi-Sucursal
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-
-                          <li className="py-2 border-t border-line-1">
-                            <a
-                              className="group flex items-center gap-x-2 font-medium text-sm text-gray-800 dark:text-neutral-200 hover:text-primary-hover dark:hover:text-primary focus:text-primary-focus focus:outline-hidden transition-colors"
-                              href="#caracteristicas"
-                            >
-                              <span className="size-1.5 bg-primary rounded-full"></span>
-                              Sincronización Google Calendar
-                              <span className="ms-auto size-6 flex shrink-0 justify-center items-center">
-                                <svg
-                                  className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5 text-gray-400 group-hover:text-primary-hover"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M5 12h14"></path>
-                                  <path d="m12 5 7 7-7 7"></path>
-                                </svg>
-                              </span>
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="p-2.5 bg-layer rounded-b-xl border-t border-line-1">
-                      <div className="flex flex-wrap justify-between items-center gap-1">
-                        <a
-                          className="py-1.5 ps-3 pe-2 group flex items-center gap-x-1 font-medium text-sm text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
-                          href="#impacto"
-                        >
-                          Comprueba el impacto real de CitaSync frente a la
-                          gestión manual
-                          <svg
-                            className="shrink-0 size-4 transition group-hover:translate-x-0.5 group-focus:translate-x-0.5"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M5 12h14"></path>
-                            <path d="m12 5 7 7-7 7"></path>
-                          </svg>
-                        </a>
-
-                        <a
-                          className="py-1.5 px-3 font-semibold text-sm text-primary rounded-full hover:bg-muted-hover focus:outline-hidden focus:bg-muted-focus transition-colors"
-                          href="#precios"
-                        >
-                          Ver Planes
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <a
-                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
-                href="#impacto"
-              >
-                Impacto
-              </a>
-
-              <a
-                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
-                href="#precios"
-              >
-                Precios
-              </a>
-
-              <a
-                className="md:px-3 md:py-4 text-sm font-semibold focus:outline-hidden text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus transition-colors"
-                href="#faq"
-              >
-                FAQ
-              </a>
-
-              <div className="pt-2 md:hidden border-t border-line-1">
-                <a
-                  className="block py-2 text-sm font-semibold text-gray-900 dark:text-neutral-100 hover:text-primary-hover focus:text-primary-focus focus:outline-hidden transition-colors"
-                  href="/login"
-                >
-                  Iniciar Sesión
-                </a>
-              </div>
-            </div>
+          <div className="pt-2">
+            <Link
+              href="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full inline-flex items-center justify-center px-4 py-3 bg-flame text-paper font-medium text-sm ticket-notch-tr"
+            >
+              {t.nav.cta}
+            </Link>
           </div>
         </div>
-      </nav>
+      )}
     </header>
   );
 }

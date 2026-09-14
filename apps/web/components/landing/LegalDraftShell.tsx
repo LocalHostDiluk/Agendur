@@ -12,7 +12,7 @@ export function LegalDraftShell({
     <div className="min-h-screen bg-white text-slate-900 dark:bg-neutral-950 dark:text-slate-100">
       <header className="border-b border-slate-200 dark:border-neutral-800">
         <nav aria-label="Navegación legal" className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-5 text-sm sm:px-6">
-          <Link href="/" className="font-bold text-blue-700 hover:underline dark:text-blue-400">CitaSync</Link>
+          <Link href="/" className="font-bold text-blue-700 hover:underline dark:text-blue-400">Agendur</Link>
           <Link href="/terminos" className="hover:underline">Términos</Link>
           <Link href="/privacidad" className="hover:underline">Privacidad</Link>
         </nav>
@@ -29,7 +29,7 @@ export function LegalDraftShell({
       </main>
       <footer className="border-t border-slate-200 dark:border-neutral-800">
         <div className="mx-auto flex max-w-3xl flex-wrap justify-between gap-3 px-4 py-6 text-sm text-slate-600 dark:text-slate-400 sm:px-6">
-          <span>© CitaSync · Documento no vigente</span>
+          <span>© Agendur · Documento no vigente</span>
           <Link href="/" className="hover:underline">Volver al inicio</Link>
         </div>
       </footer>

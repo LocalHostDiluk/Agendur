@@ -3,33 +3,118 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import {
   LayoutDashboard,
-  Store,
   Calendar,
+  Store,
+  Users,
+  CreditCard,
+  BarChart3,
+  Settings,
   LogOut,
   ExternalLink,
-  ArrowLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronDown,
+  Check,
   X,
 } from "lucide-react";
 import { notify } from "@/lib/utils/toast";
-import { Badge } from "@/components/ui";
-import { useAuthMe } from "@/lib/hooks";
+import { useAuthMe, useSucursales } from "@/lib/hooks";
 
 export interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
+const navModules = [
+  {
+    name: "Inicio",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    disabled: false,
+  },
+  {
+    name: "Calendario",
+    href: "/agendas",
+    icon: Calendar,
+    disabled: false,
+  },
+  {
+    name: "Servicios y sucursales",
+    href: "/sucursales",
+    icon: Store,
+    disabled: false,
+  },
+  {
+    name: "Personal",
+    href: "#",
+    icon: Users,
+    disabled: true,
+    badge: "Pronto",
+  },
+  {
+    name: "Pagos y facturación",
+    href: "#",
+    icon: CreditCard,
+    disabled: true,
+    badge: "Pronto",
+  },
+  {
+    name: "Reportes",
+    href: "#",
+    icon: BarChart3,
+    disabled: true,
+    badge: "Pronto",
+  },
+  {
+    name: "Configuración",
+    href: "#",
+    icon: Settings,
+    disabled: true,
+    badge: "Pronto",
+  },
+];
+
+export function Sidebar({
+  isOpen = false,
+  onClose,
+  isCollapsed: controlledCollapsed,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
-  const { data: profile } = useAuthMe();
-  const negocioSlug = profile?.negocio?.slug;
-  const pendingOnboarding = profile?.onboardingStatus === "required";
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
+  const [selectedSucursalId, setSelectedSucursalId] = useState<string>("");
 
-  // Cerrar drawer con tecla Escape cuando esté abierto
+  const isCollapsed =
+    controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+
+  const handleToggleCollapse = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else {
+      setInternalCollapsed((prev) => !prev);
+    }
+  };
+
+  const { data: profile } = useAuthMe();
+  const { data: sucursalesData } = useSucursales();
+  const sucursales = sucursalesData?.sucursales ?? [];
+
+  const pendingOnboarding = profile?.onboardingStatus === "required";
+  const nombreNegocio = profile?.negocio?.nombre_comercial || "Mi Negocio";
+
+  const activeSucursal =
+    sucursales.find((s) => s.id === selectedSucursalId) || sucursales[0];
+  const activeSucursalName = activeSucursal?.nombre || "Sucursal Principal";
+
+  // Cerrar drawer con tecla Escape cuando esté abierto en móvil
   useEffect(() => {
     if (!isOpen || !onClose) return;
 
@@ -41,6 +126,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  // Cerrar dropdown de sucursal al hacer click fuera
+  useEffect(() => {
+    if (!branchDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest("[data-branch-selector]")) {
+        setBranchDropdownOpen(false);
+      }
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [branchDropdownOpen]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -61,93 +159,239 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     }
   };
 
-  const links = [
-    { name: "Resumen", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Sucursales", href: "/sucursales", icon: Store },
-    { name: "Agendas & Citas", href: "/agendas", icon: Calendar },
-  ];
-
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 z-40 bg-gray-900/50 dark:bg-neutral-900/80 backdrop-blur-xs md:hidden transition-opacity duration-300"
-          aria-hidden="true"
-        />
-      )}
+      {/* Mobile Backdrop Overlay with AnimatePresence: Clean 60fps fade in and fade out */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="sidebar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/60 md:hidden"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container: 60fps GPU accelerated, smooth 320ms ease-out on mobile drawer, 200ms ease-in-out on desktop collapse */}
       <aside
-        className={`fixed inset-y-0 start-0 z-50 w-64 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-700 flex flex-col justify-between p-4 shrink-0 transition-transform duration-300 ease-in-out md:static md:sticky md:top-0 md:h-screen md:translate-x-0 ${
+        className={`fixed inset-y-0 start-0 z-50 bg-[#110D15] text-[#A79FAE] flex flex-col justify-between p-3.5 shrink-0 transform-gpu will-change-transform transition-[transform,width] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:duration-200 md:ease-in-out md:static md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${isCollapsed ? "w-[264px] md:w-[72px]" : "w-[264px]"}`}
         aria-label="Navegación del panel"
       >
-        <div className="space-y-6">
-          {/* Brand & Mobile Close Button */}
-          <div className="flex items-center justify-between px-2 pt-1">
+        <div className="space-y-4">
+          {/* Top Logo */}
+          <div className="h-8 flex items-center justify-between">
             <Link
               href="/dashboard"
               onClick={onClose}
-              className="flex items-center gap-x-2.5 focus:outline-hidden"
+              className="group relative flex items-center px-3 py-1 focus:outline-hidden"
+              aria-label="Agendur Inicio"
             >
-              <div className="size-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
-                <Calendar className="size-5" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-900 dark:text-white text-base leading-none">
-                  CitaSync
-                </h2>
-                <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium tracking-wide">
-                  Panel Negocio
+              <span className="font-bricolage font-bold text-[22px] text-[#F1ECE2] leading-none tracking-tight flex items-center">
+                <span>A</span>
+                <span
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
+                    isCollapsed
+                      ? "max-w-[120px] md:max-w-0 md:opacity-0 md:-translate-x-1"
+                      : "max-w-[120px] opacity-100 translate-x-0"
+                  }`}
+                >
+                  gendur
                 </span>
-              </div>
+              </span>
+              {isCollapsed && (
+                <div className="hidden md:block absolute left-full ml-3 px-2.5 py-1 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
+                  Agendur
+                </div>
+              )}
             </Link>
 
-            {/* Close button for mobile */}
+            {/* Close button for mobile drawer */}
             <button
               type="button"
               onClick={onClose}
-              className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 focus:outline-hidden transition-colors"
+              className="md:hidden p-1 rounded-lg text-[#A79FAE] hover:text-[#F1ECE2] hover:bg-white/[0.04] focus:outline-hidden transition-colors"
               aria-label="Cerrar navegación"
             >
-              <X className="size-5" />
+              <X className="w-5 h-5" strokeWidth={1.75} />
             </button>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
+          {/* Branch Selector: Fixed icon coordinate at X=26px */}
+          <div data-branch-selector className="relative">
+            {isCollapsed ? (
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={handleToggleCollapse}
+                  className="w-full h-10 flex items-center px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[#A79FAE] hover:text-[#F1ECE2] transition-colors focus:outline-hidden"
+                  aria-label={activeSucursalName}
+                >
+                  <Store
+                    className="w-5 h-5 shrink-0 text-[#A79FAE]"
+                    strokeWidth={1.75}
+                  />
+                </button>
+                <div className="hidden md:block absolute left-full ml-3 top-1.5 px-2.5 py-1 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
+                  {activeSucursalName}
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setBranchDropdownOpen((prev) => !prev)}
+                  className="w-full h-10 flex items-center justify-between gap-2 px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs text-[#F1ECE2] transition-colors focus:outline-hidden"
+                  aria-expanded={branchDropdownOpen}
+                  aria-haspopup="listbox"
+                  aria-label="Seleccionar sucursal"
+                >
+                  <div className="flex items-center gap-3 truncate min-w-0">
+                    <Store
+                      className="w-5 h-5 text-[#A79FAE] shrink-0"
+                      strokeWidth={1.75}
+                    />
+                    <span className="truncate font-medium text-xs">
+                      {activeSucursalName}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-[#A79FAE] shrink-0 transition-transform duration-200 ${
+                      branchDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    strokeWidth={1.75}
+                  />
+                </button>
+
+                {branchDropdownOpen && (
+                  <div
+                    className="absolute top-full left-0 right-0 mt-1 z-30 py-1 bg-[#1A1420] border border-white/10 rounded-lg shadow-xl text-xs"
+                    role="listbox"
+                  >
+                    {sucursales.length > 0 ? (
+                      sucursales.map((sucursal) => (
+                        <button
+                          key={sucursal.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSucursalId(sucursal.id);
+                            setBranchDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-white/[0.06] transition-colors ${
+                            sucursal.id === activeSucursal?.id
+                              ? "text-[#F1ECE2] font-semibold bg-white/[0.04]"
+                              : "text-[#A79FAE]"
+                          }`}
+                          role="option"
+                          aria-selected={sucursal.id === activeSucursal?.id}
+                        >
+                          <span className="truncate">{sucursal.nombre}</span>
+                          {sucursal.id === activeSucursal?.id && (
+                            <Check
+                              className="w-3.5 h-3.5 text-[#6E49A6]"
+                              strokeWidth={2}
+                            />
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-[#A79FAE] text-xs">
+                        {nombreNegocio}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 7 Navigation Modules */}
+          <nav className="space-y-1" aria-label="Módulos de navegación">
+            {navModules.map((item) => {
+              if (item.disabled) {
+                return (
+                  <div
+                    key={item.name}
+                    className="group relative flex items-center gap-x-3 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed select-none px-3 py-2.5 h-10 w-full text-[#A79FAE]"
+                    aria-disabled="true"
+                  >
+                    <item.icon
+                      className="w-5 h-5 shrink-0 text-[#A79FAE]"
+                      strokeWidth={1.75}
+                    />
+                    <span
+                      className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out flex items-center gap-2 ${
+                        isCollapsed
+                          ? "max-w-[160px] md:max-w-0 md:opacity-0 md:-translate-x-1 md:pointer-events-none"
+                          : "max-w-[160px] opacity-100 translate-x-0"
+                      }`}
+                    >
+                      <span className="truncate">{item.name}</span>
+                      {item.badge && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/10 text-[#A79FAE]">
+                          {item.badge}
+                        </span>
+                      )}
+                    </span>
+                    {isCollapsed && (
+                      <div className="hidden md:flex absolute left-full ml-3 px-2.5 py-1.5 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 items-center gap-1.5 font-sans font-normal">
+                        <span>{item.name}</span>
+                        {item.badge && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/10 text-[#A79FAE]">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
               return (
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  key={item.href}
+                  href={item.href}
                   onClick={onClose}
-                  className={`flex items-center gap-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors focus:outline-hidden ${
+                  className={`group relative flex items-center gap-x-3 rounded-lg text-sm font-medium transition-colors focus:outline-hidden px-3 py-2.5 h-10 w-full ${
                     isActive
-                      ? "bg-gray-100 dark:bg-neutral-800 text-blue-600 dark:text-blue-400 font-semibold"
-                      : "text-gray-700 dark:text-neutral-400 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-gray-900 dark:hover:text-white"
+                      ? "bg-[rgba(110,73,166,0.12)] text-[#A79FAE]"
+                      : "text-[#A79FAE] hover:bg-white/[0.04]"
                   }`}
+                  aria-label={item.name}
                 >
-                  <link.icon
-                    className={`size-4.5 shrink-0 ${
-                      isActive
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-500 dark:text-neutral-400"
-                    }`}
-                  />
-                  <span>{link.name}</span>
                   {isActive && (
-                    <Badge
-                      variant="info"
-                      size="sm"
-                      className="ms-auto py-0 px-1.5 text-[10px] font-semibold"
-                    >
-                      Activo
-                    </Badge>
+                    <span
+                      className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#6E49A6] rounded-r"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <item.icon
+                    className="w-5 h-5 shrink-0 text-[#A79FAE]"
+                    strokeWidth={1.75}
+                  />
+                  <span
+                    className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
+                      isCollapsed
+                        ? "max-w-[160px] md:max-w-0 md:opacity-0 md:-translate-x-1 md:pointer-events-none"
+                        : "max-w-[160px] opacity-100 translate-x-0"
+                    }`}
+                  >
+                    {item.name}
+                  </span>
+                  {isCollapsed && (
+                    <div className="hidden md:flex absolute left-full ml-3 px-2.5 py-1.5 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 items-center gap-1.5 font-sans font-normal">
+                      <span>{item.name}</span>
+                    </div>
                   )}
                 </Link>
               );
@@ -155,40 +399,99 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </nav>
         </div>
 
-        {/* Footer Actions */}
-        <div className="pt-4 border-t border-gray-200 dark:border-neutral-700 space-y-2">
-          <Link
-            href={pendingOnboarding ? "/onboarding" : negocioSlug ? `/reserva/${negocioSlug}` : "/"}
-            target={pendingOnboarding ? undefined : "_blank"}
-            rel={pendingOnboarding ? undefined : "noopener noreferrer"}
-            className="w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 hover:bg-gray-100 dark:hover:bg-neutral-750 border border-gray-200 dark:border-neutral-700 transition-colors shadow-2xs"
-          >
-            <span className="flex items-center gap-x-2">
-              <ExternalLink className="size-3.5 text-blue-600 dark:text-blue-400" />
-              <span>{pendingOnboarding ? "Completar negocio" : "Ver Portal Cliente"}</span>
-            </span>
-            <span className="text-[10px] text-gray-400 dark:text-neutral-500 uppercase tracking-wider font-semibold">
-              {pendingOnboarding ? "Pendiente" : "En vivo"}
-            </span>
-          </Link>
+        {/* Footer: Onboarding status + User + Logout + Collapse Toggle */}
+        <div className="pt-3 border-t border-white/10 space-y-2">
+          {pendingOnboarding && (
+            <Link
+              href="/onboarding"
+              onClick={onClose}
+              className="group relative flex items-center gap-x-3 px-3 py-2 rounded-lg text-xs font-medium bg-white/[0.04] text-[#A79FAE] hover:bg-white/[0.08] hover:text-[#F1ECE2] border border-white/10 transition-colors w-full"
+              aria-label="Completar configuración del negocio"
+            >
+              <ExternalLink
+                className="w-5 h-5 shrink-0 text-[#6E49A6]"
+                strokeWidth={1.75}
+              />
+              <span
+                className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out flex items-center justify-between gap-2 flex-1 ${
+                  isCollapsed
+                    ? "max-w-[160px] md:max-w-0 md:opacity-0 md:-translate-x-1 md:pointer-events-none"
+                    : "max-w-[160px] opacity-100 translate-x-0"
+                }`}
+              >
+                <span>Completar negocio</span>
+                <span className="text-[10px] text-[#A79FAE]/70 uppercase tracking-wider font-semibold">
+                  Pendiente
+                </span>
+              </span>
+              {isCollapsed && (
+                <div className="hidden md:block absolute left-full ml-3 px-2.5 py-1 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
+                  Completar negocio (Pendiente)
+                </div>
+              )}
+            </Link>
+          )}
 
+          {/* Logout Button */}
           <button
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
-            className="w-full flex items-center gap-x-2.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full group relative flex items-center gap-x-3 px-3 py-2 text-xs font-medium text-[#A79FAE] hover:text-[#D14343] hover:bg-white/[0.04] rounded-lg transition-colors disabled:opacity-50 focus:outline-hidden"
+            aria-label="Cerrar Sesión"
           >
-            <LogOut className="size-4 shrink-0" />
-            <span>{loggingOut ? "Cerrando sesión..." : "Cerrar Sesión"}</span>
+            <LogOut className="w-5 h-5 shrink-0" strokeWidth={1.75} />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
+                isCollapsed
+                  ? "max-w-[140px] md:max-w-0 md:opacity-0 md:-translate-x-1 md:pointer-events-none"
+                  : "max-w-[140px] opacity-100 translate-x-0"
+              }`}
+            >
+              {loggingOut ? "Cerrando sesión..." : "Cerrar Sesión"}
+            </span>
+            {isCollapsed && (
+              <div className="hidden md:block absolute left-full ml-3 px-2.5 py-1 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
+                Cerrar Sesión
+              </div>
+            )}
           </button>
 
-          <Link
-            href="/"
-            className="flex items-center gap-x-2 px-3 py-1.5 text-[11px] font-medium text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-neutral-300 transition-colors"
-          >
-            <ArrowLeft className="size-3 shrink-0" />
-            <span>Volver a Landing</span>
-          </Link>
+          {/* Collapse / Expand Toggle Button (Desktop only) */}
+          <div className="hidden md:flex pt-1 border-t border-white/5">
+            <button
+              type="button"
+              onClick={handleToggleCollapse}
+              className="w-full group relative flex items-center gap-x-3 px-3 py-2 text-xs font-medium text-[#A79FAE] hover:text-[#F1ECE2] hover:bg-white/[0.04] rounded-lg transition-colors focus:outline-hidden"
+              aria-label={
+                isCollapsed
+                  ? "Expandir barra lateral"
+                  : "Colapsar barra lateral"
+              }
+            >
+              {isCollapsed ? (
+                <>
+                  <PanelLeftOpen
+                    className="w-5 h-5 shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
+                    Expandir menú
+                  </div>
+                </>
+              ) : (
+                <>
+                  <PanelLeftClose
+                    className="w-5 h-5 shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  <span className="overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out max-w-[140px] opacity-100">
+                    Colapsar menú
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </aside>
     </>

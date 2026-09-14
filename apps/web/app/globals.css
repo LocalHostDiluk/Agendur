@@ -6,121 +6,138 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-focus: #1d4ed8;
-  --primary-foreground: #ffffff;
-  --primary-line: #1d4ed8;
+  --background: #f7f5ef;
+  --surface: #ffffff;
+  --surface-alt: #f0ece0;
+  --border: #e7e1d3;
+  --text-primary: #211a26;
+  --text-secondary: #6b6355;
+  --text-muted: #a39c8c;
 
-  --navbar: rgba(255, 255, 255, 0.85);
-  --navbar-line: #e2e8f0;
-  --navbar-2-nav-foreground: #475569;
-  --navbar-2-nav-foreground-hover: #0f172a;
-  --navbar-2-nav-foreground-focus: #0f172a;
+  /* Landing Risograph Palette */
+  --paper: #f3eedf;
+  --ink: #1d1720;
+  --grape: #6e49a6;
+  --grape-soft: rgba(110, 73, 166, 0.12);
+  --flame: #ff5a36;
+  --mint: #46b88a;
+  --mist: #8d8577;
+  --line: #d8d0bf;
 
-  --dropdown: #ffffff;
-  --dropdown-line: #e2e8f0;
+  --sidebar-bg: #110d15;
+  --sidebar-text: #a79fae;
+  --sidebar-text-muted: #766e82;
 
-  --layer: #f8fafc;
-  --layer-line: #e2e8f0;
-  --layer-foreground: #1e293b;
+  --success: #3f9e76;
+  --success-soft: rgba(63, 158, 118, 0.12);
+  --warning: #e8a23d;
+  --warning-soft: rgba(232, 162, 61, 0.12);
+  --danger: #d14343;
+  --danger-soft: rgba(209, 67, 67, 0.12);
 
-  --line-1: #e2e8f0;
-  --muted-hover: #f1f5f9;
-  --muted-focus: #e2e8f0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --motion-page: 400ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark {
-  --background: #020617;
-  --foreground: #f8fafc;
-  --primary: #3b82f6;
-  --primary-hover: #60a5fa;
-  --primary-focus: #60a5fa;
-  --primary-foreground: #ffffff;
-  --primary-line: #2563eb;
+  --background: #17121b;
+  --surface: #1f1926;
+  --surface-alt: #241d2c;
+  --border: #332b3d;
+  --text-primary: #f1ece2;
+  --text-secondary: #a79fae;
+  --text-muted: #766e82;
 
-  --navbar: rgba(15, 23, 42, 0.85);
-  --navbar-line: #1e293b;
-  --navbar-2-nav-foreground: #94a3b8;
-  --navbar-2-nav-foreground-hover: #f8fafc;
-  --navbar-2-nav-foreground-focus: #f8fafc;
+  --sidebar-bg: #110d15;
+  --sidebar-text: #a79fae;
+  --sidebar-text-muted: #766e82;
 
-  --dropdown: #0f172a;
-  --dropdown-line: #1e293b;
+  --grape: #8b67c4;
+  --grape-soft: rgba(139, 103, 196, 0.18);
+  --flame: #ff7a57;
 
-  --layer: #1e293b;
-  --layer-line: #334155;
-  --layer-foreground: #f8fafc;
-
-  --line-1: #1e293b;
-  --muted-hover: #1e293b;
-  --muted-focus: #334155;
+  --success: #5cc498;
+  --success-soft: rgba(92, 196, 152, 0.16);
+  --warning: #f0b65e;
+  --warning-soft: rgba(240, 182, 94, 0.16);
+  --danger: #e9696b;
+  --danger-soft: rgba(233, 105, 107, 0.16);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-primary-focus: var(--primary-focus);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary-line: var(--primary-line);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
 
-  --color-navbar: var(--navbar);
-  --color-navbar-line: var(--navbar-line);
-  --color-navbar-2-nav-foreground: var(--navbar-2-nav-foreground);
-  --color-navbar-2-nav-foreground-hover: var(--navbar-2-nav-foreground-hover);
-  --color-navbar-2-nav-foreground-focus: var(--navbar-2-nav-foreground-focus);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
 
-  --color-dropdown: var(--dropdown);
-  --color-dropdown-line: var(--dropdown-line);
+  --color-paper: var(--paper);
+  --color-grape: var(--grape);
+  --color-grape-soft: var(--grape-soft);
+  --color-flame: var(--flame);
+  --color-mint: var(--mint);
+  --color-mist: var(--mist);
 
-  --color-layer: var(--layer);
-  --color-layer-line: var(--layer-line);
-  --color-layer-foreground: var(--layer-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
 
-  --color-line-1: var(--line-1);
-  --color-muted-hover: var(--muted-hover);
-  --color-muted-focus: var(--muted-focus);
+  --color-ink: var(--ink);
 
-  --spacing-50: 12.5rem;
-  --spacing-150: 37.5rem;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --font-sans: var(--font-inter);
+  --font-inter: var(--font-inter);
+  --font-bricolage: var(--font-bricolage);
+  --font-mono: var(--font-space-mono);
+  --font-space-mono: var(--font-space-mono);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
 }
 
 body {
   background-color: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-html,
-body,
-header,
-nav,
-main,
-section,
-footer,
-div,
-a,
-button,
-input,
-p,
-span,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-::before,
-::after {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 300ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-primary);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 @keyframes marquee {
@@ -141,4 +158,452 @@ h6,
 .animate-marquee,
 .animate-marquee > * {
   transition: none;
+}
+
+/* ==========================================================================
+   TICKET & RISOGRAPH UTILITIES (Ponytail Ultra - zero bloat, pure CSS)
+   ========================================================================== */
+
+/* Button & CTA ticket notch (semicircular cutout) */
+.ticket-notch-tr {
+  -webkit-mask: radial-gradient(
+    circle 10px at 100% 0,
+    transparent 10px,
+    black 10.5px
+  );
+  mask: radial-gradient(circle 10px at 100% 0, transparent 10px, black 10.5px);
+}
+
+.ticket-notch-tl {
+  -webkit-mask: radial-gradient(
+    circle 10px at 0 0,
+    transparent 10px,
+    black 10.5px
+  );
+  mask: radial-gradient(circle 10px at 0 0, transparent 10px, black 10.5px);
+}
+
+.ticket-notch-br {
+  -webkit-mask: radial-gradient(
+    circle 10px at 100% 100%,
+    transparent 10px,
+    black 10.5px
+  );
+  mask: radial-gradient(
+    circle 10px at 100% 100%,
+    transparent 10px,
+    black 10.5px
+  );
+}
+
+/* Unconventional card corners */
+.ticket-chamfer-tr {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+
+.ticket-chamfer-tl {
+  clip-path: polygon(22px 0, 100% 0, 100% 100%, 0 100%, 0 22px);
+}
+
+.ticket-cutout-tr {
+  -webkit-mask: radial-gradient(
+    circle 22px at 100% 0,
+    transparent 22px,
+    black 22.5px
+  );
+  mask: radial-gradient(circle 22px at 100% 0, transparent 22px, black 22.5px);
+}
+
+.ticket-cutout-bl {
+  -webkit-mask: radial-gradient(
+    circle 22px at 0 100%,
+    transparent 22px,
+    black 22.5px
+  );
+  mask: radial-gradient(circle 22px at 0 100%, transparent 22px, black 22.5px);
+}
+
+/* Perforated ticket side edge */
+.ticket-edge-left {
+  -webkit-mask: radial-gradient(
+      circle 6px at 0 16px,
+      transparent 6px,
+      black 6.5px
+    )
+    0 0 / 100% 32px repeat-y;
+  mask: radial-gradient(circle 6px at 0 16px, transparent 6px, black 6.5px) 0
+    0 / 100% 32px repeat-y;
+}
+
+.ticket-edge-right {
+  -webkit-mask: radial-gradient(
+      circle 6px at 100% 16px,
+      transparent 6px,
+      black 6.5px
+    )
+    0 0 / 100% 32px repeat-y;
+  mask: radial-gradient(circle 6px at 100% 16px, transparent 6px, black 6.5px) 0
+    0 / 100% 32px repeat-y;
+}
+
+/* Risograph color overlay helper */
+.riso-multiply {
+  mix-blend-mode: multiply;
+}
+
+/* ==========================================================================
+   PRICING SECTION (from estilos.md - scoped strictly to .pricing)
+   Design System Base 4px Spacing: 4, 8, 12, 16, 24, 32, 48, 64px
+   ========================================================================== */
+.pricing.section {
+  padding: 112px 0;
+}
+
+.pricing.paper {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.pricing .wrap {
+  width: min(1180px, calc(100% - 48px));
+  margin: auto;
+}
+
+.pricing .pricing-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 48px;
+  align-items: flex-start;
+}
+
+@media (min-width: 768px) {
+  .pricing .pricing-header {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.pricing .pricing-title-wrap {
+  text-align: left;
+}
+
+.pricing .eyebrow {
+  margin-bottom: 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: none;
+  color: var(--mist);
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.pricing .section-title {
+  max-width: 760px;
+  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-size: clamp(2.8rem, 6vw, 5.6rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  text-align: left;
+  margin: 0;
+}
+
+.pricing .price-toggle {
+  display: flex;
+  align-items: stretch;
+  border: 2px solid var(--ink);
+  align-self: flex-start;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .pricing .price-toggle {
+    align-self: flex-end;
+  }
+}
+
+.pricing .price-toggle button {
+  flex: 1 1 0%;
+  width: 50%;
+  min-width: 104px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 0.85rem;
+  line-height: 1.2;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.pricing .price-toggle button:not(.is-active):hover {
+  background: rgba(29, 23, 32, 0.05);
+}
+
+.pricing .price-toggle button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.pricing .price-toggle span {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--mint);
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.pricing .price-toggle span.placeholder {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+.pricing .plans {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+  align-items: stretch;
+}
+
+.pricing .plan-ticket {
+  background: #e8e0cf;
+  padding: 32px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 5%, 3% 3%, 0 1%);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.pricing .plan-ticket.p-1 {
+  background: var(--flame);
+  transform: translateY(-12px);
+}
+
+.pricing .plan-head {
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing .plan-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  gap: 8px;
+}
+
+.pricing .plan-name {
+  font:
+    600 28px / 1.15 "Bricolage Grotesque",
+    sans-serif;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.pricing .popular {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: var(--radius-sm, 6px);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pricing .plan-head p {
+  font-size: 13px;
+  color: var(--mist);
+  margin: 12px 0 0;
+  min-height: 40px;
+  line-height: 1.5;
+}
+
+.pricing .plan-ticket.p-1 .plan-head p {
+  color: #5b2921;
+}
+
+.pricing .price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 24px;
+  line-height: 1;
+}
+
+.pricing .price small {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.pricing .price strong {
+  font:
+    600 64px / 1 "Bricolage Grotesque",
+    sans-serif;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.pricing .price span {
+  font-size: 12px;
+  color: var(--mist);
+  margin-left: 4px;
+}
+
+.pricing .plan-ticket.p-1 .price span {
+  color: #5b2921;
+}
+
+.pricing .perforation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px dashed var(--mist);
+  border-bottom: 1px dashed var(--mist);
+  margin: 24px -32px;
+  padding: 12px 32px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mist);
+}
+
+.pricing .plan-ticket.p-1 .perforation {
+  border-top-color: rgba(29, 23, 32, 0.25);
+  border-bottom-color: rgba(29, 23, 32, 0.25);
+  color: rgba(29, 23, 32, 0.75);
+}
+
+.pricing .perforation i {
+  width: 6px;
+  height: 6px;
+  background: var(--mist);
+  border-radius: 50%;
+  flex: 1;
+  display: block;
+}
+
+.pricing .plan-ticket.p-1 .perforation i {
+  background: rgba(29, 23, 32, 0.35);
+}
+
+.pricing .plan-ticket ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 160px;
+}
+
+.pricing .plan-ticket li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+}
+
+.pricing .plan-ticket li svg {
+  flex-shrink: 0;
+  color: var(--ink);
+}
+
+.pricing .outline-button {
+  display: block;
+  text-align: center;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  padding: 13px;
+  margin-top: 32px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+  background: transparent;
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.pricing .outline-button:hover {
+  transform: translateY(-2px);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.pricing .plan-ticket.p-1 .outline-button {
+  background: var(--flame);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+}
+
+.pricing .plan-ticket.p-1 .outline-button:hover {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 800px) {
+  .pricing .wrap {
+    width: min(100% - 32px, 600px);
+  }
+  .pricing.section {
+    padding: 64px 0;
+  }
+  .pricing .pricing-header {
+    margin-bottom: 32px;
+    gap: 1.5rem;
+  }
+  .pricing .section-title {
+    font-size: 2.7rem;
+  }
+  .pricing .plans {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .pricing .plan-ticket {
+    padding: 24px;
+  }
+  .pricing .plan-ticket.p-1 {
+    transform: none;
+  }
+  .pricing .perforation {
+    margin: 20px -24px;
+    padding: 12px 24px;
+  }
+  .pricing .outline-button {
+    padding: 13px;
+    font-size: 12px;
+    margin-top: 24px;
+  }
 }

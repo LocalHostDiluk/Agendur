@@ -19,7 +19,7 @@ export function TestimonialsSection() {
       avatar:
         "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=150&q=80",
       content:
-        "Teníamos 4 sucursales y la recepción era un caos con llamadas y mensajes cruzados. Con CitaSync cada paciente elige su sucursal, doctor y hora disponible. Las ausencias bajaron drásticamente gracias a WhatsApp.",
+        "Teníamos 4 sucursales y la recepción era un caos con llamadas y mensajes cruzados. Con Agendur cada paciente elige su sucursal, doctor y hora disponible. Las ausencias bajaron drásticamente gracias a WhatsApp.",
       rating: 5,
     },
     {
@@ -79,7 +79,7 @@ export function TestimonialsSection() {
             Historias de Éxito
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Negocios con múltiples sucursales que escalaron con CitaSync.
+            Negocios con múltiples sucursales que escalaron con Agendur.
           </h2>
         </div>
 

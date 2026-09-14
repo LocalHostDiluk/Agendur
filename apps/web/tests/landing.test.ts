@@ -45,7 +45,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
       expect(html).toContain("before:border-navbar-line");
     });
 
-    it("incluye logotipo Preline SVG y enlaces principales de CitaSync con dropdowns", () => {
+    it("incluye logotipo Preline SVG y enlaces principales de Agendur con dropdowns", () => {
       const html = renderWithTheme(React.createElement(Navbar));
       expect(html).toContain('aria-label="Preline"');
       expect(html).toContain("fill-primary");
@@ -92,7 +92,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
 
     it("incluye input de micro-captura de slug y garantía de 14 días sin sección de calificación", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
-      expect(html).toContain("citasync.com/");
+      expect(html).toContain("agendur.com/");
       expect(html).toContain("tu-marca");
       expect(html).toContain("Comenzar Gratis");
       expect(html).toContain("Prueba de 14 días sin tarjeta de crédito");
@@ -101,7 +101,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
 
     it("incluye tarjeta interactiva con servicios, profesional y anticipo", () => {
       const html = renderWithTheme(React.createElement(HeroSection));
-      expect(html).toContain("citasync.com/reserva/live");
+      expect(html).toContain("agendur.com/reserva/live");
       expect(html).toContain("Corte &amp; Barba Master");
       expect(html).toContain("Anticipo Requerido (50%)");
       expect(html).toContain("Simular Confirmación de Cita");
@@ -154,7 +154,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
       const html = renderWithTheme(React.createElement(ImpactChartSection));
       expect(html).toContain('id="impacto"');
       expect(html).toContain(
-        "¿Por qué elegir CitaSync frente a la gestión manual?",
+        "¿Por qué elegir Agendur frente a la gestión manual?",
       );
       expect(html).toContain("Belleza &amp; Barbería");
       expect(html).toContain("Salud &amp; Clínicas");
@@ -226,8 +226,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
     it("renderiza layout corporativo con enlaces, ThemeToggle y copyright dinámico", () => {
       const html = renderWithTheme(React.createElement(Footer));
       const year = new Date().getFullYear().toString();
-      expect(html).toContain("Cita");
-      expect(html).toContain("Sync");
+      expect(html).toContain("Agendur");
       expect(html).toContain(year);
       expect(html).toContain('href="#caracteristicas"');
       expect(html).toContain('href="#precios"');
@@ -246,7 +245,7 @@ describe("Landing Page Preline UI v5 - Rediseño Integral (Tarea 1.5.5)", () => 
 
       // Verify sections appear in expected sequence (FAQ directly to Footer)
       const posNav = html.indexOf("<header");
-      const posHero = html.indexOf("citasync.com/");
+      const posHero = html.indexOf("agendur.com/");
       const posMarquee = html.indexOf("animate-marquee");
       const posFeatures = html.indexOf('id="caracteristicas"');
       const posImpact = html.indexOf('id="impacto"');

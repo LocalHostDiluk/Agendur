@@ -82,6 +82,10 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
           giro_comercial: "barberia",
           moneda_principal: "MXN",
           porcentaje_anticipo_default: 20,
+          telefono_cliente_requerido: true,
+          email_cliente_requerido: false,
+          notas_cliente_habilitadas: true,
+          politica_cancelacion: null,
           created_at: "2026-09-01T10:00:00.000Z",
           updated_at: "2026-09-01T10:00:00.000Z",
         },
@@ -376,6 +380,7 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
         clienteEmail: "ana@example.com",
         fecha: "2026-09-22",
         hora: "10:00",
+        aceptaPrivacidad: true,
       };
 
       globalThis.fetch = mock((url: string | URL | Request, init?: RequestInit) => {

@@ -27,36 +27,42 @@ function renderWithQueryClient(element: React.ReactElement) {
   return html;
 }
 
-describe("Administrative Shell - Preline UI v5", () => {
+describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", () => {
   describe("Sidebar Component", () => {
-    it("renderiza navegación corporativa con paleta neutra de Preline UI", () => {
+    it("renderiza navegación corporativa con paleta fija de Agendur (Sección 5.1)", () => {
       currentPathname = "/dashboard";
       const html = renderWithQueryClient(
         React.createElement(Sidebar, { isOpen: false }),
       );
 
-      // Paleta neutra de Preline
-      expect(html).toContain("bg-white");
-      expect(html).toContain("dark:bg-neutral-900");
-      expect(html).toContain("border-gray-200");
-      expect(html).toContain("dark:border-neutral-700");
+      // Fondo fijo y texto según tokens de diseño
+      expect(html).toContain("bg-[#110D15]");
+      expect(html).toContain("text-[#A79FAE]");
 
-      // Brand
-      expect(html).toContain("CitaSync");
-      expect(html).toContain("Panel Negocio");
+      // Brand Logo "Agendur"
+      expect(html).toContain("Agendur");
+      expect(html).toContain("font-bricolage");
+      expect(html).toContain("text-[#F1ECE2]");
 
-      // Links
-      expect(html).toContain("Resumen");
-      expect(html).toContain("Sucursales");
-      expect(html).toContain("Agendas &amp; Citas");
+      // 7 módulos de navegación en orden confirmado
+      expect(html).toContain("Inicio");
+      expect(html).toContain("Calendario");
+      expect(html).toContain("Servicios y sucursales");
+      expect(html).toContain("Personal");
+      expect(html).toContain("Pagos y facturación");
+      expect(html).toContain("Reportes");
+      expect(html).toContain("Configuración");
 
-      // Active state badge en /dashboard
-      expect(html).toContain("Activo");
+      // Badges "Pronto" en módulos desactivados
+      expect(html).toContain("Pronto");
 
-      // Botones inferiores
-      expect(html).toContain("Ver Portal Cliente");
+      // Estado activo en /dashboard con barra izquierda sólida de 3px y fondo grape-soft
+      expect(html).toContain("bg-[rgba(110,73,166,0.12)]");
+      expect(html).toContain("bg-[#6E49A6]");
+
+      // Botón de cerrar sesión y colapsar
       expect(html).toContain("Cerrar Sesión");
-      expect(html).toContain("Volver a Landing");
+      expect(html).toContain("Colapsar menú");
     });
 
     it("maneja estado responsive: drawer cerrado (-translate-x-full) y sin backdrop", () => {
@@ -67,7 +73,7 @@ describe("Administrative Shell - Preline UI v5", () => {
       expect(html).toContain("-translate-x-full");
       expect(html).toContain("md:translate-x-0");
       // Backdrop no debe estar presente cuando isOpen=false
-      expect(html).not.toContain("fixed inset-0 z-40 bg-gray-900/50");
+      expect(html).not.toContain("fixed inset-0 z-40");
     });
 
     it("maneja estado responsive: drawer abierto (translate-x-0) y con backdrop móvil", () => {
@@ -76,7 +82,7 @@ describe("Administrative Shell - Preline UI v5", () => {
       );
 
       expect(html).toContain("translate-x-0");
-      expect(html).toContain("fixed inset-0 z-40 bg-gray-900/50");
+      expect(html).toContain("fixed inset-0 z-40 bg-black/60");
       expect(html).toContain("md:hidden");
     });
 
@@ -87,14 +93,13 @@ describe("Administrative Shell - Preline UI v5", () => {
       );
 
       expect(html).toContain('href="/sucursales"');
-      expect(html).toContain("Activo");
-      expect(html).toContain("hover:bg-gray-100");
-      expect(html).toContain("dark:hover:bg-neutral-800");
+      expect(html).toContain("bg-[rgba(110,73,166,0.12)]");
+      expect(html).toContain("hover:bg-white/[0.04]");
     });
   });
 
   describe("Header Component", () => {
-    it("renderiza navbar con estilo Preline UI y backdrop blur", () => {
+    it("renderiza topbar según sección 5.2 con altura 64px, fondo surface y borde", () => {
       const html = renderWithQueryClient(
         React.createElement(
           ThemeProvider,
@@ -103,13 +108,10 @@ describe("Administrative Shell - Preline UI v5", () => {
         ),
       );
 
-      // Estructura y clases Preline
+      // Estructura y clases Topbar
       expect(html).toContain("h-16");
-      expect(html).toContain("bg-white/80");
-      expect(html).toContain("dark:bg-neutral-900/80");
-      expect(html).toContain("border-gray-200");
-      expect(html).toContain("dark:border-neutral-700");
-      expect(html).toContain("backdrop-blur-md");
+      expect(html).toContain("bg-surface");
+      expect(html).toContain("border-border");
     });
 
     it("incluye botón toggle de menú móvil para pantallas pequeñas (md:hidden)", () => {
@@ -125,7 +127,7 @@ describe("Administrative Shell - Preline UI v5", () => {
       expect(html).toContain('aria-label="Abrir menú de navegación"');
     });
 
-    it("renderiza píldora de negocio con componente Badge y ThemeToggle", () => {
+    it("renderiza elementos de la derecha en orden exacto: buscador, sucursal, tema, notificaciones y avatar", () => {
       const html = renderWithQueryClient(
         React.createElement(
           ThemeProvider,
@@ -134,12 +136,17 @@ describe("Administrative Shell - Preline UI v5", () => {
         ),
       );
 
-      // Píldora de negocio
+      // 1. Buscador
+      expect(html).toContain('aria-label="Buscar"');
+      // 2. Indicador de sucursal
       expect(html).toContain("Sede");
-      // Badge Preline neutral
-      expect(html).toContain("bg-gray-100");
-      // ThemeToggle
+      // 3. ThemeToggle
       expect(html).toContain("Alternar tema");
+      // 4. Campana de notificaciones con badge flame
+      expect(html).toContain('aria-label="Notificaciones"');
+      expect(html).toContain("bg-flame");
+      // 5. Menú de usuario
+      expect(html).toContain('aria-label="Menú de usuario"');
     });
   });
 
@@ -161,18 +168,18 @@ describe("Administrative Shell - Preline UI v5", () => {
         ),
       );
 
-      // Fondo de página requerido
-      expect(html).toContain("bg-gray-50");
-      expect(html).toContain("dark:bg-neutral-950");
-      expect(html).toContain("text-gray-800");
-      expect(html).toContain("dark:text-neutral-200");
+      // Contenedor de página requerido
+      expect(html).toContain("min-h-screen");
+      expect(html).toContain("bg-background");
+      expect(html).toContain("text-text-primary");
+      expect(html).toContain("transition-colors");
 
       // Contenido principal
       expect(html).toContain("Contenido del Dashboard");
       expect(html).toContain('id="test-content"');
 
       // Presencia de Sidebar y Header dentro del shell
-      expect(html).toContain("CitaSync");
+      expect(html).toContain("Agendur");
       expect(html).toContain("Alternar tema");
     });
   });

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { adminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription } from "@/lib/payments/guards";
 import { enviarNotificacionWhatsApp } from "./whatsapp-service";
+import { getBusinessToday } from "@/lib/utils/business-date";
 import type { Cita } from "@/lib/types";
 
 export interface DisponibilidadParams {
@@ -16,12 +17,18 @@ export interface CrearReservaInput {
   servicioId: string;
   profesionalId: string;
   clienteNombre: string;
-  clienteApellido?: string;
-  clientePhone: string;
-  clienteEmail: string;
+  clienteApellido: string;
+  clientePhone: string | null;
+  clienteEmail: string | null;
   fecha: string; // YYYY-MM-DD
   hora: string; // "HH:MM" o "HH:MM:SS"
-  notasCliente?: string;
+  notasCliente?: string | null;
+  aceptaPrivacidad: boolean;
+  aceptaPoliticaCancelacion?: boolean;
+}
+
+function bookingError(message: string, status = 400, code = "INVALID_BOOKING_DATA") {
+  return Object.assign(new Error(message), { status, code });
 }
 
 /**
@@ -196,7 +203,7 @@ export async function obtenerDisponibilidad(
         .select("hora_inicio, hora_fin")
         .eq("profesional_id", profId)
         .eq("fecha", fecha)
-        .neq("estado", "cancelada");
+        .in("estado", ["pendiente_pago", "confirmada"]);
 
       const citasMin = (citas || []).map((c) => ({
         inicio: timeToMinutes(c.hora_inicio),
@@ -241,41 +248,81 @@ export async function crearReservaCita(
       servicioId,
       profesionalId,
       clienteNombre,
-      clienteApellido = "",
+      clienteApellido,
       clientePhone,
       clienteEmail,
       fecha,
       hora,
       notasCliente,
+      aceptaPrivacidad,
+      aceptaPoliticaCancelacion,
     } = input;
 
     // 1. Validaciones básicas de campos
     if (
       !clienteNombre ||
-      !clientePhone ||
+      !clienteApellido ||
       !sucursalId ||
       !servicioId ||
       !profesionalId ||
       !fecha ||
       !hora
     ) {
-      throw new Error(
-        "Todos los campos principales de reserva son obligatorios.",
-      );
+      throw bookingError("Todos los campos principales de reserva son obligatorios.");
+    }
+    if (aceptaPrivacidad !== true) {
+      throw bookingError("Debes aceptar el aviso de privacidad.", 400, "PRIVACY_CONSENT_REQUIRED");
+    }
+    if (!/^([01]\d|2[0-3]):[0-5]\d(?::00)?$/.test(hora) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
+        Number.isNaN(Date.parse(`${fecha}T00:00:00Z`)) ||
+        new Date(`${fecha}T00:00:00Z`).toISOString().slice(0, 10) !== fecha) {
+      throw bookingError("Fecha u hora inválidas.", 400, "INVALID_DATE_TIME");
     }
 
     // 2. Obtener sucursal para negocio_id
     const { data: sucursal, error: sucErr } = await adminClient
       .from("sucursales")
-      .select("id, negocio_id, activa, nombre")
+      .select("id, negocio_id, activa, nombre, zona_horaria")
       .eq("id", sucursalId)
       .single();
 
     if (sucErr || !sucursal || !sucursal.activa) {
-      throw new Error("La sucursal seleccionada no existe o no está activa.");
+      throw bookingError("La sucursal seleccionada no existe o no está activa.", 400, "INVALID_BOOKING_SELECTION");
     }
 
     await assertActiveSubscription(sucursal.negocio_id);
+
+    const { data: negocio, error: negocioError } = await adminClient
+      .from("negocios")
+      .select("telefono_cliente_requerido, email_cliente_requerido, notas_cliente_habilitadas, politica_cancelacion, zona_horaria")
+      .eq("id", sucursal.negocio_id)
+      .single();
+    if (negocioError || !negocio) {
+      throw bookingError("No se pudo consultar la configuración de reservas.", 503, "BOOKING_CONFIG_UNAVAILABLE");
+    }
+    if ((negocio.telefono_cliente_requerido && !clientePhone) ||
+        (negocio.email_cliente_requerido && !clienteEmail) ||
+        (!clientePhone && !clienteEmail)) {
+      throw bookingError("Falta un medio de contacto requerido.", 400, "CONTACT_REQUIRED");
+    }
+    if (notasCliente && !negocio.notas_cliente_habilitadas) {
+      throw bookingError("Este negocio no acepta notas en la reserva.");
+    }
+    if (negocio.politica_cancelacion?.trim() && aceptaPoliticaCancelacion !== true) {
+      throw bookingError("Debes aceptar la política de cancelación.", 400, "CANCELLATION_CONSENT_REQUIRED");
+    }
+    const timeZone = sucursal.zona_horaria || negocio.zona_horaria;
+    const today = getBusinessToday(timeZone);
+    if (!today) {
+      throw bookingError("No se pudo determinar la fecha local del negocio.", 503, "BOOKING_TIMEZONE_UNAVAILABLE");
+    }
+    const nowTime = new Intl.DateTimeFormat("en-GB", {
+      timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).format(new Date());
+    if (fecha < today || (fecha === today && hora.slice(0, 5) <= nowTime)) {
+      throw bookingError("La fecha y hora de la cita deben ser futuras.", 400, "PAST_BOOKING_DATE");
+    }
 
     // 3. Obtener servicio oficial y validar que pertenezca al mismo negocio
     const { data: servicio, error: servErr } = await adminClient
@@ -285,13 +332,11 @@ export async function crearReservaCita(
       .single();
 
     if (servErr || !servicio || !servicio.activo) {
-      throw new Error("El servicio seleccionado no existe o no está activo.");
+      throw bookingError("El servicio seleccionado no existe o no está activo.", 400, "INVALID_BOOKING_SELECTION");
     }
 
     if (servicio.negocio_id !== sucursal.negocio_id) {
-      throw new Error(
-        "El servicio no pertenece al negocio de la sucursal seleccionada.",
-      );
+      throw bookingError("El servicio no pertenece al negocio de la sucursal seleccionada.", 400, "INVALID_BOOKING_SELECTION");
     }
 
     // 3.1. Validar existencia, estado y pertenencia de sucursal del profesional
@@ -302,15 +347,11 @@ export async function crearReservaCita(
       .single();
 
     if (profErr || !profesional || !profesional.activo) {
-      throw new Error(
-        "El profesional seleccionado no existe o no está activo.",
-      );
+      throw bookingError("El profesional seleccionado no existe o no está activo.", 400, "INVALID_BOOKING_SELECTION");
     }
 
     if (profesional.sucursal_id !== sucursalId) {
-      throw new Error(
-        "El profesional seleccionado no pertenece a esta sucursal.",
-      );
+      throw bookingError("El profesional seleccionado no pertenece a esta sucursal.", 400, "INVALID_BOOKING_SELECTION");
     }
 
     // 3.2. Validar que el profesional ofrezca el servicio
@@ -322,43 +363,27 @@ export async function crearReservaCita(
       .maybeSingle();
 
     if (!asignacion) {
-      throw new Error(
-        "El profesional seleccionado no ofrece el servicio solicitado.",
-      );
+      throw bookingError("El profesional seleccionado no ofrece el servicio solicitado.", 400, "INVALID_BOOKING_SELECTION");
     }
 
     // 4. Calcular hora_fin
     const horaInicioMin = timeToMinutes(hora);
     const duracionMin = servicio.duracion_minutos || 30;
     const horaFinMin = horaInicioMin + duracionMin;
+    if (horaFinMin > 24 * 60) {
+      throw bookingError("La cita debe terminar el mismo día.", 400, "INVALID_DATE_TIME");
+    }
     const horaInicioStr = minutesToTime(horaInicioMin) + ":00";
     const horaFinStr = minutesToTime(horaFinMin) + ":00";
 
-    // 5. Prevenir sobreventa / colisión concurrente (Double-Booking Check)
-    const { data: citasSolapadas, error: checkErr } = await adminClient
-      .from("citas")
-      .select("id")
-      .eq("profesional_id", profesionalId)
-      .eq("fecha", fecha)
-      .neq("estado", "cancelada")
-      .lt("hora_inicio", horaFinStr)
-      .gt("hora_fin", horaInicioStr);
-
-    if (checkErr) {
-      throw new Error(
-        `Error verificando disponibilidad de horario: ${checkErr.message}`,
-      );
-    }
-
-    if (citasSolapadas && citasSolapadas.length > 0) {
-      const err = new Error(
-        "El horario seleccionado ya ha sido reservado por otro cliente.",
-      );
-      (err as unknown as { status: number }).status = 409;
-      throw err;
+    // 5. Exigir un slot ofrecido; la restricción SQL resuelve las carreras posteriores.
+    const horarios = await obtenerDisponibilidad({ sucursalId, servicioId, profesionalId, fecha });
+    if (!horarios.includes(hora.slice(0, 5))) {
+      throw bookingError("El horario seleccionado ya no está disponible.", 409, "SLOT_UNAVAILABLE");
     }
 
     // 6. Insertar la cita en Supabase
+    const aceptadaEn = new Date().toISOString();
     const { data: nuevaCita, error: insertError } = await adminClient
       .from("citas")
       .insert({
@@ -377,32 +402,39 @@ export async function crearReservaCita(
         precio_total: Number(servicio.precio),
         monto_anticipo_pagado: 0,
         notas_cliente: notasCliente || null,
+        privacidad_aceptada_en: aceptadaEn,
+        politica_cancelacion_aceptada_en: negocio.politica_cancelacion?.trim() ? aceptadaEn : null,
       })
       .select("*")
       .single();
 
     if (insertError || !nuevaCita) {
+      if (insertError?.code === "23P01") {
+        throw bookingError("El horario seleccionado ya no está disponible.", 409, "SLOT_UNAVAILABLE");
+      }
       throw new Error(
         `Error al registrar la cita en Supabase: ${insertError?.message || "Sin datos"}`,
       );
     }
 
     // 7. Disparar notificación por WhatsApp (en segundo plano)
-    enviarNotificacionWhatsApp({
-      telefono: clientePhone,
-      mensaje: `¡Hola ${clienteNombre}! Tu cita para "${servicio.nombre}" en ${sucursal.nombre} ha sido agendada para el ${fecha} a las ${minutesToTime(horaInicioMin)} hrs.`,
-      negocioNombre: sucursal.nombre,
-    }).catch((waErr) => {
-      Sentry.captureException(waErr, {
-        extra: { context: "crearReservaCita.whatsapp", citaId: nuevaCita.id },
+    if (clientePhone) {
+      enviarNotificacionWhatsApp({
+        telefono: clientePhone,
+        mensaje: `¡Hola ${clienteNombre}! Tu cita para "${servicio.nombre}" en ${sucursal.nombre} ha sido agendada para el ${fecha} a las ${minutesToTime(horaInicioMin)} hrs.`,
+        negocioNombre: sucursal.nombre,
+      }).catch((waErr) => {
+        Sentry.captureException(waErr, {
+          extra: { context: "crearReservaCita.whatsapp", citaId: nuevaCita.id },
+        });
       });
-    });
+    }
 
     return nuevaCita as Cita;
   } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: "crearReservaCita", input },
-    });
+    if (!(error instanceof Error) || !("status" in error) || Number(error.status) >= 500) {
+      Sentry.captureException(error, { extra: { context: "crearReservaCita" } });
+    }
     throw error;
   }
 }

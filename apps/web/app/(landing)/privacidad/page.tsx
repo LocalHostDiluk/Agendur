@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalDraftShell } from "@/components/landing/LegalDraftShell";
 
 export const metadata: Metadata = {
-  title: "Aviso de privacidad — borrador | CitaSync",
+  title: "Aviso de privacidad — borrador | Agendur",
   robots: { index: false, follow: false },
 };
 
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
 
       <section className={sectionClass}>
         <h2 className={headingClass}>1. Responsable y contacto</h2>
-        <p><strong>Pendiente:</strong> identidad legal y domicilio del responsable, país de operación, correo o medio para solicitudes de privacidad y contacto encargado de derechos de las personas. También debe determinarse cuándo CitaSync actúa por cuenta del negocio respecto de sus clientes.</p>
+        <p><strong>Pendiente:</strong> identidad legal y domicilio del responsable, país de operación, correo o medio para solicitudes de privacidad y contacto encargado de derechos de las personas. También debe determinarse cuándo Agendur actúa por cuenta del negocio respecto de sus clientes.</p>
       </section>
 
       <section className={sectionClass}>

@@ -1,24 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Inter, Space_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { SileoToaster } from "@/components/theme/SileoToaster";
 import { PrelineScript } from "@/components/theme/PrelineScript";
 import "sileo/styles.css";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title:
-    "CitaSync - Software de Citas y Reservaciones para PyMEs y Múltiples Sucursales",
+    "Agendur - Software de Citas y Reservaciones para PyMEs y Múltiples Sucursales",
   description:
     "Permite a tus clientes agendar citas online 24/7 en cualquiera de tus sucursales. Reduce ausencias con recordatorios automáticos de WhatsApp y cobra anticipos en línea.",
 };
@@ -29,9 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
+      className={`${bricolage.variable} ${inter.variable} ${spaceMono.variable} h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans transition-colors duration-200">
+      <body className="min-h-full flex flex-col bg-background text-text-primary font-sans transition-colors duration-200">
         <ThemeProvider>
           {children}
           <SileoToaster />

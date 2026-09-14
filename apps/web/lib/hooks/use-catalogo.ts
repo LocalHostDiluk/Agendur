@@ -6,7 +6,7 @@ export interface CatalogoData {
   negocio: Negocio | null;
   sucursales: Sucursal[];
   servicios: Servicio[];
-  profesionales: Profesional[];
+  profesionales: (Profesional & { serviciosIds: string[] })[];
 }
 
 export interface CatalogoResponse {

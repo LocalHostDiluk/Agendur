@@ -1,44 +1,45 @@
 import Link from "next/link";
-import { Calendar, ArrowLeft } from "lucide-react";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { ArrowLeft } from "lucide-react";
+import { AuthBentoGrid } from "@/components/auth/AuthBentoGrid";
+import { AuthBrandProvider } from "@/components/auth/AuthBrandContext";
 
-export default function AuthLayout({ children }: LayoutProps<"/">) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      {/* Top bar */}
-      <header className="px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-            CitaSync
-          </span>
-        </Link>
+    <AuthBrandProvider>
+      <div className="min-h-screen flex w-full">
+        {/* Left Column - Form */}
+        <div className="flex-1 lg:w-1/2 flex flex-col bg-[#F7F5EF] dark:bg-[#17121B] transition-colors duration-200">
+          <header className="px-6 py-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center group">
+              <span className="font-bricolage font-semibold text-[32px] tracking-tight text-text-primary">
+                Agendur
+              </span>
+            </Link>
 
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <Link
-            href="/"
-            className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Inicio
-          </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="text-sm font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> Inicio
+              </Link>
+            </div>
+          </header>
+
+          <main className="flex-1 flex flex-col justify-center items-center p-6">
+            <div className="w-full max-w-[420px]">{children}</div>
+          </main>
         </div>
-      </header>
 
-      {/* Main Content Form */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md">{children}</div>
-      </main>
-
-      {/* Footer */}
-      <footer className="py-4 text-center text-xs text-slate-500 dark:text-slate-400">
-        &copy; {new Date().getFullYear()} CitaSync Technologies. Plataforma SaaS de gestión de citas y múltiples sucursales.
-      </footer>
-    </div>
+        {/* Right Column - Brand Panel */}
+        <div className="hidden lg:flex lg:w-1/2 flex-col bg-[#17121B] relative overflow-hidden border-l border-white/5">
+          <AuthBentoGrid />
+        </div>
+      </div>
+    </AuthBrandProvider>
   );
 }

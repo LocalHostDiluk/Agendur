@@ -121,11 +121,25 @@ describe("Oleada 2 B: identidad autenticada", () => {
     });
     try {
       expect((await putConfig(request({ zonaHoraria: "invalid-zone" }))).status).toBe(400);
+      expect((await putConfig(request({ telefonoClienteRequerido: false, emailClienteRequerido: false }))).status).toBe(400);
       expect(updatePayload).toBeNull();
       const response = await putConfig(request({ owner_id: "victim", nombreNegocio: " Negocio ", giroComercial: "Salón", pais: "MX", zonaHoraria: "America/Monterrey" }));
       expect(response.status).toBe(200);
       expect(updatedId).toBe("neg-1");
       expect(updatePayload as Record<string, unknown> | null).toEqual({ nombre_comercial: "Negocio", giro_comercial: "Salón", pais: "MX", zona_horaria: "America/Monterrey" });
+      const bookingConfig = await putConfig(request({
+        telefonoClienteRequerido: true,
+        emailClienteRequerido: false,
+        notasClienteHabilitadas: false,
+        politicaCancelacion: "  Cancela con 24 horas.  ",
+      }));
+      expect(bookingConfig.status).toBe(200);
+      expect(updatePayload as Record<string, unknown> | null).toEqual({
+        telefono_cliente_requerido: true,
+        email_cliente_requerido: false,
+        notas_cliente_habilitadas: false,
+        politica_cancelacion: "Cancela con 24 horas.",
+      });
     } finally {
       (client as unknown as { from: unknown }).from = originalFrom;
       server.mockRestore();

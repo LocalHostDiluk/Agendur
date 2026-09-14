@@ -1,7 +1,3 @@
--- ==============================================================================
--- CitaSync: Migración Incremental de Seguridad (RLS y Storage)
--- Seguro de ejecutar sobre bases de datos existentes (Idempotente)
--- ==============================================================================
 
 -- 1. POLÍTICA DE CITAS PÚBLICAS ENDURECIDA
 DROP POLICY IF EXISTS "Público puede crear reservas de citas" ON public.citas;

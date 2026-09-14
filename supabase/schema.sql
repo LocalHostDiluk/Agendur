@@ -1,10 +1,14 @@
 -- ==============================================================================
--- CitaSync - Esquema de Base de Datos PostgreSQL para Supabase
+-- Agendur - snapshot para una base Supabase nueva (hasta Oleada 3.5)
 -- Multi-tenant RLS, Multi-Sucursal, Horarios a 2 Niveles, Citas y Suscripciones
+-- Ejecutar este archivo una sola vez en una base vacía; NO reaplicar después
+-- las migraciones ya incorporadas aquí. En bases existentes, usar migraciones.
 -- ==============================================================================
 
 -- Habilitar extensión pgcrypto para gen_random_uuid si no está activa
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;
+SET search_path = public, extensions;
 
 -- ------------------------------------------------------------------------------
 -- 1. FUNCIÓN Y DISPARADOR DE ACTUALIZACIÓN (updated_at)
@@ -150,6 +154,11 @@ CREATE TRIGGER tr_profesionales_updated_at
   BEFORE UPDATE ON public.profesionales
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+CREATE VIEW public.profesionales_publicos WITH (security_invoker = true) AS
+SELECT id, sucursal_id, nombre, apellido, avatar_url, activo
+FROM public.profesionales
+WHERE activo = true;
+
 -- ------------------------------------------------------------------------------
 -- 6. TABLA: profesional_servicios (Asignación M:N de Servicios)
 -- ------------------------------------------------------------------------------
@@ -213,8 +222,8 @@ CREATE TABLE IF NOT EXISTS public.citas (
   profesional_id UUID NOT NULL REFERENCES public.profesionales(id) ON DELETE CASCADE,
   cliente_nombre TEXT NOT NULL,
   cliente_apellido TEXT NOT NULL,
-  cliente_telefono VARCHAR(20) NOT NULL,
-  cliente_email TEXT NOT NULL,
+  cliente_telefono VARCHAR(20) NULL,
+  cliente_email TEXT NULL,
   fecha DATE NOT NULL,
   hora_inicio TIME NOT NULL,
   hora_fin TIME NOT NULL,
@@ -224,7 +233,18 @@ CREATE TABLE IF NOT EXISTS public.citas (
   metodo_pago_anticipo VARCHAR(30) NULL,
   notas_cliente TEXT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  privacidad_aceptada_en TIMESTAMPTZ NULL,
+  politica_cancelacion_aceptada_en TIMESTAMPTZ NULL,
+  CONSTRAINT citas_contacto_requerido_check CHECK (
+    NULLIF(BTRIM(cliente_telefono), '') IS NOT NULL
+    OR NULLIF(BTRIM(cliente_email), '') IS NOT NULL
+  ),
+  CONSTRAINT citas_horario_valido_check CHECK (hora_fin > hora_inicio),
+  CONSTRAINT citas_profesional_horario_excl EXCLUDE USING gist (
+    profesional_id WITH =,
+    (tsrange(fecha + hora_inicio, fecha + hora_fin, '[)')) WITH &&
+  ) WHERE (estado IN ('pendiente_pago', 'confirmada'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_citas_negocio_fecha ON public.citas(negocio_id, fecha);
@@ -282,6 +302,27 @@ ALTER TABLE public.citas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suscripciones ENABLE ROW LEVEL SECURITY;
 
 -- Grants explícitos para exposición controlada mediante Supabase Data API.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+  public.negocios, public.sucursales, public.servicios, public.profesionales,
+  public.profesional_servicios, public.horarios_sucursal,
+  public.horarios_profesional, public.citas
+  TO authenticated, service_role;
+GRANT SELECT ON TABLE public.suscripciones TO authenticated;
+GRANT ALL PRIVILEGES ON TABLE public.suscripciones TO service_role;
+GRANT SELECT ON TABLE
+  public.negocios, public.sucursales, public.servicios,
+  public.profesional_servicios, public.horarios_sucursal,
+  public.horarios_profesional TO anon;
+GRANT INSERT ON TABLE public.citas TO anon;
+
+-- El rol anon no recibe SELECT de tabla: solo columnas públicas.
+REVOKE SELECT ON TABLE public.profesionales FROM PUBLIC, anon;
+GRANT SELECT (id, sucursal_id, nombre, apellido, avatar_url, activo)
+  ON TABLE public.profesionales TO anon;
+REVOKE ALL PRIVILEGES ON TABLE public.profesionales_publicos
+  FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.profesionales_publicos TO anon, authenticated;
+
 REVOKE ALL PRIVILEGES ON TABLE public.perfiles_usuario
   FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL PRIVILEGES ON TABLE public.consentimientos_usuario
@@ -424,7 +465,7 @@ CREATE POLICY "Dueño puede gestionar profesionales de sus sucursales"
 CREATE POLICY "Público puede ver profesionales activos"
   ON public.profesionales
   FOR SELECT
-  TO anon, authenticated
+  TO anon
   USING (activo = true);
 
 -- ------------------------------------------------------------------------------
@@ -655,3 +696,5 @@ CREATE POLICY "Usuarios autenticados pueden eliminar avatars"
       WHERE n.owner_id = auth.uid()
     )
   );
+
+RESET search_path;

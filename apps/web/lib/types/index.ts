@@ -1,5 +1,5 @@
 // ==============================================================================
-// CitaSync - Definiciones de Tipos TypeScript (Sincronizadas con Supabase DB)
+// Agendur - Definiciones de Tipos TypeScript (Sincronizadas con Supabase DB)
 // ==============================================================================
 
 export interface Negocio {
@@ -13,6 +13,10 @@ export interface Negocio {
   pais?: string | null;
   zona_horaria?: string | null;
   porcentaje_anticipo_default: number;
+  telefono_cliente_requerido: boolean;
+  email_cliente_requerido: boolean;
+  notas_cliente_habilitadas: boolean;
+  politica_cancelacion: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -112,9 +116,9 @@ export interface Cita {
   cliente_nombre?: string;
   clienteNombre?: string;
   cliente_apellido?: string;
-  cliente_telefono?: string;
+  cliente_telefono?: string | null;
   clientePhone?: string;
-  cliente_email?: string;
+  cliente_email?: string | null;
   clienteEmail?: string;
   fecha: string; // YYYY-MM-DD
   hora_inicio?: string;
@@ -126,6 +130,8 @@ export interface Cita {
   montoAnticipo?: number;
   metodo_pago_anticipo?: string | null;
   notas_cliente?: string | null;
+  privacidad_aceptada_en?: string;
+  politica_cancelacion_aceptada_en?: string | null;
   created_at?: string;
   creadaEn?: string;
   updated_at?: string;
@@ -176,4 +182,8 @@ export interface NegocioConfig {
   porcentajeAnticipo: number;
   pais?: string | null;
   zonaHoraria?: string | null;
+  telefonoClienteRequerido?: boolean;
+  emailClienteRequerido?: boolean;
+  notasClienteHabilitadas?: boolean;
+  politicaCancelacion?: string | null;
 }

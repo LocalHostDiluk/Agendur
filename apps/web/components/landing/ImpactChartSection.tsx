@@ -21,13 +21,13 @@ interface IndustryData {
   title: string;
   subtitle: string;
   noShowManual: number;
-  noShowCitaSync: number;
+  noShowAgendur: number;
   noShowDiff: string;
   hoursManual: number;
-  hoursCitaSync: number;
+  hoursAgendur: number;
   hoursDiff: string;
   afterHoursManual: number;
-  afterHoursCitaSync: number;
+  afterHoursAgendur: number;
   afterHoursDiff: string;
   monthlyRoi: string;
   roiDescription: string;
@@ -38,13 +38,13 @@ const industries: Record<IndustryKey, IndustryData> = {
     title: "Belleza & Barbería",
     subtitle: "Peluquerías, Barber Shops, Salones y Estilistas",
     noShowManual: 24,
-    noShowCitaSync: 3.2,
+    noShowAgendur: 3.2,
     noShowDiff: "-85% ausentismo",
     hoursManual: 18,
-    hoursCitaSync: 0.5,
+    hoursAgendur: 0.5,
     hoursDiff: "+17.5 hrs ahorradas",
     afterHoursManual: 0,
-    afterHoursCitaSync: 38,
+    afterHoursAgendur: 38,
     afterHoursDiff: "38% agendadas de noche",
     monthlyRoi: "$1,250 USD",
     roiDescription:
@@ -54,13 +54,13 @@ const industries: Record<IndustryKey, IndustryData> = {
     title: "Salud & Clínicas",
     subtitle: "Consultorios Médicos, Clínicas Dentales y Fisioterapia",
     noShowManual: 28,
-    noShowCitaSync: 4.1,
+    noShowAgendur: 4.1,
     noShowDiff: "-85% ausentismo",
     hoursManual: 22,
-    hoursCitaSync: 1.0,
+    hoursAgendur: 1.0,
     hoursDiff: "+21 hrs ahorradas",
     afterHoursManual: 0,
-    afterHoursCitaSync: 42,
+    afterHoursAgendur: 42,
     afterHoursDiff: "42% agendadas de noche",
     monthlyRoi: "$2,400 USD",
     roiDescription:
@@ -70,13 +70,13 @@ const industries: Record<IndustryKey, IndustryData> = {
     title: "Bienestar & Spas",
     subtitle: "Centros de Masaje, Spas, Tatuajes y Terapias",
     noShowManual: 22,
-    noShowCitaSync: 2.8,
+    noShowAgendur: 2.8,
     noShowDiff: "-87% ausentismo",
     hoursManual: 16,
-    hoursCitaSync: 0.5,
+    hoursAgendur: 0.5,
     hoursDiff: "+15.5 hrs ahorradas",
     afterHoursManual: 0,
-    afterHoursCitaSync: 35,
+    afterHoursAgendur: 35,
     afterHoursDiff: "35% agendadas de noche",
     monthlyRoi: "$1,600 USD",
     roiDescription:
@@ -102,11 +102,11 @@ export function ImpactChartSection() {
             Impacto Medible y Resultados Reales
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            ¿Por qué elegir CitaSync frente a la gestión manual?
+            ¿Por qué elegir Agendur frente a la gestión manual?
           </h2>
           <p className="text-base sm:text-lg text-gray-600 dark:text-neutral-400">
             Compara el rendimiento de operar con cuadernos y WhatsApp manual
-            versus la automatización integral de CitaSync.
+            versus la automatización integral de Agendur.
           </p>
 
           {/* Industry Selector Tabs */}
@@ -180,7 +180,7 @@ export function ImpactChartSection() {
                   <div className="flex items-center gap-1.5">
                     <span className="size-3 rounded-full bg-blue-600" />
                     <span className="font-semibold text-blue-600 dark:text-blue-400">
-                      CitaSync
+                      Agendur
                     </span>
                   </div>
                 </div>
@@ -218,14 +218,14 @@ export function ImpactChartSection() {
 
                   <div className="flex items-center gap-3">
                     <span className="w-16 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                      CitaSync
+                      Agendur
                     </span>
                     <div className="flex-1 bg-gray-200 dark:bg-neutral-800 rounded-full h-4 overflow-hidden">
                       <div
                         className="bg-emerald-500 h-full rounded-full flex items-center justify-end px-2 text-[10px] font-bold text-white transition-all duration-500"
-                        style={{ width: `${data.noShowCitaSync * 3 + 8}%` }}
+                        style={{ width: `${data.noShowAgendur * 3 + 8}%` }}
                       >
-                        {data.noShowCitaSync}%
+                        {data.noShowAgendur}%
                       </div>
                     </div>
                   </div>
@@ -264,16 +264,16 @@ export function ImpactChartSection() {
 
                   <div className="flex items-center gap-3">
                     <span className="w-16 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                      CitaSync
+                      Agendur
                     </span>
                     <div className="flex-1 bg-gray-200 dark:bg-neutral-800 rounded-full h-4 overflow-hidden">
                       <div
                         className="bg-blue-600 h-full rounded-full flex items-center justify-end px-2 text-[10px] font-bold text-white transition-all duration-500"
                         style={{
-                          width: `${(data.hoursCitaSync / 25) * 100 + 12}%`,
+                          width: `${(data.hoursAgendur / 25) * 100 + 12}%`,
                         }}
                       >
-                        {data.hoursCitaSync} hrs
+                        {data.hoursAgendur} hrs
                       </div>
                     </div>
                   </div>
@@ -310,14 +310,14 @@ export function ImpactChartSection() {
 
                   <div className="flex items-center gap-3">
                     <span className="w-16 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                      CitaSync
+                      Agendur
                     </span>
                     <div className="flex-1 bg-gray-200 dark:bg-neutral-800 rounded-full h-4 overflow-hidden">
                       <div
                         className="bg-indigo-600 h-full rounded-full flex items-center justify-end px-2 text-[10px] font-bold text-white transition-all duration-500"
-                        style={{ width: `${data.afterHoursCitaSync * 1.8}%` }}
+                        style={{ width: `${data.afterHoursAgendur * 1.8}%` }}
                       >
-                        {data.afterHoursCitaSync}% de reservas
+                        {data.afterHoursAgendur}% de reservas
                       </div>
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export function ImpactChartSection() {
 
             <p className="text-[11px] text-gray-500 dark:text-neutral-500 mt-6 pt-3 border-t border-gray-200 dark:border-neutral-800">
               * Datos recopilados de más de 1,200 negocios activos antes y
-              después de implementar CitaSync durante un periodo de 90 días.
+              después de implementar Agendur durante un periodo de 90 días.
             </p>
           </div>
 
@@ -350,7 +350,7 @@ export function ImpactChartSection() {
 
               <p className="text-sm text-blue-100 leading-relaxed">
                 {data.roiDescription}. Con solo evitar 2 cancelaciones al mes,
-                el plan CitaSync se paga solo.
+                el plan Agendur se paga solo.
               </p>
 
               <div className="p-4 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15 space-y-2 text-xs">
