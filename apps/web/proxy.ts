@@ -69,6 +69,7 @@ export async function proxy(request: NextRequest) {
     const isProtectedRoute =
       pathname.startsWith("/dashboard") ||
       pathname.startsWith("/agendas") ||
+      pathname.startsWith("/onboarding") ||
       pathname.startsWith("/sucursales");
 
     // Rutas exclusivas para usuarios sin autenticar

@@ -16,13 +16,23 @@
 
   /* Landing Risograph Palette */
   --paper: #f3eedf;
+  --paper-pure: #ffffff;
   --ink: #1d1720;
+  --ink-soft: #2a2130;
   --grape: #6e49a6;
   --grape-soft: rgba(110, 73, 166, 0.12);
   --flame: #ff5a36;
   --mint: #46b88a;
+  --mint-soft: rgba(70, 184, 138, 0.12);
+  --mint-dark: #2d7a5b;
   --mist: #8d8577;
   --line: #d8d0bf;
+
+  --text-on-ink: #f3eedf;
+  --text-on-ink-soft: rgba(243, 238, 223, 0.65);
+  --text-on-ink-muted: rgba(243, 238, 223, 0.40);
+
+  --border-ink: rgba(243, 238, 223, 0.15);
 
   --sidebar-bg: #110d15;
   --sidebar-text: #a79fae;
@@ -64,6 +74,9 @@
   --grape: #8b67c4;
   --grape-soft: rgba(139, 103, 196, 0.18);
   --flame: #ff7a57;
+  --mint: #5cc498;
+  --mint-soft: rgba(92, 196, 152, 0.16);
+  --mint-dark: #6ee7b7;
 
   --success: #5cc498;
   --success-soft: rgba(92, 196, 152, 0.16);
@@ -91,6 +104,8 @@
   --color-grape-soft: var(--grape-soft);
   --color-flame: var(--flame);
   --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-mint-dark: var(--mint-dark);
   --color-mist: var(--mist);
 
   --color-success: var(--success);
@@ -101,6 +116,10 @@
   --color-danger-soft: var(--danger-soft);
 
   --color-ink: var(--ink);
+  --color-border-ink: var(--border-ink);
+  --color-text-on-ink: var(--text-on-ink);
+  --color-text-on-ink-soft: var(--text-on-ink-soft);
+  --color-text-on-ink-muted: var(--text-on-ink-muted);
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -250,6 +269,104 @@ body {
 .riso-multiply {
   mix-blend-mode: multiply;
 }
+
+/* ==========================================================================
+   TICKET MOTIF CLASSES (errores-y-portal-reservas-agender.md Secc. 0.B)
+   ========================================================================== */
+.ticket {
+  position: relative;
+  background: var(--paper-pure);
+  border-radius: var(--radius-lg);
+}
+
+.ticket-on-ink {
+  position: relative;
+  background: var(--paper-pure);
+  border-radius: var(--radius-lg);
+}
+.ticket-on-ink::before,
+.ticket-on-ink::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: var(--ink);
+  pointer-events: none;
+  z-index: 10;
+}
+.ticket-on-ink::before { left: -12px; }
+.ticket-on-ink::after  { right: -12px; }
+
+.ticket-on-paper {
+  position: relative;
+  background: var(--paper-pure);
+  border-radius: var(--radius-lg);
+}
+.ticket-on-paper::before,
+.ticket-on-paper::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: var(--paper);
+  pointer-events: none;
+  z-index: 10;
+}
+.ticket-on-paper::before { left: -12px; }
+.ticket-on-paper::after  { right: -12px; }
+
+.perforacion {
+  border-top: 2px dashed var(--border);
+  width: 100%;
+  height: 0;
+}
+
+.perforacion-ink {
+  border-top: 2px dashed var(--border-ink);
+  width: 100%;
+  height: 0;
+}
+
+.sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  line-height: 1.2;
+  transform: rotate(-12deg);
+}
+
+.btn-ticket {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: visible;
+}
+.btn-ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: var(--ink);
+  pointer-events: none;
+}
+
 
 /* ==========================================================================
    PRICING SECTION (from estilos.md - scoped strictly to .pricing)
@@ -605,5 +722,53 @@ body {
     padding: 13px;
     font-size: 12px;
     margin-top: 24px;
+  }
+}
+
+/* ==============================================================================
+   Sistema Base de Skeletons (Agendur UI)
+   ============================================================================== */
+.skel-block, .skel-text, .skel-circle {
+  background: var(--surface-alt);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+.skel-circle { border-radius: 50%; }
+
+.skel-block::after, .skel-text::after, .skel-circle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.35) 50%,
+    transparent 100%
+  );
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+
+.dark .skel-block::after,
+.dark .skel-text::after,
+.dark .skel-circle::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.08) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes skel-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel-block::after,
+  .skel-text::after,
+  .skel-circle::after {
+    animation: none;
   }
 }

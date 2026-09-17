@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 **/node_modules/
 /.pnp
 .pnp.*
@@ -10,49 +8,73 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-**/coverage/
-
-# next.js
+# Framework and build output
 **/.next/
 **/out/
-
-# Turborepo
-**/.turbo/
-
-# production
+**/dist/
 **/build/
+**/.turbo/
+**/.cache/
 
-# misc
-.DS_Store
-*.pem
+# Tests and coverage
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/.nyc_output/
 
-# debug
+# Logs and temporary files
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swp
+*.swo
+*~
+*.pid
+*.pid.lock
 
-# env files (can opt-in for committing if needed)
-.env*
+# Environment files and private keys
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
 
-# vercel
-.vercel
-
-# typescript
+# TypeScript and Python caches
 *.tsbuildinfo
 next-env.d.ts
+**/__pycache__/
+*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.eslintcache
+.stylelintcache
 
-# markdown
-PLAN.md
-PLAN-REFACT.md
-SOLUCION-REFACT.md
-NEXT_SESSION.md
-AGENTS.md
+# Deployment providers
+.vercel/
 
-# git
-.gitignore
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
-# local config files
-/.agents
-/.codegraph
+
+# Local tool state
+/.codex/
+/.codegraph/*
+!/.codegraph/.gitignore
+
+# Local convenience symlink to apps/web/tests
+/tests

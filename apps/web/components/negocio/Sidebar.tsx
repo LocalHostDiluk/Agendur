@@ -21,7 +21,8 @@ import {
   X,
 } from "lucide-react";
 import { notify } from "@/lib/utils/toast";
-import { useAuthMe, useSucursales } from "@/lib/hooks";
+import { useAuthMe, useSucursales, useConfirmDialog } from "@/lib/hooks";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export interface SidebarProps {
   isOpen?: boolean;
@@ -51,10 +52,9 @@ const navModules = [
   },
   {
     name: "Personal",
-    href: "#",
+    href: "/personal",
     icon: Users,
-    disabled: true,
-    badge: "Pronto",
+    disabled: false,
   },
   {
     name: "Pagos y facturación",
@@ -72,10 +72,9 @@ const navModules = [
   },
   {
     name: "Configuración",
-    href: "#",
+    href: "/configuracion",
     icon: Settings,
-    disabled: true,
-    badge: "Pronto",
+    disabled: false,
   },
 ];
 
@@ -113,6 +112,8 @@ export function Sidebar({
   const { data: profile } = useAuthMe();
   const { data: sucursalesData } = useSucursales();
   const sucursales = sucursalesData?.sucursales ?? [];
+  const { confirm: confirmAction, dialogProps: confirmDialogProps } =
+    useConfirmDialog();
 
   // Sincronizar sucursal activa con eventos del sistema
   useEffect(() => {
@@ -192,6 +193,12 @@ export function Sidebar({
     } finally {
       setLoggingOut(false);
     }
+  };
+
+  const handleLogoutClick = async () => {
+    const confirmed = await confirmAction("logout");
+    if (!confirmed) return;
+    await handleLogout();
   };
 
   return (
@@ -581,7 +588,7 @@ export function Sidebar({
           {/* Logout Button */}
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={handleLogoutClick}
             disabled={loggingOut}
             className="w-full group relative flex items-center gap-x-3 px-3 py-2 text-xs font-medium text-[#A79FAE] hover:text-[#D14343] hover:bg-white/[0.04] rounded-lg transition-colors disabled:opacity-50 focus:outline-hidden"
             aria-label="Cerrar Sesión"
@@ -640,6 +647,8 @@ export function Sidebar({
           </div>
         </div>
       </aside>
+
+      <ConfirmDialog {...confirmDialogProps} />
     </>
   );
 }

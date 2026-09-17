@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/query/api-client";
-import type { Cita, EstadoCita, NegocioConfig, Sucursal } from "@/lib/types";
+import type {
+  Cita,
+  EstadoCita,
+  NegocioConfig,
+  Servicio,
+  Sucursal,
+} from "@/lib/types";
 import type { SubscriptionUsageStats } from "@/lib/payments/types";
 
 export interface CitasFiltros {
@@ -13,7 +19,8 @@ export interface CitasFiltros {
 export function useSucursales() {
   return useQuery({
     queryKey: ["negocio", "sucursales"],
-    queryFn: () => apiFetch<{ sucursales: Sucursal[] }>("/api/negocio/sucursales"),
+    queryFn: () =>
+      apiFetch<{ sucursales: Sucursal[] }>("/api/negocio/sucursales"),
     staleTime: 30 * 1000,
   });
 }
@@ -21,7 +28,8 @@ export function useSucursales() {
 export function useSuscripcion() {
   return useQuery({
     queryKey: ["negocio", "suscripcion"],
-    queryFn: () => apiFetch<{ data: SubscriptionUsageStats }>("/api/negocio/suscripcion"),
+    queryFn: () =>
+      apiFetch<{ data: SubscriptionUsageStats }>("/api/negocio/suscripcion"),
     staleTime: 30 * 1000,
   });
 }
@@ -30,10 +38,42 @@ export function useConfiguracion() {
   return useQuery({
     queryKey: ["negocio", "configuracion"],
     queryFn: () =>
-      apiFetch<{ configuracion: Omit<NegocioConfig, "whatsappNotificaciones"> }>(
-        "/api/negocio/configuracion",
-      ),
+      apiFetch<{
+        configuracion: Omit<NegocioConfig, "whatsappNotificaciones"> & {
+          id?: string;
+          monedaPrincipal?: string;
+          logoUrl?: string | null;
+        };
+      }>("/api/negocio/configuracion"),
     staleTime: 30 * 1000,
+  });
+}
+
+export function useUpdateConfiguracion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (
+      payload: Partial<NegocioConfig> & {
+        monedaPrincipal?: string;
+        logoUrl?: string | null;
+      },
+    ) =>
+      apiFetch<{
+        configuracion: NegocioConfig & {
+          id?: string;
+          monedaPrincipal?: string;
+          logoUrl?: string | null;
+        };
+      }>("/api/negocio/configuracion", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "configuracion"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
   });
 }
 
@@ -42,12 +82,16 @@ export function useCitasNegocio(filtros?: CitasFiltros) {
     queryKey: ["negocio", "citas", filtros],
     queryFn: () => {
       const searchParams = new URLSearchParams();
-      if (filtros?.sucursalId) searchParams.set("sucursalId", filtros.sucursalId);
-      if (filtros?.fechaInicio) searchParams.set("fechaInicio", filtros.fechaInicio);
+      if (filtros?.sucursalId)
+        searchParams.set("sucursalId", filtros.sucursalId);
+      if (filtros?.fechaInicio)
+        searchParams.set("fechaInicio", filtros.fechaInicio);
       if (filtros?.fechaFin) searchParams.set("fechaFin", filtros.fechaFin);
       if (filtros?.estado) searchParams.set("estado", filtros.estado);
       const qs = searchParams.toString();
-      return apiFetch<{ citas: Cita[] }>(`/api/negocio/citas${qs ? `?${qs}` : ""}`);
+      return apiFetch<{ citas: Cita[] }>(
+        `/api/negocio/citas${qs ? `?${qs}` : ""}`,
+      );
     },
     staleTime: 30 * 1000,
   });
@@ -57,14 +101,92 @@ export function useUpdateCitaEstado() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ citaId, nuevoEstado }: { citaId: string; nuevoEstado: EstadoCita }) =>
+    mutationFn: ({
+      citaId,
+      nuevoEstado,
+      notas,
+    }: {
+      citaId: string;
+      nuevoEstado?: EstadoCita;
+      notas?: string;
+    }) =>
       apiFetch<{ cita: Cita }>("/api/negocio/citas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ citaId, nuevoEstado }),
+        body: JSON.stringify({
+          citaId,
+          ...(nuevoEstado ? { nuevoEstado } : {}),
+          ...(notas !== undefined ? { notas } : {}),
+        }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["negocio", "citas"] });
+    },
+  });
+}
+
+export function useCreateSucursal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      nuevaSucursal: Partial<Sucursal> & {
+        nombre: string;
+        direccion: string;
+        ciudad: string;
+        telefono: string;
+      },
+    ) =>
+      apiFetch<{ sucursal: Sucursal }>("/api/negocio/sucursales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevaSucursal),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "sucursales"] });
+    },
+  });
+}
+
+export function useServicios() {
+  return useQuery({
+    queryKey: ["negocio", "servicios"],
+    queryFn: () =>
+      apiFetch<{ servicios: Servicio[] }>("/api/negocio/servicios"),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCreateServicio() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (nuevoServicio: {
+      nombre: string;
+      duracion_minutos: number;
+      precio: number;
+      descripcion?: string;
+    }) =>
+      apiFetch<{ servicio: Servicio }>("/api/negocio/servicios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevoServicio),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "servicios"] });
+    },
+  });
+}
+
+export function useUpdateServicio() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...cambios }: Partial<Servicio> & { id: string }) =>
+      apiFetch<{ servicio: Servicio }>("/api/negocio/servicios", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...cambios }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "servicios"] });
     },
   });
 }

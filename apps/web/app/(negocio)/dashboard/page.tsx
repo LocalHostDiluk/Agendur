@@ -30,6 +30,8 @@ import {
 import { notify } from "@/lib/utils/toast";
 import { getBusinessToday } from "@/lib/utils/business-date";
 import { useAuthMe, useCitasNegocio, useSuscripcion } from "@/lib/hooks";
+import { DashboardLoading } from "./loading";
+import { SkeletonBlock, SkeletonText } from "@/components/ui/Skeleton";
 
 interface ChartTooltipProps {
   active?: boolean;
@@ -38,7 +40,12 @@ interface ChartTooltipProps {
   unit?: string;
 }
 
-function CustomChartTooltip({ active, payload, label, unit }: ChartTooltipProps) {
+function CustomChartTooltip({
+  active,
+  payload,
+  label,
+  unit,
+}: ChartTooltipProps) {
   if (active && payload && payload.length) {
     const val = payload[0].value;
     return (
@@ -59,10 +66,18 @@ const emptySubscribe = () => () => {};
 
 export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
-  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
 
-  const { data: auth, isLoading: authLoading, isError: authError } = useAuthMe();
+  const {
+    data: auth,
+    isLoading: authLoading,
+    isError: authError,
+  } = useAuthMe();
   const { data: suscripcionResponse } = useSuscripcion();
   const {
     data: citasResponse,
@@ -72,11 +87,17 @@ export default function DashboardPage() {
   } = useCitasNegocio();
 
   const negocio = auth?.negocio;
-  const suscripcion = suscripcionResponse?.data.suscripcion ?? auth?.suscripcion;
-  const citas = useMemo(() => citasResponse?.citas ?? [], [citasResponse?.citas]);
+  const suscripcion =
+    suscripcionResponse?.data.suscripcion ?? auth?.suscripcion;
+  const citas = useMemo(
+    () => citasResponse?.citas ?? [],
+    [citasResponse?.citas],
+  );
   const hoy = getBusinessToday(negocio?.zona_horaria);
   const citasHoy = hoy ? citas.filter((cita) => cita.fecha === hoy) : undefined;
-  const citasPendientes = citasHoy?.filter((cita) => cita.estado === "pendiente_pago");
+  const citasPendientes = citasHoy?.filter(
+    (cita) => cita.estado === "pendiente_pago",
+  );
   const ingresosConfirmados = citas
     .filter((cita) => cita.estado === "confirmada")
     .reduce((total, cita) => total + (cita.precio_total ?? 0), 0);
@@ -84,7 +105,9 @@ export default function DashboardPage() {
   const planNombre = suscripcion?.plan_nombre ?? "—";
   const sucursalesUsadas = suscripcionResponse?.data.sucursales_usadas ?? "—";
   const sucursalesLimite =
-    suscripcionResponse?.data.sucursales_limite ?? suscripcion?.limite_sucursales ?? "—";
+    suscripcionResponse?.data.sucursales_limite ??
+    suscripcion?.limite_sucursales ??
+    "—";
 
   // Chart 1: 30 days series from citas
   const citasPorDia = useMemo(() => {
@@ -98,7 +121,10 @@ export default function DashboardPage() {
       const dd = String(d.getDate()).padStart(2, "0");
       const dateStr = `${yyyy}-${mm}-${dd}`;
       const count = citas.filter((c) => c.fecha === dateStr).length;
-      const label = d.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+      const label = d.toLocaleDateString("es-MX", {
+        day: "numeric",
+        month: "short",
+      });
       series.push({
         date: dateStr,
         label,
@@ -119,7 +145,11 @@ export default function DashboardPage() {
       const prefix = `${yyyy}-${mm}`;
       const monthLabel = d.toLocaleDateString("es-MX", { month: "short" });
       const total = citas
-        .filter((c) => c.fecha?.startsWith(prefix) && (c.estado === "confirmada" || c.estado === "completada"))
+        .filter(
+          (c) =>
+            c.fecha?.startsWith(prefix) &&
+            (c.estado === "confirmada" || c.estado === "completada"),
+        )
         .reduce((sum, c) => sum + (c.precio_total ?? 0), 0);
       series.push({
         month: prefix,
@@ -131,21 +161,19 @@ export default function DashboardPage() {
   }, [citas]);
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center p-12" role="status">
-        <div className="flex items-center gap-3 text-text-secondary text-sm">
-          <div className="w-4 h-4 rounded-full border-2 border-grape border-t-transparent animate-spin" />
-          <span>Cargando tu negocio…</span>
-        </div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   if (authError || !auth) {
     return (
-      <div role="alert" className="p-6 rounded-xl border border-danger/20 bg-danger-soft text-danger text-sm max-w-xl mx-auto">
+      <div
+        role="alert"
+        className="p-6 rounded-xl border border-danger/20 bg-danger-soft text-danger text-sm max-w-xl mx-auto"
+      >
         <p className="font-semibold">No pudimos cargar tu negocio.</p>
-        <p className="text-xs mt-1 text-text-secondary">Recarga la página o vuelve a iniciar sesión.</p>
+        <p className="text-xs mt-1 text-text-secondary">
+          Recarga la página o vuelve a iniciar sesión.
+        </p>
       </div>
     );
   }
@@ -157,9 +185,12 @@ export default function DashboardPage() {
           Hola, {auth.perfil?.nombres ?? auth.user?.email ?? "bienvenido"}
         </h1>
         <p className="text-sm text-text-secondary">
-          Tu negocio aún no tiene una primera sucursal. Completa tus datos y registra una ubicación real antes de publicar tu portal de reservas.
+          Tu negocio aún no tiene una primera sucursal. Completa tus datos y
+          registra una ubicación real antes de publicar tu portal de reservas.
         </p>
-        <p className="text-sm font-medium text-text-primary">0 sedes registradas</p>
+        <p className="text-sm font-medium text-text-primary">
+          0 sedes registradas
+        </p>
         <Link
           href="/onboarding"
           className="inline-flex items-center justify-center rounded-md bg-grape px-4 py-2 text-xs font-medium text-white hover:opacity-90 transition-opacity"
@@ -234,7 +265,8 @@ export default function DashboardPage() {
             Hola, {negocio?.nombre_comercial ?? "—"}
           </h1>
           <p className="text-xs sm:text-sm text-text-secondary max-w-xl">
-            Tu portal de reservas está activo y listo para recibir clientes en línea en tus sedes.
+            Tu portal de reservas está activo y listo para recibir clientes en
+            línea en tus sedes.
           </p>
         </div>
 
@@ -284,11 +316,14 @@ export default function DashboardPage() {
             </span>
             <span className="bg-warning-soft text-warning border border-warning/20 text-[11px] rounded-md px-2 py-0.5 font-medium inline-flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-              {citasPendientes?.length ?? 0} pendiente{citasPendientes?.length === 1 ? "" : "s"}
+              {citasPendientes?.length ?? 0} pendiente
+              {citasPendientes?.length === 1 ? "" : "s"}
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-text-secondary">Todas tus sucursales activas</span>
+            <span className="text-text-secondary">
+              Todas tus sucursales activas
+            </span>
             <span className="text-success font-medium inline-flex items-center gap-0.5">
               <TrendingUp className="w-3 h-3 text-success" />
               Activas hoy
@@ -341,14 +376,16 @@ export default function DashboardPage() {
             </span>
             <span
               className={
-                suscripcion?.estado === "active" || suscripcion?.estado === "trialing"
+                suscripcion?.estado === "active" ||
+                suscripcion?.estado === "trialing"
                   ? "bg-success-soft text-success border border-success/20 text-[11px] font-medium rounded-md px-2 py-0.5 inline-flex items-center gap-1"
                   : "bg-surface-alt text-text-secondary border border-border text-[11px] font-medium rounded-md px-2 py-0.5 inline-flex items-center gap-1"
               }
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  suscripcion?.estado === "active" || suscripcion?.estado === "trialing"
+                  suscripcion?.estado === "active" ||
+                  suscripcion?.estado === "trialing"
                     ? "bg-success"
                     : "bg-text-muted"
                 }`}
@@ -376,7 +413,9 @@ export default function DashboardPage() {
               {ingresosConfirmados === undefined
                 ? "—"
                 : `$${ingresosConfirmados.toLocaleString("es-MX")}`}
-              <span className="text-xs font-normal text-text-muted ml-1">MXN</span>
+              <span className="text-xs font-normal text-text-muted ml-1">
+                MXN
+              </span>
             </span>
             <span className="bg-success-soft text-success border border-success/20 text-[11px] font-medium rounded-md px-2 py-0.5 inline-flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-success" />
@@ -403,14 +442,17 @@ export default function DashboardPage() {
               <h2 className="font-bricolage font-semibold text-base text-text-primary">
                 Citas por día
               </h2>
-              <p className="text-xs text-text-secondary">Últimos 30 días de actividad</p>
+              <p className="text-xs text-text-secondary">
+                Últimos 30 días de actividad
+              </p>
             </div>
             <span className="text-xs font-mono font-bold text-grape bg-grape-soft px-2.5 py-1 rounded-md">
               {citasPorDia.reduce((acc, curr) => acc + curr.citas, 0)} citas
             </span>
           </div>
           <p id="chart-citas-desc" className="sr-only">
-            Gráfica de línea mostrando la cantidad de citas registradas por día en los últimos 30 días.
+            Gráfica de línea mostrando la cantidad de citas registradas por día
+            en los últimos 30 días.
           </p>
 
           <div className="h-[260px] w-full">
@@ -471,14 +513,21 @@ export default function DashboardPage() {
               <h2 className="font-bricolage font-semibold text-base text-text-primary">
                 Ingresos por mes
               </h2>
-              <p className="text-xs text-text-secondary">Últimos 6 meses confirmados</p>
+              <p className="text-xs text-text-secondary">
+                Últimos 6 meses confirmados
+              </p>
             </div>
             <span className="text-xs font-mono font-bold text-grape bg-grape-soft px-2.5 py-1 rounded-md">
-              ${ingresosPorMes.reduce((acc, curr) => acc + curr.ingresos, 0).toLocaleString("es-MX")} MXN
+              $
+              {ingresosPorMes
+                .reduce((acc, curr) => acc + curr.ingresos, 0)
+                .toLocaleString("es-MX")}{" "}
+              MXN
             </span>
           </div>
           <p id="chart-ingresos-desc" className="sr-only">
-            Gráfica de barras mostrando el total de ingresos por mes en pesos mexicanos durante los últimos 6 meses.
+            Gráfica de barras mostrando el total de ingresos por mes en pesos
+            mexicanos durante los últimos 6 meses.
           </p>
 
           <div className="h-[260px] w-full">
@@ -514,7 +563,9 @@ export default function DashboardPage() {
                     tick={{ fill: "var(--text-muted)", fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => (v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`)}
+                    tickFormatter={(v) =>
+                      v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
+                    }
                   />
                   <Tooltip
                     content={<CustomChartTooltip unit="MXN" />}
@@ -584,25 +635,33 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-border/60">
                 {[...Array(5)].map((_, i) => (
-                  <tr key={i} className="h-12 animate-pulse">
+                  <tr key={i} className="h-12">
                     <td className="py-3 px-4">
-                      <div className="h-3.5 w-28 bg-surface-alt rounded" />
-                      <div className="h-2.5 w-20 bg-surface-alt rounded mt-1.5" />
+                      <div className="space-y-1.5">
+                        <SkeletonText
+                          className="h-3.5"
+                          style={{ width: "70%" }}
+                        />
+                        <SkeletonText
+                          className="h-2.5"
+                          style={{ width: "40%" }}
+                        />
+                      </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="h-3 w-20 bg-surface-alt rounded" />
+                      <SkeletonText className="h-3" style={{ width: "50%" }} />
                     </td>
                     <td className="py-3 px-4">
-                      <div className="h-3 w-24 bg-surface-alt rounded" />
+                      <SkeletonText className="h-3" style={{ width: "70%" }} />
                     </td>
                     <td className="py-3 px-4">
-                      <div className="h-3 w-24 bg-surface-alt rounded" />
+                      <SkeletonText className="h-3" style={{ width: "40%" }} />
                     </td>
                     <td className="py-3 px-4">
-                      <div className="h-3 w-16 bg-surface-alt rounded" />
+                      <SkeletonText className="h-3" style={{ width: "30%" }} />
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="h-5 w-20 bg-surface-alt rounded-full ml-auto" />
+                      <SkeletonBlock className="h-5 w-20 rounded-full ml-auto" />
                     </td>
                   </tr>
                 ))}
@@ -622,7 +681,8 @@ export default function DashboardPage() {
                 No pudimos cargar tus citas
               </h3>
               <p className="text-xs text-text-secondary max-w-sm">
-                Ocurrió un problema al sincronizar las reservaciones del negocio. Revisa tu conexión o vuelve a intentar.
+                Ocurrió un problema al sincronizar las reservaciones del
+                negocio. Revisa tu conexión o vuelve a intentar.
               </p>
             </div>
             <button
@@ -675,16 +735,38 @@ export default function DashboardPage() {
                   strokeLinejoin="round"
                 />
                 {/* Ticket lines on right section */}
-                <rect x="54" y="24" width="50" height="5" rx="2.5" fill="var(--border)" />
-                <rect x="54" y="34" width="36" height="5" rx="2.5" fill="var(--grape-soft)" />
-                <rect x="54" y="44" width="24" height="4" rx="2" fill="var(--border)" />
+                <rect
+                  x="54"
+                  y="24"
+                  width="50"
+                  height="5"
+                  rx="2.5"
+                  fill="var(--border)"
+                />
+                <rect
+                  x="54"
+                  y="34"
+                  width="36"
+                  height="5"
+                  rx="2.5"
+                  fill="var(--grape-soft)"
+                />
+                <rect
+                  x="54"
+                  y="44"
+                  width="24"
+                  height="4"
+                  rx="2"
+                  fill="var(--border)"
+                />
               </svg>
             </div>
             <h3 className="font-bricolage font-bold text-lg text-text-primary">
               Aún no tienes citas agendadas
             </h3>
             <p className="mt-1.5 text-xs text-text-secondary max-w-sm">
-              Cuando tus clientes reserven citas a través de tu portal público, aparecerán listadas aquí en tiempo real.
+              Cuando tus clientes reserven citas a través de tu portal público,
+              aparecerán listadas aquí en tiempo real.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <button
@@ -693,8 +775,14 @@ export default function DashboardPage() {
                 disabled={!negocioSlug}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-grape text-white hover:opacity-90 text-xs font-medium transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? "¡Enlace copiado!" : "Copiar enlace de reserva"}</span>
+                {copied ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                <span>
+                  {copied ? "¡Enlace copiado!" : "Copiar enlace de reserva"}
+                </span>
               </button>
               {negocioSlug && (
                 <Link
@@ -734,7 +822,10 @@ export default function DashboardPage() {
                     >
                       <td className="py-2.5 px-4">
                         <p className="font-medium text-text-primary">
-                          {[cita.cliente_nombre ?? cita.clienteNombre, cita.cliente_apellido]
+                          {[
+                            cita.cliente_nombre ?? cita.clienteNombre,
+                            cita.cliente_apellido,
+                          ]
                             .filter(Boolean)
                             .join(" ") || "—"}
                         </p>
@@ -745,7 +836,9 @@ export default function DashboardPage() {
                       <td className="py-2.5 px-4 text-text-secondary">
                         <span className="inline-flex items-center gap-1.5">
                           <Store className="w-3.5 h-3.5 text-text-muted" />
-                          <span>{cita.sucursal_id ?? cita.sucursalId ?? "—"}</span>
+                          <span>
+                            {cita.sucursal_id ?? cita.sucursalId ?? "—"}
+                          </span>
                         </span>
                       </td>
                       <td className="py-2.5 px-4 font-medium text-text-primary">
@@ -762,7 +855,9 @@ export default function DashboardPage() {
                         </div>
                       </td>
                       <td className="py-2.5 px-4 font-mono tabular-nums font-bold text-text-primary">
-                        {cita.precio_total === undefined ? "—" : `$${cita.precio_total} MXN`}
+                        {cita.precio_total === undefined
+                          ? "—"
+                          : `$${cita.precio_total} MXN`}
                       </td>
                       <td className="py-2.5 px-4 text-right">
                         {getStatusBadge(cita.estado)}
@@ -783,7 +878,10 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold text-text-primary text-sm">
-                        {[cita.cliente_nombre ?? cita.clienteNombre, cita.cliente_apellido]
+                        {[
+                          cita.cliente_nombre ?? cita.clienteNombre,
+                          cita.cliente_apellido,
+                        ]
                           .filter(Boolean)
                           .join(" ") || "—"}
                       </p>
@@ -796,28 +894,38 @@ export default function DashboardPage() {
 
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-text-secondary">
                     <div>
-                      <span className="text-[10px] uppercase text-text-muted block">Servicio</span>
+                      <span className="text-[10px] uppercase text-text-muted block">
+                        Servicio
+                      </span>
                       <span className="font-medium text-text-primary">
                         {cita.servicio_id ?? cita.servicioId ?? "—"}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase text-text-muted block">Sede</span>
+                      <span className="text-[10px] uppercase text-text-muted block">
+                        Sede
+                      </span>
                       <span className="inline-flex items-center gap-1 text-text-primary">
                         <Store className="w-3 h-3 text-text-muted" />
                         {cita.sucursal_id ?? cita.sucursalId ?? "—"}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase text-text-muted block">Fecha y Hora</span>
+                      <span className="text-[10px] uppercase text-text-muted block">
+                        Fecha y Hora
+                      </span>
                       <span className="font-mono tabular-nums text-text-primary">
                         {cita.fecha} {cita.hora_inicio ?? cita.hora ?? ""}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase text-text-muted block">Total</span>
+                      <span className="text-[10px] uppercase text-text-muted block">
+                        Total
+                      </span>
                       <span className="font-mono tabular-nums font-bold text-text-primary">
-                        {cita.precio_total === undefined ? "—" : `$${cita.precio_total} MXN`}
+                        {cita.precio_total === undefined
+                          ? "—"
+                          : `$${cita.precio_total} MXN`}
                       </span>
                     </div>
                   </div>

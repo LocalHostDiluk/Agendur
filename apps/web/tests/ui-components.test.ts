@@ -17,6 +17,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  ProcessingOverlay,
 } from "@/components/ui";
 
 describe("UI Kit Base - Preline UI Components", () => {
@@ -290,6 +291,37 @@ describe("UI Kit Base - Preline UI Components", () => {
       expect(html).toContain("whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200");
       expect(html).toContain("Juan Pérez");
       expect(html).toContain("Corte de Cabello");
+    });
+  });
+
+  describe("ProcessingOverlay Component", () => {
+    it("renderiza estructura de ticket risográfico, actividad y texto fijo", () => {
+      const html = renderToStaticMarkup(
+        React.createElement(ProcessingOverlay, {
+          isOpen: true,
+          process: "reserva",
+          lang: "es",
+        })
+      );
+
+      expect(html).toContain("ticket");
+      expect(html).toContain("ticket-on-ink");
+      expect(html).toContain("w-[320px]");
+      expect(html).toContain("agendur-pulse-dot");
+      expect(html).toContain("Verificando disponibilidad…");
+      expect(html).toContain("perforacion");
+      expect(html).toContain("Esto puede tardar unos segundos.");
+    });
+
+    it("soporta variante fullscreen con fondo sólido --ink", () => {
+      const html = renderToStaticMarkup(
+        React.createElement(ProcessingOverlay, {
+          isOpen: true,
+          variant: "fullscreen",
+        })
+      );
+
+      expect(html).toContain("bg-[var(--ink,#1d1720)]");
     });
   });
 });
