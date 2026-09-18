@@ -4,7 +4,7 @@ Plataforma SaaS multiempresa para gestionar citas y publicar portales de reserva
 
 El repositorio contiene una aplicación **full-stack con Next.js**, organizada como **monolito modular dentro de un monorepo**. Supabase proporciona autenticación y persistencia; Stripe integra la facturación de suscripciones.
 
-> Documentación basada en el código de `main` revisado el **14 de septiembre de 2026**, commit [`504a27e`](https://github.com/LocalHostDiluk/Agendur/tree/504a27efc535a9cab6a6e44ee81b7414386dd1e3). Algunas referencias internas conservan el nombre anterior, **CitaSync**. La presencia de una implementación no acredita que sus servicios externos estén configurados o que el flujo haya sido validado en producción.
+> Documentación basada en el código de `main` revisado el **18 de septiembre de 2026**, commit [`d6ddf02`](https://github.com/LocalHostDiluk/Agendur/tree/d6ddf02). Algunas referencias internas conservan el nombre anterior, **CitaSync**. La presencia de una implementación no acredita que sus servicios externos estén configurados o que el flujo haya sido validado en producción.
 
 ## Contenido
 
@@ -15,6 +15,8 @@ El repositorio contiene una aplicación **full-stack con Next.js**, organizada c
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Modelo de datos](#modelo-de-datos)
 - [Flujo de reservas](#flujo-de-reservas)
+- [Panel del negocio](#panel-del-negocio)
+- [Estados de carga, error y confirmación](#estados-de-carga-error-y-confirmación)
 - [Rutas y API](#rutas-y-api)
 - [Instalación y configuración](#instalación-y-configuración)
 - [Pruebas y calidad](#pruebas-y-calidad)
@@ -28,16 +30,20 @@ El repositorio contiene una aplicación **full-stack con Next.js**, organizada c
 | --- | --- |
 | Registro e identidad | Registro con datos del administrador y del negocio, contraseña confirmada, consentimientos versionados y verificación Turnstile. Crea perfil, negocio y prueba de suscripción de 14 días. |
 | Sesión | Login, logout, consulta del usuario e intercambio del código de confirmación de correo mediante Supabase Auth. |
-| Onboarding | Formulario conectado para actualizar perfil, configurar país y zona horaria del negocio y crear la primera sucursal. El registro inicial ya no crea una sucursal automáticamente. |
-| Portal público | `/reserva/[negocioSlug]` consume catálogo, disponibilidad y creación de reservas mediante hooks de TanStack Query. |
+| Onboarding | Formulario conectado para actualizar perfil, configurar país y zona horaria del negocio y crear la primera sucursal. El registro inicial no crea una sucursal automáticamente. |
+| Portal público | `/reserva/[negocioSlug]` consume catálogo, disponibilidad y creación de reservas mediante hooks de TanStack Query. Incluye calendario propio, skeletons de carga, confeti de confirmación y descarga del evento en `.ics`. |
 | Disponibilidad | Combina horarios de sucursal y profesional, duración del servicio y citas existentes. |
 | Reservas | Valida selección, contacto y consentimientos; persiste la cita y maneja conflictos de horario con respuesta `409`. |
 | Dashboard | Consulta usuario, citas y suscripción; calcula indicadores y gráficas a partir de las citas recibidas. |
-| Configuración | API para datos del negocio, zona horaria y opciones del formulario de reservas. |
+| Agendas | Página conectada a `/api/negocio/citas` con vistas de cronograma y semanal, navegación por fecha, filtros por sucursal y estado, panel de detalle de cita y alta manual de citas. |
+| Servicios y sucursales | Página conectada con pestañas de sucursales y servicios, alta mediante modal y activación/pausa de servicios contra la API. |
+| Personal | Página conectada que lista profesionales del catálogo con filtros por sucursal y búsqueda. El alta de colaboradores todavía no se persiste en la base de datos. |
+| Configuración | Página conectada con pestañas de perfil del negocio, políticas de reserva y suscripción, incluida la apertura del Customer Portal de Stripe. |
 | Suscripciones | Adaptadores Stripe y manual; consulta de uso y límites, Checkout, Customer Portal y procesamiento de webhooks. |
-| Agendas y sucursales | Sus páginas independientes todavía presentan arreglos de demostración, aunque existen endpoints y hooks relacionados. |
+| Errores | Páginas dedicadas de 404, 403, error de servidor y negocio no encontrado, con componentes visuales y fondos propios. |
 | Realtime | Módulos de cambios de citas y presencia preparados, sin integración actual en las pantallas. |
 | WhatsApp | Servicio simulado que escribe en consola; no envía mensajes mediante un proveedor real. |
+| Pagos y reportes del panel | Entradas de navegación presentes pero deshabilitadas, marcadas como «Pronto». |
 
 ## Tecnologías y frameworks
 
@@ -50,7 +56,7 @@ Versiones declaradas en los manifiestos del proyecto; `bun.lock` conserva la res
 | Framework full-stack | Next.js `16.3.4` | App Router, layouts, páginas, Route Handlers y proxy de sesión. |
 | Interfaz | React / React DOM `19.2.8` | Componentes, hooks y composición de UI. |
 | Lenguaje | TypeScript `^5` | Tipado estricto y alias `@/*` dentro de la aplicación. |
-| Estilos | Tailwind CSS `^4`, PostCSS | Utilidades CSS y tokens globales. |
+| Estilos | Tailwind CSS `^4`, PostCSS | Utilidades CSS, tokens globales y animaciones de skeleton. |
 | Estado remoto | TanStack React Query `^5.102.8` | Consultas, mutaciones, caché e invalidación. |
 | Backend gestionado | Supabase JS `^2.116.0`, SSR `^0.12.6` | PostgreSQL, Auth, cookies, Storage y módulos Realtime. |
 | Pagos | Stripe SDK `^22.6.1` | Suscripciones del negocio y webhooks. |
@@ -82,7 +88,7 @@ flowchart TD
 
 | Capa | Ubicación | Responsabilidad |
 | --- | --- | --- |
-| Presentación | `apps/web/app/`, `apps/web/components/` | Páginas, layouts, formularios y componentes compartidos. |
+| Presentación | `apps/web/app/`, `apps/web/components/` | Páginas, layouts, formularios, modales, estados de error y componentes compartidos. |
 | Estado remoto | `apps/web/lib/hooks/`, `apps/web/lib/query/` | Acceso HTTP, claves de caché, consultas y mutaciones. |
 | API / BFF | `apps/web/app/api/` | Expone contratos HTTP para la interfaz y los visitantes; valida peticiones y sesiones. |
 | Dominio | `apps/web/lib/backend/` | Reglas de disponibilidad, creación de citas y sucursales. |
@@ -110,6 +116,7 @@ Los siguientes patrones se identifican en implementaciones concretas del reposit
 | **Provider y composición** | [`QueryProvider`](apps/web/components/providers/QueryProvider.tsx), [`ThemeProvider`](apps/web/components/theme/ThemeProvider.tsx) | Comparte dependencias y estado transversal con el árbol de componentes. |
 | **Service Layer** | [`reserva-service.ts`](apps/web/lib/backend/reserva-service.ts), [`sucursal-service.ts`](apps/web/lib/backend/sucursal-service.ts) | Agrupa reglas de negocio que los endpoints pueden reutilizar. |
 | **Fachada HTTP y errores tipados** | [`apiFetch`](apps/web/lib/query/api-client.ts), [`api-error.ts`](apps/web/lib/utils/api-error.ts) | Simplifica el consumo de respuestas y concentra tratamiento de errores; algunos endpoints mantienen respuestas específicas. |
+| **Guarda de autorización compartida** | `getAuthenticatedNegocio()` en [`servicios/route.ts`](apps/web/app/api/negocio/servicios/route.ts) | Resuelve sesión y negocio propietario antes de ejecutar `GET`, `POST` o `PATCH`, devolviendo `401` o `404` de forma uniforme. |
 
 También se usan **guardas de negocio**, como `assertActiveSubscription()`, y **hooks personalizados** para separar consultas de la representación visual. La creación del registro incluye compensación ante fallos de aprovisionamiento mediante eliminación del usuario recién creado; no constituye una transacción única entre Auth y todas las escrituras.
 
@@ -119,16 +126,19 @@ También se usan **guardas de negocio**, como `assertActiveSubscription()`, y **
 | --- | --- |
 | `apps/web/app/(landing)/` | Landing y borradores de términos y privacidad. |
 | `apps/web/app/(auth)/` | Login y registro. |
-| `apps/web/app/(negocio)/` | Dashboard, onboarding, agendas y sucursales. |
-| `apps/web/app/(cliente)/` | Portal público de reservas por slug. |
+| `apps/web/app/(negocio)/` | Dashboard, onboarding, agendas, sucursales, personal y configuración, cada una con su `loading.tsx`. |
+| `apps/web/app/(cliente)/` | Portal público de reservas por slug, con `loading.tsx` y `not-found.tsx` propios. |
 | `apps/web/app/api/` | Endpoints de autenticación, negocio, cliente y webhooks. |
-| `apps/web/components/` | Componentes por área, UI, providers, tema y seguridad. |
+| `apps/web/app/403/`, `not-found.tsx`, `error.tsx`, `global-error.tsx` | Páginas y límites de error de la aplicación. |
+| `apps/web/components/` | Componentes por área: `negocio`, `cliente`, `landing`, `auth`, `errors`, `ui`, `providers`, `theme` y `security`. |
 | `apps/web/lib/` | Dominio, pagos, Supabase, hooks, consultas, tipos y utilidades. |
-| `apps/web/tests/` | Pruebas con Bun. |
+| `apps/web/tests/` | Pruebas con Bun (30 archivos). |
 | `apps/web/e2e/` | Escenario Playwright. |
 | `apps/web/proxy.ts` | Renovación de sesión y redirecciones de acceso. |
 | `supabase/schema.sql` | Snapshot SQL para una base nueva. |
 | `supabase/migrations/` | Cambios históricos del esquema. |
+| `docs/` | Planes de trabajo y especificaciones de diseño en `docs/diseño/`. |
+| `tasks/` | Notas de planificación y pendientes de la iteración en curso. |
 | `.github/workflows/ci.yml` | Pipeline de verificación. |
 | `package.json`, `turbo.json`, `bun.lock` | Workspaces, tareas y resolución de dependencias. |
 
@@ -158,20 +168,40 @@ Las citas pueden estar en `pendiente_pago`, `confirmada`, `completada`, `cancela
 
 ## Flujo de reservas
 
-1. El visitante abre `/reserva/[negocioSlug]`; `useCatalogo` obtiene negocio, sucursales, servicios y profesionales.
-2. Selecciona sucursal, servicio, profesional y fecha; `useDisponibilidad` consulta los horarios.
+1. El visitante abre `/reserva/[negocioSlug]`; `useCatalogo` obtiene negocio, sucursales, servicios y profesionales. Si el slug no existe se muestra la pantalla de negocio no encontrado.
+2. Selecciona sucursal, servicio, profesional y fecha en el calendario; `useDisponibilidad` consulta los horarios.
 3. Introduce su contacto y acepta privacidad y, cuando corresponde, la política de cancelación.
 4. `useCrearReserva` envía el formulario. El servidor comprueba selección, configuración, suscripción y disponibilidad antes de insertar.
 5. La base impide solapamientos concurrentes. El error PostgreSQL `23P01` se traduce a HTTP `409` con código `SLOT_UNAVAILABLE`.
-6. Ante conflicto, la interfaz limpia el horario elegido y vuelve a consultar disponibilidad. Tras éxito, muestra la reserva e invalida la caché correspondiente.
+6. Ante conflicto, la interfaz limpia el horario elegido y vuelve a consultar disponibilidad. Tras éxito muestra la confirmación con confeti, permite descargar el evento `.ics` e invalida la caché correspondiente.
 
-La consulta de disponibilidad tiene `staleTime` de 30 segundos y se actualiza al recuperar el foco. La mutación de reserva no reintenta automáticamente. Las utilidades de fechas contemplan la zona horaria del negocio o sucursal.
+La consulta de disponibilidad tiene `staleTime` de 30 segundos y se actualiza al recuperar el foco. La mutación de reserva no reintenta automáticamente. Las utilidades de fechas contemplan la zona horaria del negocio o sucursal. El confeti respeta `prefers-reduced-motion`.
 
 **Estado inicial actual:** el servicio inserta la cita como `pendiente_pago` y con anticipo pagado en cero. Esto no significa que el cobro del anticipo esté implementado.
 
+## Panel del negocio
+
+| Página | Datos que consume | Acciones disponibles |
+| --- | --- | --- |
+| `/dashboard` | `useAuthMe`, `useCitasNegocio`, `useSuscripcion` | Indicadores, gráficas de citas por día e ingresos por mes, copia del enlace público. |
+| `/agendas` | `useCitasNegocio` con filtros, `useSucursales`, `useServicios`, `useCatalogo` | Vistas de cronograma y semanal, navegación por fecha, filtros por sucursal y estado, detalle de cita en panel lateral, cambio de estado y alta de cita manual. |
+| `/sucursales` | `useSucursales`, `useServicios`, `useUpdateServicio` | Pestañas de sucursales y servicios, alta por modal y activación o pausa de servicios. |
+| `/personal` | `useCatalogo`, `useSucursales`, `useServicios`, `useCitasNegocio` | Listado de profesionales con filtro por sucursal y búsqueda por nombre, rol o servicio. El modal de alta solo agrega el colaborador al estado local de la sesión. |
+| `/configuracion` | `useConfiguracion`, `useUpdateConfiguracion`, `useSuscripcion`, `useAuthMe` | Perfil del negocio, políticas de reserva y gestión de la suscripción con acceso al Customer Portal. |
+
+El alta manual de citas reutiliza `useCrearReserva` y selecciona automáticamente el primer profesional elegible de la sucursal y servicio; todavía no permite escoger el profesional desde el formulario.
+
+## Estados de carga, error y confirmación
+
+- Cada página del panel declara un `loading.tsx` cuya estructura replica la del contenido final, construido con las primitivas `SkeletonBlock`, `SkeletonText` y `SkeletonCircle` y las clases `skel-*` definidas en `globals.css`.
+- [`useDelayedSkeleton`](apps/web/lib/hooks/use-delayed-skeleton.ts) evita parpadeos: no muestra el skeleton si la carga dura menos de 200 ms y, una vez visible, lo mantiene al menos 400 ms. Ambos umbrales son configurables.
+- `ProcessingOverlay` cubre procesos largos de pago, reporte o reserva con secuencias de mensajes, estados de éxito y error, variantes modal o pantalla completa y soporte de `prefers-reduced-motion`.
+- `ConfirmDialog` y [`useConfirmDialog`](apps/web/lib/hooks/use-confirm-dialog.ts) concentran las confirmaciones destructivas, como la cancelación de una cita desde el panel de detalle.
+- Las animaciones de skeleton se desactivan cuando el usuario solicita movimiento reducido.
+
 ## Rutas y API
 
-Páginas principales: `/`, `/login`, `/register`, `/onboarding`, `/dashboard`, `/agendas`, `/sucursales`, `/reserva/[negocioSlug]`, `/terminos` y `/privacidad`.
+Páginas principales: `/`, `/login`, `/register`, `/onboarding`, `/dashboard`, `/agendas`, `/sucursales`, `/personal`, `/configuracion`, `/reserva/[negocioSlug]`, `/terminos`, `/privacidad` y `/403`.
 
 | Método | Endpoint | Propósito |
 | --- | --- | --- |
@@ -184,14 +214,17 @@ Páginas principales: `/`, `/login`, `/register`, `/onboarding`, `/dashboard`, `
 | GET | `/api/cliente/catalogo?slug=...` | Catálogo público del negocio. |
 | GET | `/api/cliente/disponibilidad` | Horarios por `sucursalId`, `servicioId`, `fecha` y `profesionalId` opcional. |
 | POST | `/api/cliente/reservas` | Crear una reserva pública. |
-| GET / PATCH | `/api/negocio/citas` | Consultar y actualizar citas del negocio. |
+| GET / PATCH | `/api/negocio/citas` | Consultar citas con filtros de sucursal, rango de fechas y estado, y actualizar su estado o notas. |
 | GET / POST | `/api/negocio/sucursales` | Consultar y crear sucursales. |
+| GET / POST / PATCH | `/api/negocio/servicios` | Listar, crear y actualizar servicios del negocio autenticado. |
 | GET / PUT | `/api/negocio/configuracion` | Consultar y actualizar configuración. |
 | GET / POST | `/api/negocio/suscripcion` | Consultar suscripción o iniciar el flujo de contratación. |
 | POST | `/api/negocio/suscripcion/portal` | Crear sesión del Customer Portal de Stripe. |
 | POST | `/api/webhooks/stripe` | Recibir eventos firmados de Stripe. |
 
-Las operaciones privadas verifican la sesión y la pertenencia del recurso; las guardas de suscripción se aplican donde corresponde. El portal de reservas es público y no requiere una cuenta del cliente.
+Las operaciones privadas verifican la sesión y la pertenencia del recurso; las guardas de suscripción se aplican donde corresponde. `/api/negocio/servicios` valida nombre, duración entera positiva, precio no negativo y descripción, y en `PATCH` comprueba que el servicio pertenezca al negocio antes de modificarlo. El portal de reservas es público y no requiere una cuenta del cliente.
+
+No existe todavía un endpoint de profesionales para el panel: `/personal` lee el personal desde el catálogo público del negocio.
 
 ## Instalación y configuración
 
@@ -285,7 +318,9 @@ Para producción, configura las variables en el entorno de ejecución y las vari
 
 ### 5. Preparar un negocio para recibir reservas
 
-Registra y confirma la cuenta cuando Auth lo requiera, completa el onboarding y crea la primera sucursal. Asegúrate de que existan servicios activos, profesionales activos, relaciones `profesional_servicios` y horarios de apertura. La suscripción debe estar vigente. Las pantallas actuales no ofrecen un CRUD completo para todos esos datos.
+Registra y confirma la cuenta cuando Auth lo requiera, completa el onboarding y crea la primera sucursal. Asegúrate de que existan servicios activos, profesionales activos, relaciones `profesional_servicios` y horarios de apertura. La suscripción debe estar vigente.
+
+Las pantallas actuales permiten crear sucursales y servicios, pero **no** dan de alta profesionales, sus relaciones con servicios ni los horarios: esos datos deben cargarse directamente en la base mientras no exista la API correspondiente.
 
 ### Integración Stripe
 
@@ -295,7 +330,13 @@ El pago manual registra una solicitud en estado `paused`; la activación exige c
 
 ## Pruebas y calidad
 
-La suite de `apps/web/tests/` cubre autenticación, identidad y onboarding, reservas, disponibilidad, fechas del negocio, pagos, seguridad, hooks, infraestructura de consultas, Realtime y componentes. Varias pruebas utilizan mocks o inspección de código: no equivalen a validar servicios externos reales.
+La suite de `apps/web/tests/` reúne **30 archivos y 298 pruebas**. Cubre autenticación, identidad y onboarding, reservas, disponibilidad, fechas del negocio, pagos, seguridad, hooks, infraestructura de consultas, Realtime, páginas del panel (agendas, personal, configuración, sucursales y servicios), la API de servicios, los modales del negocio, el panel de detalle de cita, los skeletons, el overlay de proceso, el diálogo de confirmación y las páginas de error. Varias pruebas utilizan mocks o inspección de código: no equivalen a validar servicios externos reales.
+
+```bash
+bun run test
+```
+
+> **Estado actual: 296 pruebas pasan y 2 fallan.** Los dos fallos están en `apps/web/tests/agendas.test.tsx` («renderiza citas en vista de cronograma…» y «renderiza estado vacío…»). El helper del test siembra la caché de React Query con la fecha fija `2026-09-17`, mientras que la página calcula el día actual con el reloj del sistema. Cuando ambas fechas no coinciden, la clave de consulta no acierta, `useCitasNegocio` queda en estado de carga y la página renderiza el skeleton en lugar de las citas. Es una dependencia de fecha en la prueba, no un fallo de la página. **`bun run test` falla en CI mientras no se corrija.**
 
 Existe un escenario en `apps/web/e2e/booking.pw.ts` que recorre registro, onboarding y reserva después de un conflicto. **Intercepta todas las API**, por lo que no comprueba concurrencia real contra PostgreSQL ni la entrega de correos o mensajes.
 
@@ -325,25 +366,31 @@ El pipeline fija Bun 1.3.14. Playwright no forma parte de esas etapas. Turborepo
 
 - Clientes Supabase separados para navegador, servidor con cookies y operaciones administrativas. Las claves `service_role`, Stripe, Turnstile y el token de Redis deben permanecer en servidor.
 - Comprobación de sesión en endpoints privados, autorización por negocio y RLS en las 11 tablas del snapshot.
-- `proxy.ts` renueva la sesión y protege por redirección `/dashboard`, `/agendas` y `/sucursales`. El onboarding comprueba sesión en su interfaz y sus endpoints; no está incluido en esa lista de redirección del proxy.
+- `proxy.ts` renueva la sesión y protege por redirección `/dashboard`, `/agendas`, `/onboarding` y `/sucursales`. **`/personal` y `/configuracion` todavía no figuran en esa lista**, por lo que su protección depende de la comprobación de sesión de sus endpoints; conviene añadirlas al proxy.
 - Cookies de sesión configuradas como `HttpOnly`, `SameSite=Lax` y `Secure` en producción; saneamiento de destinos de redirección.
 - Rate limit en login, registro y creación de reservas. Sin Upstash se utiliza memoria local del proceso, que no comparte contadores entre instancias.
 - Cabeceras `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` y HSTS definidas en `next.config.ts`.
 - Catálogo con proyección explícita de campos públicos; restricciones de lectura de datos personales de profesionales en el SQL actualizado.
-- Errores y excepciones integrados con Sentry; restricciones de base de datos para contacto, intervalos válidos y solapamientos.
+- La página `/403` se marca con `robots: { index: false, follow: false }`.
+- Errores y excepciones integrados con Sentry mediante `error.tsx` y `global-error.tsx`; restricciones de base de datos para contacto, intervalos válidos y solapamientos.
 
 Consulta [`supabase/README.md`](supabase/README.md) para los resultados, correcciones y consultas reproducibles de la auditoría de datos. La configuración efectiva del entorno debe corresponder al esquema versionado.
 
 ## Limitaciones y próximos pasos
 
-- Conectar las páginas independientes de Agendas y Sucursales a los hooks y endpoints existentes.
-- Completar la administración de servicios, profesionales y horarios para preparar el catálogo desde la UI.
+- Corregir la dependencia de fecha de `agendas.test.tsx` para que `bun run test` vuelva a pasar por completo.
+- Crear la API de profesionales y persistir el alta de colaboradores de `/personal`, que hoy solo vive en el estado de la sesión.
+- Completar la administración de horarios y de relaciones `profesional_servicios` desde la UI.
+- Añadir `/personal` y `/configuracion` a las rutas protegidas de `proxy.ts`.
+- Habilitar los módulos «Pagos y facturación» y «Reportes» del sidebar, hoy deshabilitados.
+- Permitir elegir el profesional en el alta manual de citas, en lugar de la selección automática del primero elegible.
 - Integrar los canales Realtime y de presencia en las pantallas.
 - Sustituir el stub de WhatsApp por un proveedor real y definir su operación.
 - Completar el cobro de anticipos de citas; Stripe actualmente cubre suscripciones del negocio.
 - Validar dos reservas HTTP simultáneas contra una base controlada: la exclusión SQL y el manejo de `409` están implementados, pero la auditoría del repositorio deja pendiente esa prueba real.
 - Completar los documentos legales y su configuración de versiones.
 - Añadir `.env.example` y un flujo reproducible de preparación de datos y migraciones por entorno.
+- Unificar `Design-system.md` y `docs/diseño/Design-system.md`, que hoy son copias idénticas en dos ubicaciones.
 
 ## Contribución y documentación
 
@@ -353,8 +400,10 @@ Documentación complementaria:
 
 - [Esquema, migraciones y auditoría Supabase](supabase/README.md).
 - [Snapshot SQL](supabase/schema.sql).
-- [Sistema de diseño](Design-system.md).
-- [Guía de estilos](estilos.md).
+- [Sistema de diseño](docs/diseño/Design-system.md).
+- [Errores y portal de reservas](docs/diseño/errores-y-portal-reservas-agendur.md).
+- [Skeletons, carga y confirmaciones](docs/diseño/skeletons-carga-confirmaciones-agendur.md).
+- [Plan de ejecución](docs/PLAN.md) y [plan de soluciones backend](docs/PLAN_SOLUCIONES_BACKEND.md).
 - [Manifiesto de la aplicación](apps/web/package.json).
 
 **Licencia:** el repositorio revisado no contiene un archivo `LICENSE`. No se declara una licencia de distribución en este README.
