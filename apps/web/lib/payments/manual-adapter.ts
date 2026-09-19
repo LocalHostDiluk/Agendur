@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import { adminClient } from "@/lib/supabase/admin";
 import { getPlanConfig } from "./plans";
 import type {
@@ -24,28 +23,20 @@ export class ManualGatewayAdapter implements PaymentGatewayAdapter {
   async createCheckoutSession(
     params: CreateCheckoutSessionParams
   ): Promise<CheckoutSessionResult> {
-    try {
-      const suscripcion = await this.registrarSolicitudPago({
-        negocioId: params.negocioId,
-        planNombre: params.planNombre,
-        intervalo: params.intervalo,
-        metodo: (this.name as "manual" | "transferencia" | "efectivo") || "manual",
-        notasAdmin: `Solicitud de pago pendiente por ${params.userEmail} vía ${this.name}`,
-      });
+    // Los fallos se propagan a `apiError`, la única frontera que reporta a Sentry.
+    // Capturar aquí duplicaba el evento y enviaba el correo del usuario en `extra`.
+    const suscripcion = await this.registrarSolicitudPago({
+      negocioId: params.negocioId,
+      planNombre: params.planNombre,
+      intervalo: params.intervalo,
+      metodo: (this.name as "manual" | "transferencia" | "efectivo") || "manual",
+      notasAdmin: `Solicitud de pago pendiente por ${params.userEmail} vía ${this.name}`,
+    });
 
-      return {
-        sessionId: `manual_pending_${suscripcion.id}_${Date.now()}`,
-        url: params.successUrl,
-      };
-    } catch (error) {
-      Sentry.captureException(error, {
-        extra: {
-          context: "ManualGatewayAdapter.createCheckoutSession",
-          negocioId: params.negocioId,
-        },
-      });
-      throw error;
-    }
+    return {
+      sessionId: `manual_pending_${suscripcion.id}_${Date.now()}`,
+      url: params.successUrl,
+    };
   }
 
   /**
@@ -94,11 +85,9 @@ export class ManualGatewayAdapter implements PaymentGatewayAdapter {
       .single();
 
     if (error || !data) {
-      const err = new Error(
+      throw new Error(
         `Error al registrar solicitud de pago manual en Supabase: ${error?.message ?? "Sin datos"}`
       );
-      Sentry.captureException(err, { extra: { params } });
-      throw err;
     }
 
     return data as Suscripcion;
@@ -151,11 +140,9 @@ export class ManualGatewayAdapter implements PaymentGatewayAdapter {
       .single();
 
     if (error || !data) {
-      const err = new Error(
+      throw new Error(
         `Error al activar plan manual en Supabase: ${error?.message ?? "Sin datos"}`
       );
-      Sentry.captureException(err, { extra: { params } });
-      throw err;
     }
 
     return data as Suscripcion;

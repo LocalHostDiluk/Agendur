@@ -66,63 +66,58 @@ export async function createSucursal(
   negocioId: string,
   data: Omit<Sucursal, "id" | "negocio_id">
 ): Promise<Sucursal> {
-  try {
-    // 1. Validar límite de suscripción
-    const usage = await getSubscriptionUsage(negocioId);
+  // Sin try/catch local: `apiError` es la única frontera de observabilidad.
+  // Capturar aquí duplicaba eventos 5xx y enviaba dirección y teléfono a Sentry.
+  // 1. Validar límite de suscripción
+  const usage = await getSubscriptionUsage(negocioId);
 
-    if (usage.sucursales_disponibles <= 0) {
-      const err = new Error(
-        `Límite de sucursales alcanzado para su plan (${usage.sucursales_limite}). Actualice su suscripción para crear más sucursales.`
-      );
-      (err as unknown as { status: number }).status = 403;
-      throw err;
-    }
-
-    // 2. Determinar es_matriz: solo true si es la primera sucursal o si no existe ninguna otra matriz
-    let esMatriz = false;
-    if (usage.sucursales_creadas === 0) {
-      esMatriz = true;
-    } else if (data.es_matriz) {
-      const { count: matrizCount } = await adminClient
-        .from("sucursales")
-        .select("id", { count: "exact", head: true })
-        .eq("negocio_id", negocioId)
-        .eq("es_matriz", true);
-      esMatriz = (matrizCount ?? 0) === 0;
-    }
-
-    // 3. Insertar sucursal en Supabase
-    const { data: nuevaSucursal, error: insertError } = await adminClient
-      .from("sucursales")
-      .insert({
-        negocio_id: negocioId,
-        nombre: data.nombre,
-        es_matriz: esMatriz,
-        direccion: data.direccion,
-        ciudad: data.ciudad,
-        estado_provincia: data.estado_provincia || "CDMX",
-        codigo_postal: data.codigo_postal || "00000",
-        telefono: data.telefono,
-        zona_horaria: data.zona_horaria || "America/Mexico_City",
-        activa: data.activa !== undefined ? data.activa : true,
-      })
-      .select("*")
-      .single();
-
-    if (insertError || !nuevaSucursal) {
-      throw new Error(
-        `Error al registrar sucursal en Supabase: ${insertError?.message || "Sin datos"}`
-      );
-    }
-
-    return {
-      ...nuevaSucursal,
-      personalCount: 0,
-    } as Sucursal;
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: "createSucursal", negocioId, data },
-    });
-    throw error;
+  if (usage.sucursales_disponibles <= 0) {
+    const err = new Error(
+      `Límite de sucursales alcanzado para su plan (${usage.sucursales_limite}). Actualice su suscripción para crear más sucursales.`
+    );
+    (err as unknown as { status: number }).status = 403;
+    throw err;
   }
+
+  // 2. Determinar es_matriz: solo true si es la primera sucursal o si no existe ninguna otra matriz
+  let esMatriz = false;
+  if (usage.sucursales_creadas === 0) {
+    esMatriz = true;
+  } else if (data.es_matriz) {
+    const { count: matrizCount } = await adminClient
+      .from("sucursales")
+      .select("id", { count: "exact", head: true })
+      .eq("negocio_id", negocioId)
+      .eq("es_matriz", true);
+    esMatriz = (matrizCount ?? 0) === 0;
+  }
+
+  // 3. Insertar sucursal en Supabase
+  const { data: nuevaSucursal, error: insertError } = await adminClient
+    .from("sucursales")
+    .insert({
+      negocio_id: negocioId,
+      nombre: data.nombre,
+      es_matriz: esMatriz,
+      direccion: data.direccion,
+      ciudad: data.ciudad,
+      estado_provincia: data.estado_provincia || "CDMX",
+      codigo_postal: data.codigo_postal || "00000",
+      telefono: data.telefono,
+      zona_horaria: data.zona_horaria || "America/Mexico_City",
+      activa: data.activa !== undefined ? data.activa : true,
+    })
+    .select("*")
+    .single();
+
+  if (insertError || !nuevaSucursal) {
+    throw new Error(
+      `Error al registrar sucursal en Supabase: ${insertError?.message || "Sin datos"}`
+    );
+  }
+
+  return {
+    ...nuevaSucursal,
+    personalCount: 0,
+  } as Sucursal;
 }

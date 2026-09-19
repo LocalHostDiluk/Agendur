@@ -78,6 +78,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       const client = getAdminClient();
       const originalFrom = client.from;
       let inserting = false;
+      let insertErrorCode = "23P01";
       let politica: string | null = "Cancela con 24 horas de anticipación.";
       const insertPayloads: Array<Record<string, unknown>> = [];
       const estadosFiltrados: string[][] = [];
@@ -96,11 +97,12 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
                 servicios: { id: "serv-1", duracion_minutos: 30, activo: true },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true },
                 profesional_servicios: { servicio_id: "serv-1" },
+                suscripciones: { estado: "active", plan_nombre: "emprendedor", current_period_end: "2099-01-01T00:00:00Z" },
               };
               return { data: data[table] ?? null, error: null };
             },
             single: async () => {
-              if (table === "citas" && inserting) return { data: null, error: { code: "23P01", message: "exclusion violation" } };
+              if (table === "citas" && inserting) return { data: null, error: { code: insertErrorCode, message: "constraint violation" } };
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", negocio_id: "neg-1", activa: true, nombre: "Sucursal", zona_horaria: "UTC" },
                 suscripciones: { estado: "active", plan_nombre: "emprendedor", current_period_end: "2099-01-01T00:00:00Z" },
@@ -178,6 +180,21 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         expect(outsideHours.status).toBe(409);
         expect((await outsideHours.json()).code).toBe("SLOT_UNAVAILABLE");
         expect(insertPayloads).toHaveLength(2);
+        // 23514 (violación de CHECK) es dato inválido del cliente: 400, no 500.
+        insertErrorCode = "23514";
+        const checkViolation = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
+          method: "POST",
+          body: JSON.stringify({
+            sucursalId: "suc-1", servicioId: "serv-1", profesionalId: "prof-1",
+            clienteNombre: "Juan", clienteApellido: "Pérez", clienteEmail: "juan@ejemplo.com",
+            fecha: "2098-01-01", hora: "10:00", aceptaPrivacidad: true,
+            aceptaPoliticaCancelacion: true,
+          }),
+        }));
+        expect(checkViolation.status).toBe(400);
+        expect((await checkViolation.json()).code).toBe("INVALID_BOOKING_DATA");
+        insertErrorCode = "23P01";
+
       } finally {
         (client as unknown as Record<string, unknown>).from = originalFrom;
       }
@@ -213,7 +230,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
             return {
               select: () => ({
                 eq: () => ({
-                  single: async () => ({
+                  maybeSingle: async () => ({
                     data: {
                       id: "sub-1",
                       negocio_id: "neg-1",
@@ -285,7 +302,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
             return {
               select: () => ({
                 eq: () => ({
-                  single: async () => ({
+                  maybeSingle: async () => ({
                     data: {
                       id: "sub-1",
                       negocio_id: "neg-1",

@@ -42,7 +42,7 @@ export async function getSubscriptionUsage(
     .from("suscripciones")
     .select("*")
     .eq("negocio_id", negocioId)
-    .single();
+    .maybeSingle();
 
   if (subError || !subData) {
     throw new Error(

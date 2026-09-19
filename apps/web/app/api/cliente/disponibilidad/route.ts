@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { obtenerDisponibilidad } from "@/lib/backend/reserva-service";
+import { isCalendarDate } from "@/lib/utils/business-date";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 /**
@@ -22,9 +23,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validar formato de fecha YYYY-MM-DD
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(fecha)) {
+    // Fecha de calendario real: la regex sola acepta 2026-02-31.
+    if (!isCalendarDate(fecha)) {
       return apiError(
         "El formato de fecha debe ser YYYY-MM-DD.",
         undefined,

@@ -37,11 +37,11 @@ export async function POST(request: Request) {
       }
     }
 
-    const body = await request.json();
-    const { email, password } = body;
+    const body = await request.json().catch(() => null);
+    const { email, password } = body ?? {};
 
     // 1. Validaciones
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
       return NextResponse.json(
         {
           success: false,

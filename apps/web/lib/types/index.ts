@@ -46,7 +46,6 @@ export interface Servicio {
   duracionMinutos?: number;
   duracion_minutos?: number;
   precio: number;
-  moneda?: string;
   activo?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -58,7 +57,6 @@ export interface Profesional {
   sucursalId?: string;
   nombre: string;
   apellido?: string;
-  especialidad?: string;
   email?: string | null;
   telefono?: string | null;
   avatar_url?: string | null;
@@ -130,7 +128,7 @@ export interface Cita {
   montoAnticipo?: number;
   metodo_pago_anticipo?: string | null;
   notas_cliente?: string | null;
-  privacidad_aceptada_en?: string;
+  privacidad_aceptada_en?: string | null;
   politica_cancelacion_aceptada_en?: string | null;
   created_at?: string;
   creadaEn?: string;

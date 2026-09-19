@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { crearReservaCita } from "@/lib/backend/reserva-service";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { isCalendarDate } from "@/lib/utils/business-date";
 
 /**
  * POST /api/cliente/reservas
@@ -67,9 +68,7 @@ export async function POST(request: NextRequest) {
       return apiError("Datos de reserva inválidos.", undefined, { status: 400, code: "INVALID_BOOKING_DATA" });
     }
 
-    if (typeof fecha !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
-        Number.isNaN(Date.parse(`${fecha}T00:00:00Z`)) ||
-        new Date(`${fecha}T00:00:00Z`).toISOString().slice(0, 10) !== fecha) {
+    if (!isCalendarDate(fecha)) {
       return apiError(
         "La fecha debe ser válida y usar YYYY-MM-DD.",
         undefined,

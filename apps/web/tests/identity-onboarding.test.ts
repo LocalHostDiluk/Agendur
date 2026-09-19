@@ -115,13 +115,16 @@ describe("Oleada 2 B: identidad autenticada", () => {
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const client = supabaseAdmin.getAdminClient();
     const originalFrom = client.from;
-    (client as unknown as { from: unknown }).from = () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { estado: "active", plan_nombre: "emprendedor", current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) });
+    (client as unknown as { from: unknown }).from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "emprendedor", current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) });
     const request = (body: unknown) => new NextRequest("http://localhost/api/negocio/configuracion", {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
     try {
       expect((await putConfig(request({ zonaHoraria: "invalid-zone" }))).status).toBe(400);
       expect((await putConfig(request({ telefonoClienteRequerido: false, emailClienteRequerido: false }))).status).toBe(400);
+      expect((await putConfig(request({ monedaPrincipal: "pesos" }))).status).toBe(400);
+      expect((await putConfig(request({ logoUrl: { src: "x" } }))).status).toBe(400);
+      expect((await putConfig(request({ logoUrl: "javascript:alert(1)" }))).status).toBe(400);
       expect(updatePayload).toBeNull();
       const response = await putConfig(request({ owner_id: "victim", nombreNegocio: " Negocio ", giroComercial: "Salón", pais: "MX", zonaHoraria: "America/Monterrey" }));
       expect(response.status).toBe(200);
@@ -156,7 +159,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
     let existing = 0;
     let inserted: Record<string, unknown> | null = null;
     (client as unknown as { from: unknown }).from = (table: string) => {
-      if (table === "suscripciones") return { select: () => ({ eq: () => ({ single: async () => ({ data: { estado: "active", plan_nombre: "emprendedor", limite_sucursales: 1, limite_profesionales: 3, current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) };
+      if (table === "suscripciones") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "emprendedor", limite_sucursales: 1, limite_profesionales: 3, current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) };
       if (table === "sucursales") return {
         select: (_columns: string, opts?: { head?: boolean }) => opts?.head
           ? { eq: () => ({ count: existing, error: null, eq: () => ({ count: existing, error: null }) }) }

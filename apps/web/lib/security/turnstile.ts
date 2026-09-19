@@ -71,11 +71,11 @@ export async function verifyTurnstileToken(
     }
 
     return { success: true };
-  } catch (err) {
-    const message =
-      err instanceof Error
-        ? err.message
-        : "Error inesperado en verificación anti-spam.";
-    return { success: false, error: message };
+  } catch {
+    // Mensaje fijo: el detalle técnico de la excepción viajaba al cliente.
+    return {
+      success: false,
+      error: "Error al comunicarse con el servicio de verificación anti-spam.",
+    };
   }
 }

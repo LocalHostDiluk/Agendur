@@ -14,12 +14,15 @@ SET search_path = public, extensions;
 -- 1. FUNCIÓN Y DISPARADOR DE ACTUALIZACIÓN (updated_at)
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- ------------------------------------------------------------------------------
 -- 2. TABLA: negocios (Entidad Comercial Principal)
@@ -149,6 +152,8 @@ CREATE TABLE IF NOT EXISTS public.profesionales (
 );
 
 CREATE INDEX IF NOT EXISTS idx_profesionales_sucursal_id ON public.profesionales(sucursal_id);
+CREATE INDEX IF NOT EXISTS idx_profesional_servicios_servicio_id
+  ON public.profesional_servicios(servicio_id);
 
 CREATE TRIGGER tr_profesionales_updated_at
   BEFORE UPDATE ON public.profesionales
@@ -250,6 +255,7 @@ CREATE TABLE IF NOT EXISTS public.citas (
 CREATE INDEX IF NOT EXISTS idx_citas_negocio_fecha ON public.citas(negocio_id, fecha);
 CREATE INDEX IF NOT EXISTS idx_citas_sucursal_fecha ON public.citas(sucursal_id, fecha);
 CREATE INDEX IF NOT EXISTS idx_citas_profesional_fecha ON public.citas(profesional_id, fecha);
+CREATE INDEX IF NOT EXISTS idx_citas_servicio_id ON public.citas(servicio_id);
 
 CREATE TRIGGER tr_citas_updated_at
   BEFORE UPDATE ON public.citas
@@ -279,10 +285,21 @@ CREATE TABLE IF NOT EXISTS public.suscripciones (
 );
 
 CREATE INDEX IF NOT EXISTS idx_suscripciones_negocio ON public.suscripciones(negocio_id);
+CREATE INDEX IF NOT EXISTS idx_suscripciones_subscription_external_id
+  ON public.suscripciones(subscription_external_id);
 
 CREATE TRIGGER tr_suscripciones_updated_at
   BEFORE UPDATE ON public.suscripciones
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- ------------------------------------------------------------------------------
+-- 10A. TABLA: stripe_webhook_events (Idempotencia de webhooks)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
+  event_id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- ==============================================================================
 -- 11. ROW LEVEL SECURITY (RLS) POLICIES
@@ -300,6 +317,7 @@ ALTER TABLE public.horarios_sucursal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.horarios_profesional ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.citas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suscripciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stripe_webhook_events ENABLE ROW LEVEL SECURITY;
 
 -- Grants explícitos para exposición controlada mediante Supabase Data API.
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
@@ -309,6 +327,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   TO authenticated, service_role;
 GRANT SELECT ON TABLE public.suscripciones TO authenticated;
 GRANT ALL PRIVILEGES ON TABLE public.suscripciones TO service_role;
+-- Idempotencia de webhooks Stripe: sólo service_role, nunca expuesta por la Data API.
+REVOKE ALL PRIVILEGES ON TABLE public.stripe_webhook_events FROM anon, authenticated;
+GRANT ALL PRIVILEGES ON TABLE public.stripe_webhook_events TO service_role;
 GRANT SELECT ON TABLE
   public.negocios, public.sucursales, public.servicios,
   public.profesional_servicios, public.horarios_sucursal,
@@ -574,21 +595,10 @@ CREATE POLICY "Dueño puede gestionar citas de su negocio"
     )
   );
 
--- Clientes públicos pueden crear (INSERT) nuevas citas en sucursales activas
-CREATE POLICY "Público puede crear reservas de citas"
-  ON public.citas
-  FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (
-    citas.estado = 'pendiente_pago'
-    AND citas.monto_anticipo_pagado = 0
-    AND EXISTS (
-      SELECT 1 FROM public.sucursales s
-      WHERE s.id = citas.sucursal_id
-        AND s.negocio_id = citas.negocio_id
-        AND s.activa = true
-    )
-  );
+-- Sin política de INSERT para anon/authenticated (hallazgo 8.1): las reservas
+-- públicas se crean desde el servidor con service_role, que ignora RLS. Una
+-- política pública sólo permitiría crear citas por la Data API saltándose el
+-- rate limit, el consentimiento y el chequeo de disponibilidad.
 
 -- ------------------------------------------------------------------------------
 -- Políticas para: suscripciones

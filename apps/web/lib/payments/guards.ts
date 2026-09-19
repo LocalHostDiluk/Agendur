@@ -57,9 +57,17 @@ export async function assertActiveSubscription(
     .from("suscripciones")
     .select("*")
     .eq("negocio_id", negocioId)
-    .single();
+    .maybeSingle();
 
-  if (subError || !subData) {
+  // Un fallo de red o de PostgREST no es una suscripción vencida: debe dar 500,
+  // no un 402 que le pide al negocio renovar un plan vigente.
+  if (subError) {
+    throw new Error("No se pudo verificar la suscripción del negocio.", {
+      cause: subError,
+    });
+  }
+
+  if (!subData) {
     throw new SubscriptionExpiredError(
       "No se encontró una suscripción activa para este negocio.",
     );

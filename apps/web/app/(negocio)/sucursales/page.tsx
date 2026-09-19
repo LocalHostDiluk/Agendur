@@ -502,7 +502,7 @@ export default function SucursalesPage() {
                                 maximumFractionDigits: 2,
                               })}{" "}
                               <span className="text-[10px] text-text-muted font-normal">
-                                {s.moneda || "MXN"}
+                                MXN
                               </span>
                             </span>
                           </td>

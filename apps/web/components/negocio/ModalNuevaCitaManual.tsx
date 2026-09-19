@@ -63,8 +63,7 @@ function getDefaultServicioId(list: Servicio[]): string {
 
 function formatServicioOption(s: Servicio): string {
   const duracion = s.duracion_minutos ?? s.duracionMinutos ?? 30;
-  const moneda = s.moneda || "MXN";
-  return `${s.nombre} — ${duracion} min — $${s.precio} ${moneda}`;
+  return `${s.nombre} — ${duracion} min — $${s.precio} MXN`;
 }
 
 export function ModalNuevaCitaManual({

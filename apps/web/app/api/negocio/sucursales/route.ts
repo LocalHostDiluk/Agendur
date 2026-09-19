@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (!nombre || !direccion || !ciudad || !telefono ||
       nombre.length > 120 || direccion.length > 250 || ciudad.length > 120 || telefono.length > 20) {
       return apiError(
-        "Campos de sucursal inválidos: nombre, direccion, ciudad, telefono.",
+        "Campos de sucursal inválidos: nombre, dirección, ciudad, teléfono.",
         undefined,
         { status: 400, code: "MISSING_REQUIRED_FIELDS" }
       );

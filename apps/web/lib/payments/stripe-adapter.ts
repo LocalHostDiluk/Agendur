@@ -46,11 +46,25 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
       // 1. Obtener o registrar cliente de Stripe
       let customerId: string | undefined;
 
-      const { data: currentSub } = await adminClient
+      const { data: currentSub, error: currentSubError } = await adminClient
         .from("suscripciones")
-        .select("customer_external_id")
+        .select("id, customer_external_id")
         .eq("negocio_id", params.negocioId)
         .maybeSingle();
+
+      if (currentSubError) {
+        throw new Error(
+          `No se pudo leer la suscripción local del negocio: ${currentSubError.message}`,
+        );
+      }
+
+      // Sin fila local no se crea nada en Stripe: el webhook posterior haría
+      // un UPDATE de cero filas y respondería 200 sin activar el servicio.
+      if (!currentSub) {
+        throw new Error(
+          `No existe una suscripción local para el negocio ${params.negocioId}.`,
+        );
+      }
 
       if (currentSub?.customer_external_id) {
         customerId = currentSub.customer_external_id;
@@ -82,17 +96,16 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
 
         // Guardar referencia del cliente en la BD
         if (customerId) {
-          const { error: updateError } = await adminClient
+          const { data: filaCliente, error: updateError } = await adminClient
             .from("suscripciones")
             .update({ customer_external_id: customerId })
-            .eq("negocio_id", params.negocioId);
+            .eq("negocio_id", params.negocioId)
+            .select("id")
+            .single();
 
-          if (updateError) {
-            Sentry.captureException(
-              new Error(
-                `Error al guardar customer_external_id: ${updateError.message}`,
-              ),
-              { extra: { negocioId: params.negocioId, customerId } },
+          if (updateError || !filaCliente) {
+            throw new Error(
+              `Error al guardar customer_external_id: ${updateError?.message ?? "cero filas afectadas"}`,
             );
           }
         }
@@ -219,7 +232,13 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      // `constructEventAsync` es válido con el proveedor Node y con WebCrypto;
+      // la variante síncrona falla si el runtime no expone crypto de Node.
+      event = await stripe.webhooks.constructEventAsync(
+        payload,
+        signature,
+        webhookSecret,
+      );
     } catch (err: unknown) {
       const errorMsg = `Firma de webhook de Stripe inválida: ${
         err instanceof Error ? err.message : String(err)
@@ -228,6 +247,56 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
       throw new Error(errorMsg);
     }
 
+    // Idempotencia: Stripe reintenta el mismo `event.id` tras un timeout o un 5xx.
+    const { data: yaProcesado, error: dedupeError } = await adminClient
+      .from("stripe_webhook_events")
+      .select("event_id")
+      .eq("event_id", event.id)
+      .maybeSingle();
+
+    if (dedupeError) {
+      throw new Error(
+        `No se pudo verificar la idempotencia del evento Stripe: ${dedupeError.message}`,
+      );
+    }
+
+    if (yaProcesado) {
+      return {
+        received: true,
+        event: event.type,
+        handled: false,
+        message: "Evento ya procesado previamente.",
+      };
+    }
+
+    const resultado = await this.aplicarEventoVerificado(event, stripe);
+
+    // Se registra después de aplicar el efecto: un fallo previo no queda marcado
+    // y Stripe puede reintentarlo. La clave primaria absorbe entregas simultáneas.
+    const { error: registroError } = await adminClient
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id, event_type: event.type });
+
+    if (registroError && registroError.code !== "23505") {
+      // El efecto ya se aplicó: no se relanza para no provocar un reintento duplicado.
+      Sentry.captureException(
+        new Error(
+          `No se pudo registrar el evento Stripe ${event.id}: ${registroError.message}`,
+        ),
+        { extra: { context: "stripe.idempotencia", eventType: event.type } },
+      );
+    }
+
+    return resultado;
+  }
+
+  /**
+   * Aplica el efecto de un evento cuya firma ya fue verificada.
+   */
+  private async aplicarEventoVerificado(
+    event: Stripe.Event,
+    stripe: Stripe,
+  ): Promise<WebhookProcessResult> {
     try {
       switch (event.type) {
         case "checkout.session.completed": {
@@ -273,7 +342,7 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
             }
 
             // B3: Capture { error } and throw if Supabase update fails
-            const { error: dbError } = await adminClient
+            const { data: filaActiva, error: dbError } = await adminClient
               .from("suscripciones")
               .update({
                 estado: "active",
@@ -289,11 +358,15 @@ export class StripeGatewayAdapter implements PaymentGatewayAdapter {
                 ...(periodStart && { current_period_start: periodStart }),
                 ...(periodEnd && { current_period_end: periodEnd }),
               })
-              .eq("negocio_id", negocioId);
+              .eq("negocio_id", negocioId)
+              .select("id")
+              .single();
 
-            if (dbError) {
+            // Cero filas devuelve `error: null` en un UPDATE normal: sin esta
+            // comprobación se respondería 200 a Stripe sin activar el servicio.
+            if (dbError || !filaActiva) {
               throw new Error(
-                `Error actualizando suscripción en checkout.session.completed: ${dbError.message}`,
+                `Error actualizando suscripción en checkout.session.completed: ${dbError?.message ?? "cero filas afectadas"}`,
               );
             }
 

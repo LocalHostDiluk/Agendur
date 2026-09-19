@@ -267,6 +267,21 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error).toContain("obligatorios");
+
+      // Cuerpo malformado y tipos no-string: 400, no 500 con captura en Sentry.
+      const malformado = await loginHandler(new Request("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "no-es-json",
+      }));
+      expect(malformado.status).toBe(400);
+
+      const noString = await loginHandler(new Request("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: { $ne: null }, password: 123 }),
+      }));
+      expect(noString.status).toBe(400);
     });
 
     it("debería retornar respuesta formateada con apiError cuando ocurre un error inesperado", async () => {
@@ -440,6 +455,16 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       const sbCookie = cookies.find((c) => c.name === "sb-access-token");
       expect(sbCookie).toBeDefined();
       expect(sbCookie?.value).toBe("");
+    });
+
+    it("debería redirigir /onboarding a login antes de servir HTML cuando no hay sesión", async () => {
+      const request = new NextRequest("http://localhost:3000/onboarding");
+
+      const response = await proxy(request);
+      expect([302, 307, 308]).toContain(response.status);
+      expect(response.headers.get("location")).toContain(
+        "/login?redirectTo=%2Fonboarding",
+      );
     });
 
     it("debería propagar cookies acumuladas en response a redirectResponse al acceder a ruta de autenticación con sesión activa", async () => {

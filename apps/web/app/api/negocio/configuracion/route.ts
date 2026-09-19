@@ -119,8 +119,22 @@ export async function PUT(request: NextRequest) {
       }
       updatePayload.zona_horaria = input.zonaHoraria;
     }
-    if (input.logoUrl !== undefined) updatePayload.logo_url = input.logoUrl;
-    if (input.monedaPrincipal !== undefined) updatePayload.moneda_principal = input.monedaPrincipal;
+    if (input.logoUrl !== undefined) {
+      // Acaba en un <img src> de la página pública: se bloquea javascript: y data:.
+      if (input.logoUrl !== null &&
+          (typeof input.logoUrl !== "string" || input.logoUrl.length > 500 ||
+           !/^(https?:\/\/|\/)[^\s]+$/.test(input.logoUrl))) {
+        return apiError("URL de logo inválida.", undefined, { status: 400 });
+      }
+      updatePayload.logo_url = input.logoUrl || null;
+    }
+    if (input.monedaPrincipal !== undefined) {
+      // La columna es VARCHAR(3) NOT NULL: sin esto, "pesos" o null dan 500 de Postgres.
+      if (typeof input.monedaPrincipal !== "string" || !/^[A-Z]{3}$/.test(input.monedaPrincipal)) {
+        return apiError("Moneda inválida (código ISO de tres letras).", undefined, { status: 400 });
+      }
+      updatePayload.moneda_principal = input.monedaPrincipal;
+    }
     if (input.porcentajeAnticipo !== undefined) {
       const p = Number(input.porcentajeAnticipo);
       if (isNaN(p) || p < 0 || p > 100) {

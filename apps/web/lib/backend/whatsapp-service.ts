@@ -4,11 +4,15 @@ export interface WhatsAppNotification {
   negocioNombre: string;
 }
 
+/**
+ * Stub de envío de notificaciones. Registra sólo el negocio destinatario:
+ * el teléfono y el mensaje son PII del cliente y los logs son legibles por terceros.
+ */
 export async function enviarNotificacionWhatsApp(
   payload: WhatsAppNotification,
 ): Promise<{ enviado: boolean; idMensaje: string }> {
   console.log(
-    `[WhatsApp Backend Service] Enviando mensaje a ${payload.telefono}: "${payload.mensaje}"`,
+    `[WhatsApp Backend Service] Notificación encolada para ${payload.negocioNombre}`,
   );
   return {
     enviado: true,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiError } from "@/lib/utils/api-error";
+import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSubscriptionUsage,
@@ -39,10 +40,9 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "No autorizado. Sesión inválida o expirada." },
-        { status: 401 }
-      );
+      return apiError("No autorizado. Sesión inválida o expirada.", undefined, {
+        status: 401,
+      });
     }
 
     // Buscar negocio del usuario
@@ -53,24 +53,15 @@ export async function GET() {
       .maybeSingle();
 
     if (negocioError || !negocio) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "No se encontró un negocio registrado para esta cuenta.",
-        },
-        { status: 404 }
-      );
+      return apiError("No se encontró un negocio registrado para esta cuenta.", undefined, {
+        status: 404,
+      });
     }
 
     const usage = await getSubscriptionUsage(negocio.id);
 
-    return NextResponse.json({
-      ok: true,
-      data: {
-        negocio,
-        ...usage,
-      },
-    });
+    // `useSuscripcion` lee { data }: no aplanar esta respuesta.
+    return apiSuccess({ data: { negocio, ...usage } });
   } catch (error: unknown) {
     return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "GET /api/negocio/suscripcion" },
@@ -93,10 +84,9 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "No autorizado. Sesión requerida." },
-        { status: 401 }
-      );
+      return apiError("No autorizado. Sesión requerida.", undefined, {
+        status: 401,
+      });
     }
 
     const { data: negocio, error: negocioError } = await supabase
@@ -106,13 +96,9 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (negocioError || !negocio) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "No se encontró un negocio registrado para esta cuenta.",
-        },
-        { status: 404 }
-      );
+      return apiError("No se encontró un negocio registrado para esta cuenta.", undefined, {
+        status: 404,
+      });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -127,23 +113,18 @@ export async function POST(req: NextRequest) {
 
     // Validaciones de seguridad en los límites de entrada
     if (!plan_nombre || !isValidPlan(plan_nombre)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "plan_nombre es requerido y debe ser uno de: emprendedor, pyme, enterprise, custom.",
-        },
-        { status: 400 }
+      return apiError(
+        "Selecciona un plan válido: emprendedor, pyme, enterprise o personalizado.",
+        undefined,
+        { status: 400, code: "INVALID_PLAN" }
       );
     }
 
     if (intervalo !== "mensual" && intervalo !== "anual") {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "intervalo debe ser mensual o anual.",
-        },
-        { status: 400 }
+      return apiError(
+        "El periodo de cobro debe ser mensual o anual.",
+        undefined,
+        { status: 400, code: "INVALID_INTERVAL" }
       );
     }
 
@@ -155,12 +136,10 @@ export async function POST(req: NextRequest) {
     ];
 
     if (!pasarelasValidas.includes(pasarela)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `pasarela inválida. Opciones soportadas: ${pasarelasValidas.join(", ")}`,
-        },
-        { status: 400 }
+      return apiError(
+        `Método de pago no válido. Opciones disponibles: ${pasarelasValidas.join(", ")}.`,
+        undefined,
+        { status: 400, code: "INVALID_GATEWAY" }
       );
     }
 
@@ -193,8 +172,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({
-        ok: true,
+      return apiSuccess({
         message: `Solicitud de suscripción al plan ${plan_nombre} registrada. Pendiente de confirmación de pago vía ${pasarela}.`,
         sessionId: result.sessionId,
         redirectUrl: result.url,
@@ -204,6 +182,37 @@ export async function POST(req: NextRequest) {
 
     // Caso 2: Pasarela Stripe (Tarjeta / Checkout Session)
     if (pasarela === "stripe") {
+      // Limita la creación de Customers y Checkouts por negocio (no por IP sola).
+      if (process.env.NODE_ENV !== "test") {
+        const rateLimit = await checkRateLimit(req, {
+          limit: 5,
+          windowMs: 10 * 60 * 1000,
+          keyPrefix: `negocio:checkout:${negocio.id}`,
+        });
+
+        if (!rateLimit.success) {
+          const retrySeconds = Math.max(
+            1,
+            Math.ceil((rateLimit.resetTime - Date.now()) / 1000),
+          );
+          return NextResponse.json(
+            {
+              success: false,
+              ok: false,
+              error: `Demasiados intentos de pago. Por favor espera ${Math.ceil(retrySeconds / 60)} minuto(s).`,
+            },
+            {
+              status: 429,
+              headers: {
+                "Retry-After": String(retrySeconds),
+                "X-RateLimit-Limit": String(rateLimit.limit),
+                "X-RateLimit-Remaining": String(rateLimit.remaining),
+              },
+            },
+          );
+        }
+      }
+
       const safeSuccessUrl = validateRedirectUrl(
         successUrl,
         origin,
@@ -225,17 +234,13 @@ export async function POST(req: NextRequest) {
         cancelUrl: safeCancelUrl,
       });
 
-      return NextResponse.json({
-        ok: true,
+      return apiSuccess({
         checkoutUrl: result.url,
         sessionId: result.sessionId,
       });
     }
 
-    return NextResponse.json(
-      { ok: false, error: "Pasarela no soportada." },
-      { status: 400 }
-    );
+    return apiError("Método de pago no soportado.", undefined, { status: 400 });
   } catch (error: unknown) {
     return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "POST /api/negocio/suscripcion" },

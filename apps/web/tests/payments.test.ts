@@ -352,7 +352,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
             return {
               select: () => ({
                 eq: () => ({
-                  single: async () => ({
+                  maybeSingle: async () => ({
                     data: {
                       id: "sub-1",
                       negocio_id: "neg-1",
@@ -448,7 +448,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
             return {
               select: () => ({
                 eq: () => ({
-                  single: async () => ({
+                  maybeSingle: async () => ({
                     data: {
                       id: "sub-1",
                       negocio_id: "neg-1",
@@ -526,5 +526,204 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
         (client as unknown as Record<string, unknown>).from = originalFrom;
       }
     });
+  });
+});
+
+describe("Bloque A — privacidad en telemetría y clasificación de errores", () => {
+  it("assertActiveSubscription distingue un fallo de PostgREST (error interno) de una suscripción ausente (402)", async () => {
+    const { assertActiveSubscription } = await import("@/lib/payments/guards");
+    const { getAdminClient } = await import("@/lib/supabase/admin");
+
+    const client = getAdminClient();
+    const originalFrom = client.from;
+    try {
+      (client as unknown as Record<string, unknown>).from = () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: { code: "PGRST000", message: "connection failure" },
+            }),
+          }),
+        }),
+      });
+
+      const fallo = await assertActiveSubscription("neg-1").catch((e) => e);
+      expect(fallo).toBeInstanceOf(Error);
+      expect(fallo).not.toBeInstanceOf(SubscriptionExpiredError);
+      expect((fallo as { status?: number }).status).toBeUndefined();
+
+      (client as unknown as Record<string, unknown>).from = () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+        }),
+      });
+
+      const ausente = await assertActiveSubscription("neg-1").catch((e) => e);
+      expect(ausente).toBeInstanceOf(SubscriptionExpiredError);
+      expect((ausente as SubscriptionExpiredError).status).toBe(402);
+    } finally {
+      (client as unknown as Record<string, unknown>).from = originalFrom;
+    }
+  });
+
+  it("el stub de WhatsApp no escribe el teléfono ni el mensaje del cliente en consola", async () => {
+    const { enviarNotificacionWhatsApp } = await import(
+      "@/lib/backend/whatsapp-service"
+    );
+
+    const salida: unknown[] = [];
+    const originalLog = console.log;
+    const originalInfo = console.info;
+    const originalWarn = console.warn;
+    console.log = (...args: unknown[]) => salida.push(...args);
+    console.info = (...args: unknown[]) => salida.push(...args);
+    console.warn = (...args: unknown[]) => salida.push(...args);
+
+    try {
+      const res = await enviarNotificacionWhatsApp({
+        telefono: "+525512345678",
+        mensaje: "¡Hola Juan! Tu cita para \"Corte\" fue agendada.",
+        negocioNombre: "Barbería Test",
+      });
+      expect(res.enviado).toBe(true);
+    } finally {
+      console.log = originalLog;
+      console.info = originalInfo;
+      console.warn = originalWarn;
+    }
+
+    const texto = salida.map((s) => String(s)).join(" ");
+    expect(texto).not.toContain("+525512345678");
+    expect(texto).not.toContain("Juan");
+  });
+});
+
+describe("Bloque B — gate de Stripe: fila local e idempotencia", () => {
+  const firmar = async (payload: string, secret: string) => {
+    const { createHmac } = await import("node:crypto");
+    const t = Math.floor(Date.now() / 1000);
+    const v1 = createHmac("sha256", secret)
+      .update(`${t}.${payload}`)
+      .digest("hex");
+    return `t=${t},v1=${v1}`;
+  };
+
+  it("aplica el efecto una sola vez y responde sin mutar ante un reintento del mismo event.id", async () => {
+    const { StripeGatewayAdapter } = await import("@/lib/payments");
+    const { getAdminClient } = await import("@/lib/supabase/admin");
+
+    const secret = "whsec_test_idempotencia";
+    const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const originalKey = process.env.STRIPE_SECRET_KEY;
+    process.env.STRIPE_WEBHOOK_SECRET = secret;
+    process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? "sk_test_dummy";
+
+    const client = getAdminClient();
+    const originalFrom = client.from;
+
+    const eventosRegistrados: string[] = [];
+    const actualizaciones: Record<string, unknown>[] = [];
+
+    try {
+      (client as unknown as Record<string, unknown>).from = (table: string) => {
+        if (table === "stripe_webhook_events") {
+          return {
+            select: () => ({
+              eq: (_col: string, valor: string) => ({
+                maybeSingle: async () => ({
+                  data: eventosRegistrados.includes(valor)
+                    ? { event_id: valor }
+                    : null,
+                  error: null,
+                }),
+              }),
+            }),
+            insert: async (fila: { event_id: string }) => {
+              eventosRegistrados.push(fila.event_id);
+              return { error: null };
+            },
+          };
+        }
+        return {
+          update: (payload: Record<string, unknown>) => ({
+            eq: () => ({
+              select: () => ({
+                single: async () => {
+                  actualizaciones.push(payload);
+                  return { data: { id: "sub-1" }, error: null };
+                },
+              }),
+            }),
+          }),
+        };
+      };
+
+      const payload = JSON.stringify({
+        id: "evt_test_1",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            metadata: { negocio_id: "neg-1", plan_nombre: "emprendedor", intervalo: "mensual" },
+            customer: "cus_1",
+          },
+        },
+      });
+      const signature = await firmar(payload, secret);
+      const adapter = new StripeGatewayAdapter();
+
+      const primero = await adapter.handleWebhookEvent(payload, signature);
+      expect(primero.handled).toBe(true);
+      expect(primero.estado).toBe("active");
+      expect(actualizaciones).toHaveLength(1);
+      expect(eventosRegistrados).toEqual(["evt_test_1"]);
+
+      const reintento = await adapter.handleWebhookEvent(payload, signature);
+      expect(reintento.received).toBe(true);
+      expect(reintento.handled).toBe(false);
+      expect(reintento.message).toContain("ya procesado");
+      expect(actualizaciones).toHaveLength(1);
+    } finally {
+      (client as unknown as Record<string, unknown>).from = originalFrom;
+      if (originalSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+      else process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+      if (originalKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+      else process.env.STRIPE_SECRET_KEY = originalKey;
+    }
+  });
+
+  it("no crea recursos en Stripe si el negocio no tiene fila local de suscripción", async () => {
+    const { StripeGatewayAdapter } = await import("@/lib/payments");
+    const { getAdminClient } = await import("@/lib/supabase/admin");
+
+    const originalKey = process.env.STRIPE_SECRET_KEY;
+    process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? "sk_test_dummy";
+
+    const client = getAdminClient();
+    const originalFrom = client.from;
+
+    try {
+      (client as unknown as Record<string, unknown>).from = () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+        }),
+      });
+
+      const adapter = new StripeGatewayAdapter();
+      await expect(
+        adapter.createCheckoutSession({
+          negocioId: "neg-sin-fila",
+          userEmail: "dueño@ejemplo.com",
+          planNombre: "emprendedor",
+          intervalo: "mensual",
+          successUrl: "http://localhost:3000/ok",
+          cancelUrl: "http://localhost:3000/no",
+        }),
+      ).rejects.toThrow("No existe una suscripción local");
+    } finally {
+      (client as unknown as Record<string, unknown>).from = originalFrom;
+      if (originalKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+      else process.env.STRIPE_SECRET_KEY = originalKey;
+    }
   });
 });
