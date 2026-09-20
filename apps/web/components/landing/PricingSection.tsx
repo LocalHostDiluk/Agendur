@@ -172,7 +172,10 @@ export function PricingSection() {
                   </li>
                 ))}
               </ul>
-              <a className="outline-button" href="#contacto">
+              <a
+                className="outline-button"
+                href={plan.price === null ? "#contacto" : "/register"}
+              >
                 {plan.price === null
                   ? lang === "en"
                     ? "Contact the team"

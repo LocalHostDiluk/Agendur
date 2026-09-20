@@ -156,7 +156,7 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
     assertSubSpy = spyOn(guards, "assertActiveSubscription").mockResolvedValue({
       id: "sub-1",
       negocio_id: "neg-456",
-      plan_nombre: "emprendedor",
+      plan_nombre: "starter",
       estado: "active",
       intervalo: "mensual",
       limite_sucursales: 1,

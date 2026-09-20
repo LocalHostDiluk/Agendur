@@ -135,7 +135,7 @@ export interface Cita {
   updated_at?: string;
 }
 
-export type PlanNombre = "emprendedor" | "pyme" | "enterprise" | "custom";
+export type PlanNombre = "starter" | "pro" | "business";
 export type IntervaloPlan = "mensual" | "anual";
 export type EstadoSuscripcion =
   | "trialing"

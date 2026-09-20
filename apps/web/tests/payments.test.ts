@@ -22,40 +22,44 @@ import type { PlanNombre } from "@/lib/types";
 describe("Motor de Pagos y Suscripciones - Adaptadores y Dominio", () => {
   describe("Configuración de Planes y Límites", () => {
     it("debería validar correctamente los nombres de planes válidos", () => {
-      expect(isValidPlan("emprendedor")).toBe(true);
-      expect(isValidPlan("pyme")).toBe(true);
-      expect(isValidPlan("enterprise")).toBe(true);
-      expect(isValidPlan("custom")).toBe(true);
+      expect(isValidPlan("starter")).toBe(true);
+      expect(isValidPlan("pro")).toBe(true);
+      expect(isValidPlan("business")).toBe(true);
+      expect(isValidPlan("emprendedor")).toBe(false);
+      expect(isValidPlan("pyme")).toBe(false);
+      expect(isValidPlan("enterprise")).toBe(false);
+      expect(isValidPlan("custom")).toBe(false);
       expect(isValidPlan("plan_inexistente")).toBe(false);
       expect(isValidPlan("")).toBe(false);
     });
 
-    it("debería retornar los límites correctos para el plan emprendedor (1 sucursal, 3 profesionales)", () => {
-      const config = getPlanConfig("emprendedor");
+    it("debería retornar los límites correctos para el plan starter (1 sucursal, 3 profesionales)", () => {
+      const config = getPlanConfig("starter");
       expect(config.limite_sucursales).toBe(1);
       expect(config.limite_profesionales).toBe(3);
-      expect(config.precio_mensual_mxn).toBe(499);
-      expect(config.precio_anual_mxn).toBe(4990);
+      expect(config.precio_mensual_mxn).toBe(199);
+      expect(config.precio_anual_mxn).toBe(1908);
     });
 
-    it("debería retornar los límites correctos para el plan pyme (3 sucursales, 10 profesionales)", () => {
-      const config = getPlanConfig("pyme");
+    it("debería retornar los límites correctos para el plan pro (3 sucursales, 10 profesionales)", () => {
+      const config = getPlanConfig("pro");
       expect(config.limite_sucursales).toBe(3);
       expect(config.limite_profesionales).toBe(10);
-      expect(config.precio_mensual_mxn).toBe(999);
-      expect(config.precio_anual_mxn).toBe(9990);
+      expect(config.precio_mensual_mxn).toBe(399);
+      expect(config.precio_anual_mxn).toBe(3828);
     });
 
-    it("debería retornar los límites correctos para el plan enterprise (10 sucursales, 50 profesionales)", () => {
-      const config = getPlanConfig("enterprise");
-      expect(config.limite_sucursales).toBe(10);
-      expect(config.limite_profesionales).toBe(50);
-      expect(config.precio_mensual_mxn).toBe(2499);
+    it("debería retornar los límites correctos para el plan business (ilimitadas sucursales y profesionales)", () => {
+      const config = getPlanConfig("business");
+      expect(config.limite_sucursales).toBe(999);
+      expect(config.limite_profesionales).toBe(999);
+      expect(config.precio_mensual_mxn).toBe(0);
+      expect(config.precio_anual_mxn).toBe(0);
     });
 
-    it("debería retornar plan emprendedor como fallback para planes no reconocidos", () => {
+    it("debería retornar plan starter como fallback para planes no reconocidos", () => {
       const config = getPlanConfig("desconocido" as PlanNombre);
-      expect(config.nombre).toBe("emprendedor");
+      expect(config.nombre).toBe("starter");
     });
   });
 
@@ -118,7 +122,7 @@ describe("Motor de Pagos y Suscripciones - Adaptadores y Dominio", () => {
         adapter.createCheckoutSession({
           negocioId: "negocio-test",
           userEmail: "test@example.com",
-          planNombre: "emprendedor",
+          planNombre: "starter",
           intervalo: "mensual",
           successUrl: "http://localhost:3000/success",
           cancelUrl: "http://localhost:3000/cancel",
@@ -147,7 +151,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan_nombre: "pyme",
+          plan_nombre: "pro",
           intervalo: "mensual",
           pasarela: "manual",
         }),
@@ -203,7 +207,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
         id: "sub-1",
         negocio_id: "neg-1",
         estado: "trialing" as const,
-        plan_nombre: "emprendedor",
+        plan_nombre: "starter",
         intervalo: "mensual" as const,
         limite_sucursales: 1,
         limite_profesionales: 3,
@@ -223,7 +227,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
         id: "sub-1",
         negocio_id: "neg-1",
         estado: "trialing" as const,
-        plan_nombre: "emprendedor",
+        plan_nombre: "starter",
         intervalo: "mensual" as const,
         limite_sucursales: 1,
         limite_profesionales: 3,
@@ -243,7 +247,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
         id: "sub-1",
         negocio_id: "neg-1",
         estado: "canceled" as const,
-        plan_nombre: "emprendedor",
+        plan_nombre: "starter",
         intervalo: "mensual" as const,
         limite_sucursales: 1,
         limite_profesionales: 3,
@@ -357,7 +361,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
                       id: "sub-1",
                       negocio_id: "neg-1",
                       estado: "active",
-                      plan_nombre: "pyme",
+                      plan_nombre: "pro",
                       limite_sucursales: 3,
                       limite_profesionales: 10,
                       current_period_end: new Date(Date.now() + 1000000).toISOString(),
@@ -453,7 +457,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
                       id: "sub-1",
                       negocio_id: "neg-1",
                       estado: "active",
-                      plan_nombre: "emprendedor",
+                      plan_nombre: "starter",
                       limite_sucursales: 1,
                       limite_profesionales: 3,
                       current_period_end: new Date(Date.now() + 1000000).toISOString(),
@@ -664,7 +668,7 @@ describe("Bloque B — gate de Stripe: fila local e idempotencia", () => {
         type: "checkout.session.completed",
         data: {
           object: {
-            metadata: { negocio_id: "neg-1", plan_nombre: "emprendedor", intervalo: "mensual" },
+            metadata: { negocio_id: "neg-1", plan_nombre: "starter", intervalo: "mensual" },
             customer: "cus_1",
           },
         },
@@ -714,7 +718,7 @@ describe("Bloque B — gate de Stripe: fila local e idempotencia", () => {
         adapter.createCheckoutSession({
           negocioId: "neg-sin-fila",
           userEmail: "dueño@ejemplo.com",
-          planNombre: "emprendedor",
+          planNombre: "starter",
           intervalo: "mensual",
           successUrl: "http://localhost:3000/ok",
           cancelUrl: "http://localhost:3000/no",

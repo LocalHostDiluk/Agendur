@@ -320,7 +320,7 @@ export async function POST(request: Request) {
     ).toISOString();
     const { error: subError } = await admin.from("suscripciones").insert({
       negocio_id: negocio.id,
-      plan_nombre: "emprendedor",
+      plan_nombre: "starter",
       intervalo: "mensual",
       limite_sucursales: 1,
       limite_profesionales: 3,

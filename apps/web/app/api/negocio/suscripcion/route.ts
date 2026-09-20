@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     // Validaciones de seguridad en los límites de entrada
     if (!plan_nombre || !isValidPlan(plan_nombre)) {
       return apiError(
-        "Selecciona un plan válido: emprendedor, pyme, enterprise o personalizado.",
+        "Selecciona un plan válido: starter, pro o business.",
         undefined,
         { status: 400, code: "INVALID_PLAN" }
       );

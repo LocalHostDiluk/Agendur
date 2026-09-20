@@ -92,7 +92,7 @@ describe("Bloque C: Hooks de Consulta y Mutación Tipada", () => {
         suscripcion: {
           id: "sub-200",
           negocio_id: "neg-100",
-          plan_nombre: "pyme",
+          plan_nombre: "pro",
           intervalo: "mensual",
           limite_sucursales: 3,
           limite_profesionales: 10,

@@ -52,7 +52,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
     const admin = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
       from: (table: string) => ({
         select: () => ({ eq: () => ({
-          maybeSingle: async () => ({ data: table === "negocios" ? { id: "neg-1", nombre_comercial: "Mi negocio", slug: "mi-negocio", giro_comercial: "Salón", logo_url: null, moneda_principal: "MXN" } : table === "perfiles_usuario" ? { nombres: "Ana", apellidos: "López", telefono: null, locale: "es-MX" } : { plan_nombre: "emprendedor", estado: "trialing" }, error: null }),
+          maybeSingle: async () => ({ data: table === "negocios" ? { id: "neg-1", nombre_comercial: "Mi negocio", slug: "mi-negocio", giro_comercial: "Salón", logo_url: null, moneda_principal: "MXN" } : table === "perfiles_usuario" ? { nombres: "Ana", apellidos: "López", telefono: null, locale: "es-MX" } : { plan_nombre: "starter", estado: "trialing" }, error: null }),
           count: 0,
           error: null,
         }) }),
@@ -80,7 +80,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       from: (table: string) => ({ select: () => ({ eq: () => ({
         maybeSingle: async () => table === "perfiles_usuario"
           ? { data: null, error: { code: "PGRST205" } }
-          : { data: table === "negocios" ? { id: "legacy-business", nombre_comercial: "Antiguo", slug: "antiguo", giro_comercial: "Barbería" } : { plan_nombre: "pyme" }, error: null },
+          : { data: table === "negocios" ? { id: "legacy-business", nombre_comercial: "Antiguo", slug: "antiguo", giro_comercial: "Barbería" } : { plan_nombre: "pro" }, error: null },
         count: 1, error: null,
       }) }) }),
     }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
@@ -115,7 +115,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const client = supabaseAdmin.getAdminClient();
     const originalFrom = client.from;
-    (client as unknown as { from: unknown }).from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "emprendedor", current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) });
+    (client as unknown as { from: unknown }).from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "starter", current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) });
     const request = (body: unknown) => new NextRequest("http://localhost/api/negocio/configuracion", {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
@@ -159,7 +159,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
     let existing = 0;
     let inserted: Record<string, unknown> | null = null;
     (client as unknown as { from: unknown }).from = (table: string) => {
-      if (table === "suscripciones") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "emprendedor", limite_sucursales: 1, limite_profesionales: 3, current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) };
+      if (table === "suscripciones") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "starter", limite_sucursales: 1, limite_profesionales: 3, current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) };
       if (table === "sucursales") return {
         select: (_columns: string, opts?: { head?: boolean }) => opts?.head
           ? { eq: () => ({ count: existing, error: null, eq: () => ({ count: existing, error: null }) }) }

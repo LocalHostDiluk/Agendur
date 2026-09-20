@@ -150,6 +150,7 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
       expect(html).toContain("<strong>319</strong>");
       expect(html).toContain("Contacta al equipo");
       expect(html).toContain('href="#contacto"');
+      expect(html).toContain('href="/register"');
     });
   });
 

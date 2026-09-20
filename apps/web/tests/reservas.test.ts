@@ -97,7 +97,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
                 servicios: { id: "serv-1", duracion_minutos: 30, activo: true },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true },
                 profesional_servicios: { servicio_id: "serv-1" },
-                suscripciones: { estado: "active", plan_nombre: "emprendedor", current_period_end: "2099-01-01T00:00:00Z" },
+                suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
               };
               return { data: data[table] ?? null, error: null };
             },
@@ -105,7 +105,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
               if (table === "citas" && inserting) return { data: null, error: { code: insertErrorCode, message: "constraint violation" } };
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", negocio_id: "neg-1", activa: true, nombre: "Sucursal", zona_horaria: "UTC" },
-                suscripciones: { estado: "active", plan_nombre: "emprendedor", current_period_end: "2099-01-01T00:00:00Z" },
+                suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
                 negocios: { telefono_cliente_requerido: false, email_cliente_requerido: true, notas_cliente_habilitadas: true, politica_cancelacion: politica, zona_horaria: "UTC" },
                 servicios: { id: "serv-1", negocio_id: "neg-1", duracion_minutos: 30, precio: 100, activo: true, nombre: "Servicio" },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true, nombre: "Profesional" },
@@ -235,7 +235,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
                       id: "sub-1",
                       negocio_id: "neg-1",
                       estado: "canceled",
-                      plan_nombre: "emprendedor",
+                      plan_nombre: "starter",
                       intervalo: "mensual",
                       limite_sucursales: 1,
                       limite_profesionales: 3,
@@ -307,7 +307,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
                       id: "sub-1",
                       negocio_id: "neg-1",
                       estado: "canceled",
-                      plan_nombre: "emprendedor",
+                      plan_nombre: "starter",
                       intervalo: "mensual",
                       limite_sucursales: 1,
                       limite_profesionales: 3,
