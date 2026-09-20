@@ -17,7 +17,7 @@ Prioridades:
 
 Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seguridad; los otros cuatro responsables pueden sustituirse por los nombres del equipo al asignar el trabajo.
 
-### 1. Tú — Datos y seguridad
+### 1. Responsable Datos y seguridad
 
 | ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
 | --- | --- | --- | --- | --- | --- |
