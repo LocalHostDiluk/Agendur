@@ -109,7 +109,8 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
       const html = renderWithTheme(React.createElement(FeaturesSection));
       expect(html).toContain('id="diferenciadores"');
       expect(html).toContain("Tu negocio, tu link");
-      expect(html).toContain("negocio.agendur.app");
+      expect(html).toContain("Hecho para operar");
+      expect(html).toContain("Todo cae en su lugar.");
       expect(html).toContain("Multi-sucursal, un solo panel");
       expect(html).toContain("WhatsApp/SMS que sí llegan");
       expect(html).toContain("Cobra un anticipo, no pierdas el lugar");
@@ -123,9 +124,10 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
       expect(html).toContain("negocios ya usan Agendur");
       expect(html).toContain("-30%");
       expect(html).toContain("12,000+");
-      expect(html).toContain("Dr. Alejandro Ramos");
-      expect(html).toContain("Mateo Silva");
-      expect(html).toContain("Valeria Ríos");
+      expect(html).toContain("Foto pendiente");
+      expect(html).toContain("Mariana Torres");
+      expect(html).toContain("Iván Salas");
+      expect(html).toContain("Sofía Méndez");
       expect(html).toContain("Clínica San Lucas");
       expect(html).toContain("Barbería El Galgo");
     });
@@ -144,6 +146,10 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
       expect(html).toContain("Anual");
       expect(html).toContain("-20%");
       expect(html).toContain("price-toggle");
+      expect(html).toContain("<strong>159</strong>");
+      expect(html).toContain("<strong>319</strong>");
+      expect(html).toContain("Contacta al equipo");
+      expect(html).toContain('href="#contacto"');
     });
   });
 
@@ -170,6 +176,7 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
     it("renderiza el footer con enlaces corporativos y selector de idioma", () => {
       const html = renderWithTheme(React.createElement(Footer));
       expect(html).toContain("Agendur");
+      expect(html).toContain('id="contacto"');
       expect(html).toContain("Idioma:");
       expect(html).toContain("ES");
       expect(html).toContain("EN");
@@ -185,9 +192,7 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
       const posHero = html.indexOf("Deja de perseguir citas");
       const posHow = html.indexOf("Cómo funciona");
       const posFeatures = html.indexOf('id="diferenciadores"');
-      const posProof = html.indexOf(
-        "Dueños de negocio que ya no persiguen clientes",
-      );
+      const posProof = html.indexOf("Negocios que ya atienden sin perseguir citas.");
       const posPricing = html.indexOf('id="precios"');
       const posFaq = html.indexOf('id="faq"');
       const posFooter = html.indexOf("<footer");

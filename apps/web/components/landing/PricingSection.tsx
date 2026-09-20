@@ -15,7 +15,7 @@ export function PricingSection() {
             name: "Starter",
             detail:
               "For solo practitioners, barbers, and independent consultancies.",
-            price: 29,
+            price: 199,
             features: [
               "1 branch included",
               "Unlimited appointments & services",
@@ -28,7 +28,7 @@ export function PricingSection() {
             name: "Pro",
             detail:
               "For growing businesses with teams of specialists and high demand.",
-            price: 59,
+            price: 399,
             features: [
               "Up to 3 branches",
               "Online deposits & full pay",
@@ -41,7 +41,7 @@ export function PricingSection() {
             name: "Business",
             detail:
               "For multi-branch groups and franchises needing centralized oversight.",
-            price: 119,
+            price: null,
             features: [
               "Unlimited branches",
               "Multiple Stripe accounts",
@@ -56,7 +56,7 @@ export function PricingSection() {
             name: "Starter",
             detail:
               "Para consultorios individuales, barberos y terapeutas independientes.",
-            price: 29,
+            price: 199,
             features: [
               "1 sucursal incluida",
               "Citas y servicios ilimitados",
@@ -69,7 +69,7 @@ export function PricingSection() {
             name: "Pro",
             detail:
               "Para negocios consolidados con equipo de especialistas y alta demanda.",
-            price: 59,
+            price: 399,
             features: [
               "Hasta 3 sucursales",
               "Cobro de anticipos y pagos online",
@@ -82,7 +82,7 @@ export function PricingSection() {
             name: "Business",
             detail:
               "Para franquicias, cadenas y clínicas con múltiples ubicaciones activas.",
-            price: 119,
+            price: null,
             features: [
               "Sucursales ilimitadas",
               "Múltiples cuentas Stripe",
@@ -103,11 +103,16 @@ export function PricingSection() {
             </p>
             <h2 className="section-title">{t.priceTitle}</h2>
           </div>
-          <div className="price-toggle">
+          <div
+            className="price-toggle"
+            role="group"
+            aria-label={lang === "en" ? "Billing period" : "Periodo de facturaci\u00f3n"}
+          >
             <button
               type="button"
               onClick={() => setAnnual(false)}
               className={!annual ? "is-active" : ""}
+              aria-pressed={!annual}
             >
               {lang === "en" ? "Monthly" : "Mensual"}
               <span className="placeholder" aria-hidden="true">
@@ -118,6 +123,7 @@ export function PricingSection() {
               type="button"
               onClick={() => setAnnual(true)}
               className={annual ? "is-active" : ""}
+              aria-pressed={annual}
             >
               {lang === "en" ? "Annual" : "Anual"}
               <span>{lang === "en" ? "-20%" : "-20%"}</span>
@@ -137,13 +143,21 @@ export function PricingSection() {
                   )}
                 </div>
                 <p>{plan.detail}</p>
-                <div className="price">
-                  <small>$</small>
-                  <strong>
-                    {annual ? Math.round(plan.price * 0.8) : plan.price}
-                  </strong>
-                  <span> / mes</span>
-                </div>
+                {plan.price === null ? (
+                  <div className="price">
+                    <strong>
+                      {lang === "en" ? "Contact the team" : "Contacta al equipo"}
+                    </strong>
+                  </div>
+                ) : (
+                  <div className="price">
+                    <small>$</small>
+                    <strong>
+                      {annual ? Math.round(plan.price * 0.8) : plan.price}
+                    </strong>
+                    <span>{lang === "en" ? " / mo" : " / mes"}</span>
+                  </div>
+                )}
               </div>
               <div className="perforation">
                 <i />
@@ -159,7 +173,13 @@ export function PricingSection() {
                 ))}
               </ul>
               <a className="outline-button" href="#contacto">
-                {lang === "en" ? "Start for free" : "Empieza gratis"}
+                {plan.price === null
+                  ? lang === "en"
+                    ? "Contact the team"
+                    : "Contacta al equipo"
+                  : lang === "en"
+                    ? "Start for free"
+                    : "Empieza gratis"}
               </a>
             </article>
           ))}

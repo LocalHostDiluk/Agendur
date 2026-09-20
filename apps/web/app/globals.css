@@ -30,7 +30,7 @@
 
   --text-on-ink: #f3eedf;
   --text-on-ink-soft: rgba(243, 238, 223, 0.65);
-  --text-on-ink-muted: rgba(243, 238, 223, 0.40);
+  --text-on-ink-muted: rgba(243, 238, 223, 0.4);
 
   --border-ink: rgba(243, 238, 223, 0.15);
 
@@ -128,6 +128,7 @@
   --font-sans: var(--font-inter);
   --font-inter: var(--font-inter);
   --font-bricolage: var(--font-bricolage);
+  --font-display: var(--font-bricolage);
   --font-mono: var(--font-space-mono);
   --font-space-mono: var(--font-space-mono);
 
@@ -271,6 +272,95 @@ body {
 }
 
 /* ==========================================================================
+   LANDING REFERENCE CLASSES (from landing/src/styles.css)
+   ========================================================================== */
+.page-shell {
+  width: min(1180px, calc(100% - 2.5rem));
+  margin-inline: auto;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.brand-mark span {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--paper);
+  background: var(--grape);
+  clip-path: polygon(0 0, 100% 0, 100% 72%, 72% 100%, 0 100%);
+}
+
+.nav-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  padding-block: 0.3rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.nav-link:hover {
+  border-color: var(--flame);
+}
+
+.ticket-button {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    0 100%,
+    0 14px,
+    14px 0
+  );
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.ticket-button:hover {
+  transform: translateY(-2px);
+}
+
+.language-switch {
+  display: inline-flex;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.language-switch button {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    width: min(100% - 1.5rem, 1180px);
+  }
+}
+
+/* ==========================================================================
    TICKET MOTIF CLASSES (errores-y-portal-reservas-agender.md Secc. 0.B)
    ========================================================================== */
 .ticket {
@@ -297,8 +387,12 @@ body {
   pointer-events: none;
   z-index: 10;
 }
-.ticket-on-ink::before { left: -12px; }
-.ticket-on-ink::after  { right: -12px; }
+.ticket-on-ink::before {
+  left: -12px;
+}
+.ticket-on-ink::after {
+  right: -12px;
+}
 
 .ticket-on-paper {
   position: relative;
@@ -318,8 +412,12 @@ body {
   pointer-events: none;
   z-index: 10;
 }
-.ticket-on-paper::before { left: -12px; }
-.ticket-on-paper::after  { right: -12px; }
+.ticket-on-paper::before {
+  left: -12px;
+}
+.ticket-on-paper::after {
+  right: -12px;
+}
 
 .perforacion {
   border-top: 2px dashed var(--border);
@@ -366,7 +464,6 @@ body {
   background: var(--ink);
   pointer-events: none;
 }
-
 
 /* ==========================================================================
    PRICING SECTION (from estilos.md - scoped strictly to .pricing)
@@ -728,15 +825,21 @@ body {
 /* ==============================================================================
    Sistema Base de Skeletons (Agendur UI)
    ============================================================================== */
-.skel-block, .skel-text, .skel-circle {
+.skel-block,
+.skel-text,
+.skel-circle {
   background: var(--surface-alt);
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-sm);
 }
-.skel-circle { border-radius: 50%; }
+.skel-circle {
+  border-radius: 50%;
+}
 
-.skel-block::after, .skel-text::after, .skel-circle::after {
+.skel-block::after,
+.skel-text::after,
+.skel-circle::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -744,7 +847,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255,255,255,0.35) 50%,
+    rgba(255, 255, 255, 0.35) 50%,
     transparent 100%
   );
   animation: skel-shimmer 1.4s ease-in-out infinite;
@@ -756,13 +859,15 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255,255,255,0.08) 50%,
+    rgba(255, 255, 255, 0.08) 50%,
     transparent 100%
   );
 }
 
 @keyframes skel-shimmer {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

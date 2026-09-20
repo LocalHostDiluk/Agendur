@@ -4,10 +4,89 @@ Plataforma SaaS multiempresa para gestionar citas y publicar portales de reserva
 
 El repositorio contiene una aplicación **full-stack con Next.js**, organizada como **monolito modular dentro de un monorepo**. Supabase proporciona autenticación y persistencia; Stripe integra la facturación de suscripciones.
 
-> Documentación basada en el código de `main` revisado el **18 de septiembre de 2026**, commit [`d6ddf02`](https://github.com/LocalHostDiluk/Agendur/tree/d6ddf02). Algunas referencias internas conservan el nombre anterior, **CitaSync**. La presencia de una implementación no acredita que sus servicios externos estén configurados o que el flujo haya sido validado en producción.
+
+## Mejoras prioritarias del sistema
+
+Auditoría técnica del frontend, backend y proyecto Supabase activo `Citas`, realizada sobre el estado actual del workspace. Esta sección es un backlog de remediación: documenta problemas comprobados, pero no implica que las correcciones o migraciones ya se hayan aplicado.
+
+Prioridades:
+
+- **P0 — Bloqueo:** riesgo de seguridad, datos o producción que debe resolverse antes del lanzamiento.
+- **P1 — Requerido:** flujo existente roto, engañoso o CRUD incompleto.
+- **P2 — Mejora:** deuda comprobada de calidad, coherencia o mantenimiento.
+
+Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seguridad; los otros cuatro responsables pueden sustituirse por los nombres del equipo al asignar el trabajo.
+
+### 1. Tú — Datos y seguridad
+
+| ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
+| --- | --- | --- | --- | --- | --- |
+| DS-01 | P0 | El proyecto Supabase activo no registra historial de migraciones y no contiene `stripe_webhook_events` ni los hardenings locales recientes. | Reconciliar el esquema remoto con las migraciones versionadas y establecer una línea base reproducible antes de aplicar nuevos cambios. | Un entorno limpio puede reproducir el esquema; local y remoto muestran las mismas migraciones, tablas, índices y políticas esperadas. | Bloquea BE-01 y BE-02. |
+| DS-02 | P0 | `citas` permite `INSERT` directo a `anon` y `authenticated`, lo que evita validaciones de disponibilidad, consentimiento y rate limiting del endpoint de reservas. | Aplicar la revocación versionada y comprobar que la creación pública sólo sea posible mediante el backend. | Un `INSERT` anónimo por Data API es rechazado, mientras `/api/cliente/reservas` sigue creando citas válidas. | DS-01. |
+| DS-03 | P0 | Varias tablas consumidas mediante las APIs del servidor conservan grants y políticas públicas más amplios que la proyección ofrecida por esos endpoints. | Inventariar los consumidores reales y revocar acceso directo innecesario de `anon` y `authenticated`, manteniendo privilegio mínimo. | Catálogo y disponibilidad públicos funcionan por API; la Data API no expone columnas internas ni permite operaciones fuera del contrato. | DS-01; coordinar con BE-05. |
+| DS-04 | P0 | `public.rls_auto_enable` es `SECURITY DEFINER` ejecutable por roles públicos; `handle_updated_at` no fija `search_path`; la protección de contraseñas filtradas está desactivada. | Mover o retirar la función privilegiada, revocar `EXECUTE`, fijar `search_path` y activar la protección de contraseñas. | Los advisors de Supabase no reportan estas alertas y ninguna función privilegiada queda invocable por `anon` o `authenticated`. | DS-01. |
+| DS-05 | P1 | Advisors detectan políticas que evalúan `auth.uid()` por fila, políticas permisivas superpuestas e índices faltantes en `citas(servicio_id)` y `profesional_servicios(servicio_id)`. | Usar `(select auth.uid())`, consolidar políticas por operación y aplicar los índices versionados; conservar índices de integridad aunque el uso actual sea bajo. | Advisors sin estas advertencias, aislamiento multiempresa comprobado y planes de consulta usando los índices apropiados. | DS-01 y DS-03. |
+| DS-06 | P1 | La interfaz intenta guardar notas internas en una cita, pero el modelo sólo dispone de `notas_cliente`; el formulario de personal captura un cargo que tampoco se persiste. | Preparar migraciones para `citas.notas_internas` y `profesionales.cargo` si el campo permanece en el formulario. | Las notas internas nunca se mezclan con las del cliente ni aparecen en APIs públicas; el cargo sobrevive una recarga. | DS-01; desbloquea BE-03, FE-02 y OP-01. |
+
+**Aceptación del bloque:** migraciones reproducibles, advisors sin alertas críticas, acceso anónimo directo denegado y endpoints públicos de catálogo y reserva operativos.
+
+### 2. Responsable Backend y pagos
+
+| ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
+| --- | --- | --- | --- | --- | --- |
+| BE-01 | P0 | Un webhook de Stripe verificado falla porque la tabla de idempotencia no existe en el proyecto activo; si falta `STRIPE_WEBHOOK_SECRET`, el handler responde `200` y descarta eventos. | Hacer obligatoria la configuración en producción y devolver error recuperable cuando no pueda verificarse o persistirse un evento. | Producción no arranca o el webhook devuelve estado no exitoso sin secreto; un evento válido se registra y aplica una sola vez. | DS-01. |
+| BE-02 | P0 | El flujo comprueba existencia, aplica el efecto y después inserta el evento; entregas simultáneas pueden ejecutar el efecto dos veces antes de colisionar por la clave primaria. | Reclamar atómicamente el identificador antes del efecto y permitir reintentos seguros cuando el procesamiento falle. | Dos solicitudes concurrentes con el mismo `event.id` producen un solo cambio; un fallo previo a completar puede reintentarse. | DS-01 y BE-01. |
+| BE-03 | P1 | El drawer envía sólo `notas`, pero `PATCH /api/negocio/citas` exige `nuevoEstado` e ignora ese campo, por lo que el guardado falla. | Aceptar estado, `notasInternas` o ambos, exigir al menos un cambio y mantener la autorización por propietario del negocio. | Guardar notas y cambiar estado funcionan juntos o por separado; entradas vacías o citas ajenas son rechazadas. | DS-06; desbloquea FE-02. |
+| BE-04 | P1 | La creación manual elige el primer profesional elegible y conserva fallbacks que pueden terminar en un identificador de negocio o UUID nulo, sin validar disponibilidad final. | Requerir un profesional válido, comprobar servicio, sucursal, horario y solapamiento en el servidor y eliminar fallbacks inválidos. | No puede crearse una cita manual con profesional inexistente, incompatible u ocupado; la respuesta explica el conflicto. | OP-01 y OP-02. |
+| BE-05 | P1 | El rate limiter confía en cabeceras de IP sin una política de proxy explícita; el contador remoto no es atómico y catálogo/disponibilidad carecen de límites. | Definir la cabecera confiable del despliegue, usar una operación atómica compartida y aplicar límites proporcionados a endpoints públicos de lectura. | Una IP no puede falsificar su identidad mediante cabeceras libres; varias instancias comparten el conteo y los endpoints responden `429` de forma consistente. | Coordinar DS-03. |
+| BE-06 | P2 | `getSucursalesByNegocio` no tiene consumidores de producción y el adaptador de WhatsApp sólo simula el envío. | Eliminar exports muertos y documentar WhatsApp como integración no productiva hasta contar con proveedor y credenciales reales. | No quedan exports sin uso ni documentación que afirme entregas reales de WhatsApp. | QA-06. |
+
+### 3. Responsable CRUD operativo
+
+| ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
+| --- | --- | --- | --- | --- | --- |
+| OP-01 | P1 | El alta de personal genera un ID local aleatorio y guarda datos sólo en estado React; desaparecen al recargar y no existe API de profesionales. | Implementar `GET/POST/PATCH /api/negocio/profesionales` y persistir perfil, cargo, servicios asignados y estado `activo`. | Crear, editar y desactivar personal sobrevive una recarga y sólo afecta al negocio autenticado. | DS-06. |
+| OP-02 | P1 | La matriz de horarios muestra valores fijos y no administra `horarios_profesional` ni `horarios_sucursal`. | Reutilizar las tablas existentes y añadir edición desde las pantallas actuales, sin crear un segundo modelo de horarios. | Los horarios editados reaparecen tras recargar y modifican correctamente la disponibilidad pública. | OP-01 para horarios personales; coordinar BE-04. |
+| OP-03 | P1 | Sucursales sólo dispone de `GET/POST`; no puede editarse ni desactivarse una existente. | Añadir `PATCH` y archivo lógico mediante `activo`, incluyendo sus horarios cuando corresponda; evitar borrado físico. | Datos, horarios y estado se actualizan de forma persistente; una sucursal inactiva deja de ofrecer reservas sin perder historial. | OP-02. |
+| OP-04 | P1 | Servicios permite crear y alternar `activo`, pero la UI no expone edición de los campos ya soportados por la API. | Completar el formulario de edición y conservar `activo` como mecanismo de archivo lógico. | Nombre, duración, precio, color y estado se actualizan tras recargar; citas históricas mantienen su referencia. | Sin dependencia de esquema. |
+
+**Criterio del bloque:** se reutilizan las páginas, modales y tablas existentes. No se crean rutas, tablas alternativas ni endpoints `DELETE` salvo que una necesidad posterior demuestre que el archivo lógico es insuficiente.
+
+### 4. Responsable Frontend y flujos
+
+| ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
+| --- | --- | --- | --- | --- | --- |
+| FE-01 | P0 | `proxy.ts` protege dashboard, agendas, onboarding y sucursales, pero omite `/personal` y `/configuracion`. | Incorporar ambas rutas al mismo guard de autenticación y conservar el destino tras iniciar sesión cuando aplique. | Una sesión anónima no renderiza ninguna pantalla protegida y es redirigida de forma consistente. | Ninguna. |
+| FE-02 | P1 | El drawer comunica éxito para una operación cuyo contrato backend no admite notas internas. | Conectar el formulario al campo y contrato corregidos, con estado de carga, error visible y revalidación de la cita. | La nota aparece tras recargar sólo en el panel autorizado y nunca en el portal o respuestas públicas. | DS-06 y BE-03. |
+| FE-03 | P1 | La búsqueda, campana y selector global de sucursal del shell mantienen estado local o contenido estático sin afectar consultas reales. | Retirar estos controles hasta que exista un caso de uso respaldado; conservar los filtros locales funcionales de cada pantalla. | No quedan controles interactivos que simulen buscar, notificar o filtrar sin producir un resultado real. | QA-06. |
+| FE-04 | P1 | Configuración afirma que el cliente pagará anticipo con tarjeta, pero la reserva siempre queda `pendiente_pago` y no existe cobro de citas. | Ocultar o deshabilitar el control y retirar la promesa de pago hasta implementar un flujo completo y verificado. | Ninguna pantalla promete cobro de anticipos y activar configuración incompleta no es posible. | Ninguna; el flujo de anticipos queda diferido. |
+| FE-05 | P2 | Los módulos Realtime tienen pruebas pero ningún consumidor de producción. | Retirar módulos y pruebas huérfanas y corregir la documentación para no anunciar tiempo real activo. | El build no contiene inicializadores sin uso y el README describe únicamente el refresco realmente implementado. | QA-06. |
+| FE-06 | P2 | El portal solicita disponibilidad día por día y debe mantener estados accesibles durante cargas y cambios rápidos de fecha. | Reducir solicitudes repetidas reutilizando caché y consultas existentes, sin introducir otra capa de estado; validar carga, vacío y error con teclado y lector de pantalla. | Cambiar de fecha no genera solicitudes duplicadas evitables ni resultados obsoletos; foco y mensajes de estado siguen siendo perceptibles. | Coordinar BE-05. |
+
+### 5. Responsable Calidad, legal y lanzamiento
+
+| ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
+| --- | --- | --- | --- | --- | --- |
+| QA-01 | P1 | Línea base observada: 302 pruebas pasan y 2 de agenda fallan porque sus datos usan una fecha fija distinta de la fecha actual. | Controlar el reloj o derivar las fechas de prueba sin depender del día de ejecución. | La suite completa pasa en cualquier fecha y zona horaria soportada. | Ninguna. |
+| QA-02 | P1 | El lint reporta una actualización de estado dentro de un efecto en `LandingLanguageContext.tsx`. | Derivar el estado inicial sin una actualización inmediata en el efecto y conservar sincronización de idioma. | `bun run lint` termina sin errores y las pruebas de landing siguen pasando. | Ninguna. |
+| QA-03 | P1 | El typecheck independiente no reconoce `bun:test`, reporta `implicit any` en mocks y la versión de Bun declarada no coincide con la ejecutada. | Configurar tipos de pruebas, tipar callbacks y alinear la versión declarada del runtime sin ampliar dependencias. | Existe un comando reproducible de typecheck que termina en verde junto con build, lint y tests. | QA-01 y QA-02. |
+| QA-04 | P1 | Términos y privacidad están marcados como borradores mientras el registro recopila consentimientos versionados. | Completar identidad del operador, contacto, retención, derechos y versiones; someter el texto a validación jurídica humana antes de declararlo vigente. | Registro y documentos muestran versiones coherentes, enlace accesible y un canal operativo para ejercer derechos. | Revisión jurídica externa. |
+| QA-05 | P2 | No existe `.env.example` que enumere la configuración requerida. | Añadir posteriormente un ejemplo con nombres, propósito y obligatoriedad de variables, nunca valores ni secretos. | Una instalación nueva puede identificar la configuración necesaria y el escaneo del repositorio no encuentra credenciales. | Coordinar BE-01 y QA-04. |
+| QA-06 | P2 | El README mezcla capacidades completas con integraciones simuladas o no conectadas y contiene cifras de calidad que pueden quedar obsoletas. | Actualizar el estado después de cada bloque y distinguir `operativo`, `parcial`, `simulado` y `diferido`. | Cada afirmación tiene una ruta, API o prueba que la respalda; no se anuncian Realtime, WhatsApp o anticipos como productivos antes de serlo. | BE-06, FE-03, FE-04 y FE-05. |
+
+**Aceptación técnica global:** build, tests, lint, typecheck y auditoría de dependencias en verde; ningún secreto versionado. Los textos legales requieren aprobación profesional y no se consideran validados únicamente por una prueba automatizada.
+
+### Interfaces y orden de ejecución
+
+- Campos propuestos: `citas.notas_internas` y `profesionales.cargo`.
+- Contratos a completar: `PATCH /api/negocio/citas`, `GET/POST/PATCH /api/negocio/profesionales` y `PATCH /api/negocio/sucursales`.
+- Se reutilizan `horarios_profesional`, `horarios_sucursal` y `profesional_servicios`; el archivo lógico se mantiene mediante `activo`.
+- Dependencias críticas: `DS-01 → BE-01/BE-02`, `DS-06 → BE-03 → FE-02` y `OP-01/OP-02 → BE-04`.
+- Orden recomendado: cerrar P0 de datos y seguridad, estabilizar backend, completar CRUDs, conectar o retirar UI incompleta y finalizar con el gate de calidad y lanzamiento.
 
 ## Contenido
 
+- [Mejoras prioritarias del sistema](#mejoras-prioritarias-del-sistema)
 - [Funcionalidades y estado actual](#funcionalidades-y-estado-actual)
 - [Tecnologías y frameworks](#tecnologías-y-frameworks)
 - [Arquitectura](#arquitectura)

@@ -18,7 +18,7 @@ describe("borradores legales", () => {
     expect(html).toContain('href="/privacidad"');
     expect(html).toContain("BORRADOR — NO VIGENTE");
     expect(html).toContain("nombre o razón social del operador");
-    expect(html).not.toContain("CitaSync Technologies Inc.");
+    expect(html).not.toContain("Agendur Technologies Inc.");
     expect(termsMetadata.robots).toEqual({ index: false, follow: false });
   });
 

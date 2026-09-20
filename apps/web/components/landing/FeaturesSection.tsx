@@ -1,182 +1,24 @@
 "use client";
 
 import React from "react";
+import { Building2, CalendarCheck, CircleDollarSign, MessageCircleMore } from "lucide-react";
 import { useLandingLanguage } from "./LandingLanguageContext";
-import {
-  ExternalLink,
-  Layers,
-  MessageSquare,
-  CreditCard,
-  Clock,
-} from "lucide-react";
+
+const shapes = [
+  "lg:row-span-2 [clip-path:polygon(0_0,100%_0,100%_calc(100%_-_42px),calc(100%_-_42px)_100%,0_100%)]",
+  "[clip-path:polygon(0_0,calc(100%_-_32px)_0,100%_32px,100%_100%,0_100%)] bg-flame",
+  "relative bg-mint after:absolute after:right-0 after:top-0 after:h-10 after:w-10 after:rounded-bl-full after:bg-grape",
+  "lg:col-span-2 [clip-path:polygon(32px_0,100%_0,100%_100%,0_100%,0_32px)]",
+];
 
 export function FeaturesSection() {
-  const { t } = useLandingLanguage();
+  const { lang, t } = useLandingLanguage();
+  const cards = [
+    [t.features.big.title, t.features.big.subtitle, CalendarCheck],
+    [t.features.cards[0].title, t.features.cards[0].desc, Building2],
+    [t.features.cards[1].title, t.features.cards[1].desc, MessageCircleMore],
+    [t.features.cards[2].title, t.features.cards[2].desc, CircleDollarSign],
+  ] as const;
 
-  return (
-    <section
-      id="diferenciadores"
-      className="relative bg-paper text-ink py-20 lg:py-28 border-b-2 border-ink"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Cabecera */}
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-flame/10 border border-flame text-flame text-xs font-mono font-semibold">
-            <span>{t.features.badge}</span>
-          </div>
-          <h2 className="font-bricolage font-bold text-3xl sm:text-4xl lg:text-5xl tracking-tight text-ink">
-            {t.features.title}
-          </h2>
-          <p className="text-mist text-base sm:text-lg font-normal">
-            {t.features.subtitle}
-          </p>
-        </div>
-
-        {/* Bento Asimétrico: 1 Grande + 3 Medianos */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* Bloque Grande (col-span-12 lg:col-span-7): Tu negocio, tu link */}
-          {/* Forma: ticket-chamfer-tr (esquina diagonal cortada) */}
-          <div className="lg:col-span-7 bg-white border-2 border-ink p-7 sm:p-9 flex flex-col justify-between ticket-chamfer-tr relative">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-ink/15">
-                <span className="inline-block px-2.5 py-1 bg-grape text-paper text-xs font-mono font-bold">
-                  {t.features.big.tag}
-                </span>
-                <span className="text-xs font-mono text-mist">
-                  LINK DIRECTO
-                </span>
-              </div>
-
-              <h3 className="font-bricolage font-bold text-2xl sm:text-3xl text-ink">
-                {t.features.big.title}
-              </h3>
-              <p className="text-mist text-sm sm:text-base leading-relaxed max-w-xl">
-                {t.features.big.subtitle}
-              </p>
-
-              {/* Barra de URL simulación navegador tipo ticket */}
-              <div className="pt-2">
-                <div className="bg-paper border-2 border-ink p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-mono text-ink">
-                    <span className="w-2.5 h-2.5 rounded-full bg-flame shrink-0" />
-                    <span className="font-bold text-grape truncate">
-                      {t.features.big.url}
-                    </span>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-ink shrink-0" />
-                </div>
-              </div>
-
-              {/* Vista previa de tarjeta de servicio para el cliente */}
-              <div className="p-4 bg-paper/60 border border-ink/20 space-y-3 mt-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-bricolage font-semibold text-sm text-ink">
-                    {t.features.big.previewService}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-mint">
-                    DISPONIBLE HOY
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-xs font-mono text-mist">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    {t.features.big.previewDuration}
-                  </span>
-                </div>
-                <div className="pt-2 flex justify-end">
-                  <span className="px-3 py-1.5 bg-ink text-paper text-xs font-medium ticket-notch-tr">
-                    {t.features.big.previewAction}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Separador de perforación inferior */}
-            <div className="mt-6 pt-4 border-t-2 border-dashed border-ink/20 flex items-center justify-between text-[11px] font-mono text-mist">
-              <span>RESPONSIVE 100% MÓVIL</span>
-              <span className="text-flame font-bold">SIN INSTALACIÓN</span>
-            </div>
-          </div>
-
-          {/* Columna Derecha con los 3 Bloques Medianos (col-span-12 lg:col-span-5) */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Mediano 1: Multi-sucursal (esquina cutout perforada circular) */}
-            <div className="bg-white border-2 border-ink p-6 ticket-cutout-tr relative flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-grape text-paper flex items-center justify-center">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-mono text-grape font-bold">
-                    {t.features.cards[0].badge}
-                  </span>
-                </div>
-                <h4 className="font-bricolage font-semibold text-lg text-ink pt-1">
-                  {t.features.cards[0].title}
-                </h4>
-                <p className="text-xs sm:text-sm text-mist leading-relaxed">
-                  {t.features.cards[0].desc}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between text-[10px] font-mono text-mist">
-                <span>MATRIZ & FILIALES</span>
-                <span className="text-ink font-bold">AGENDA BLINDADA</span>
-              </div>
-            </div>
-
-            {/* Mediano 2: WhatsApp/SMS (esquinas rectas limpias, sin cortes) */}
-            <div className="bg-white border-2 border-ink p-6 relative flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-mint text-paper flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-ink" />
-                  </div>
-                  <span className="text-xs font-mono text-mint font-bold">
-                    {t.features.cards[1].badge}
-                  </span>
-                </div>
-                <h4 className="font-bricolage font-semibold text-lg text-ink pt-1">
-                  {t.features.cards[1].title}
-                </h4>
-                <p className="text-xs sm:text-sm text-mist leading-relaxed">
-                  {t.features.cards[1].desc}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between text-[10px] font-mono text-mist">
-                <span>AUTOMÁTICO 24/7</span>
-                <span className="text-mint font-bold">CONFIRMACIÓN 1-CLIC</span>
-              </div>
-            </div>
-
-            {/* Mediano 3: Anticipos y pagos en línea (esquina achaflanada tl) */}
-            <div className="bg-white border-2 border-ink p-6 ticket-chamfer-tl relative flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-flame text-paper flex items-center justify-center">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-mono text-flame font-bold">
-                    {t.features.cards[2].badge}
-                  </span>
-                </div>
-                <h4 className="font-bricolage font-semibold text-lg text-ink pt-1">
-                  {t.features.cards[2].title}
-                </h4>
-                <p className="text-xs sm:text-sm text-mist leading-relaxed">
-                  {t.features.cards[2].desc}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between text-[10px] font-mono text-mist">
-                <span>DEPÓSITOS DIRECTOS</span>
-                <span className="text-flame font-bold">CERO CANCELACIÓN</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+  return <section id="diferenciadores" className="bg-grape py-20 text-paper lg:py-28"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="mb-10 max-w-3xl md:mb-14"><p className="mb-4 text-xs font-bold text-flame">{lang === "es" ? "Hecho para operar" : "Made to run your business"}</p><h2 className="font-bricolage text-5xl font-bold leading-[.98] tracking-tight sm:text-6xl lg:text-7xl">{lang === "es" ? "Todo cae en su lugar." : "Everything falls into place."}</h2></div><div className="grid gap-4 lg:grid-cols-[1.2fr_.8fr_.8fr] lg:grid-rows-2">{cards.map(([title, desc, Icon], index) => <article key={title} className={`flex min-h-[280px] flex-col justify-between bg-paper p-8 text-ink ${shapes[index]}`}><div className="flex items-start justify-between gap-4"><span className="grid size-12 place-items-center rounded-full border-2 border-current"><Icon className="size-6" aria-hidden="true" /></span><span className="text-sm">0{index + 1}</span></div><div className="mt-12"><h3 className="font-bricolage text-2xl font-semibold leading-tight sm:text-3xl">{title}</h3><div className="my-5 border-t-2 border-dashed border-current opacity-40" /><p className="max-w-xl leading-relaxed opacity-75">{desc}</p></div></article>)}</div></div></section>;
 }

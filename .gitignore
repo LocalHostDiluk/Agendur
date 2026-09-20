@@ -78,3 +78,6 @@ Desktop.ini
 
 # Local convenience symlink to apps/web/tests
 /tests
+
+# landing page no utilizada
+/landing
