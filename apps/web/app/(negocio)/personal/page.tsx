@@ -13,6 +13,9 @@ import {
   AlertCircle,
   RefreshCw,
   CalendarDays,
+  Pencil,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import {
   useAuthMe,
@@ -20,11 +23,17 @@ import {
   useSucursales,
   useServicios,
   useCitasNegocio,
+  useProfesionales,
+  useUpdateProfesional,
+  useConfirmDialog,
 } from "@/lib/hooks";
 import {
   ModalNuevoColaborador,
+  ModalEditarColaborador,
   type ColaboradorCreadoPayload,
-} from "@/components/negocio/ModalNuevoColaborador";
+} from "@/components/negocio";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { notify } from "@/lib/utils/toast";
 import {
   SkeletonBlock,
   SkeletonText,
@@ -61,9 +70,15 @@ export default function PersonalPage({
   const [selectedSucursalId, setSelectedSucursalId] = useState<string>("todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [colaboradorAEditar, setColaboradorAEditar] =
+    useState<UnifiedColaborador | null>(null);
   const [colaboradoresLocales, setColaboradoresLocales] = useState<
     UnifiedColaborador[]
   >([]);
+
+  const confirmDialog = useConfirmDialog();
+  const updateProfesional = useUpdateProfesional();
 
   // Queries
   const {
@@ -72,6 +87,13 @@ export default function PersonalPage({
     isError: authError,
   } = useAuthMe();
   const negocioSlug = auth?.negocio?.slug;
+
+  const {
+    data: profesionalesData,
+    isLoading: profesionalesLoading,
+    isError: profesionalesError,
+    refetch: refetchProfesionales,
+  } = useProfesionales();
 
   const {
     data: catalogoData,
@@ -100,15 +122,29 @@ export default function PersonalPage({
   );
   const citas = useMemo(() => citasData?.citas ?? [], [citasData?.citas]);
 
-  // Merge remote professionals from catalog with any locally added in this session
+  // Combine remote professionals from direct API (fallback to catalog for backwards compatibility)
   const todosLosColaboradores = useMemo(() => {
-    const remotos = (catalogoData?.data?.profesionales ?? []).map((p) => ({
-      ...p,
-      rol: "Especialista",
-      hora_inicio: "09:00",
-      hora_fin: "18:00",
-      dias_laborables: [1, 2, 3, 4, 5, 6],
-    }));
+    let remotos: UnifiedColaborador[] = [];
+
+    if (profesionalesData?.profesionales) {
+      remotos = profesionalesData.profesionales.map((p) => ({
+        ...p,
+        serviciosIds: p.serviciosIds || [],
+        rol: p.cargo || "Especialista",
+        hora_inicio: "09:00",
+        hora_fin: "18:00",
+        dias_laborables: [1, 2, 3, 4, 5, 6],
+      }));
+    } else if (catalogoData?.data?.profesionales) {
+      remotos = (catalogoData.data.profesionales ?? []).map((p) => ({
+        ...p,
+        serviciosIds: (p as unknown as { serviciosIds?: string[] }).serviciosIds || [],
+        rol: p.cargo || "Especialista",
+        hora_inicio: "09:00",
+        hora_fin: "18:00",
+        dias_laborables: [1, 2, 3, 4, 5, 6],
+      }));
+    }
 
     // Avoid duplicates by ID
     const map = new Map<string, UnifiedColaborador>();
@@ -116,7 +152,11 @@ export default function PersonalPage({
     colaboradoresLocales.forEach((c) => map.set(c.id, c));
 
     return Array.from(map.values());
-  }, [catalogoData?.data?.profesionales, colaboradoresLocales]);
+  }, [
+    profesionalesData?.profesionales,
+    catalogoData?.data?.profesionales,
+    colaboradoresLocales,
+  ]);
 
   // Filtered list
   const colaboradoresFiltrados = useMemo(() => {
@@ -136,7 +176,7 @@ export default function PersonalPage({
       const matchRol = (colab.rol ?? "").toLowerCase().includes(q);
 
       // Check if services match search
-      const matchServicio = colab.serviciosIds.some((sId) => {
+      const matchServicio = (colab.serviciosIds || []).some((sId) => {
         const serv = servicios.find((s) => s.id === sId);
         return serv?.nombre.toLowerCase().includes(q);
       });
@@ -164,12 +204,63 @@ export default function PersonalPage({
     setColaboradoresLocales((prev) => [nuevo, ...prev]);
   };
 
+  // Handler when a professional is updated in the edit modal
+  const handleColaboradorActualizado = (updated: UnifiedColaborador) => {
+    setColaboradoresLocales((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c)),
+    );
+  };
+
+  // Toggle active / inactive with confirmation dialog
+  const handleToggleActivo = async (colab: UnifiedColaborador) => {
+    const nuevoEstado = !colab.activo;
+    if (!nuevoEstado) {
+      const confirmado = await confirmDialog.confirm({
+        title: "¿Desactivar colaborador?",
+        message: `¿Estás seguro de desactivar a ${colab.nombre} ${colab.apellido ?? ""}? Dejará de recibir nuevas citas y no aparecerá en el portal de reservas.`,
+        confirmText: "Desactivar",
+        cancelText: "Cancelar",
+        type: "danger",
+      });
+      if (!confirmado) return;
+    }
+
+    try {
+      await updateProfesional.mutateAsync({
+        id: colab.id,
+        activo: nuevoEstado,
+      });
+      notify.success(
+        nuevoEstado ? "Colaborador activado" : "Colaborador desactivado",
+        `${colab.nombre} ahora está ${nuevoEstado ? "activo" : "inactivo"}.`,
+      );
+      setColaboradoresLocales((prev) =>
+        prev.map((c) =>
+          c.id === colab.id ? { ...c, activo: nuevoEstado } : c,
+        ),
+      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Error al actualizar estado.";
+      notify.error("No se pudo actualizar", msg);
+    }
+  };
+
   const isLoading =
-    (authLoading || catalogoLoading || sucursalesLoading) && !catalogoData;
+    (authLoading ||
+      profesionalesLoading ||
+      catalogoLoading ||
+      sucursalesLoading) &&
+    !profesionalesData &&
+    !catalogoData;
+
   const isError =
-    (authError || catalogoError || sucursalesError) && !catalogoData;
+    (authError || profesionalesError || catalogoError || sucursalesError) &&
+    !profesionalesData &&
+    !catalogoData;
 
   const handleRetryAll = () => {
+    refetchProfesionales();
     refetchCatalogo();
     refetchSucursales();
   };
@@ -192,7 +283,7 @@ export default function PersonalPage({
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="min-h-[44px] px-5 py-2.5 rounded-lg bg-grape hover:bg-grape/90 text-white font-medium text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-sm shrink-0 focus:outline-hidden focus:ring-2 focus:ring-grape focus:ring-offset-2"
+          className="min-h-[44px] px-5 py-2.5 rounded-lg bg-grape hover:bg-grape/90 text-white font-medium text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-sm shrink-0 focus:outline-hidden focus:ring-2 focus:ring-grape focus:ring-offset-2 cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           <span>Registrar Colaborador</span>
@@ -212,7 +303,7 @@ export default function PersonalPage({
             role="tab"
             aria-selected={activeTab === "directorio"}
             onClick={() => setActiveTab("directorio")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
               activeTab === "directorio"
                 ? "bg-grape text-white shadow-xs"
                 : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
@@ -236,7 +327,7 @@ export default function PersonalPage({
             role="tab"
             aria-selected={activeTab === "horarios"}
             onClick={() => setActiveTab("horarios")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
               activeTab === "horarios"
                 ? "bg-grape text-white shadow-xs"
                 : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
@@ -282,7 +373,7 @@ export default function PersonalPage({
         </div>
       </div>
 
-      {/* STATE 1: LOADING (REGLA S.4: Estructura real con skeletons) */}
+      {/* STATE 1: LOADING */}
       {isLoading && (
         <div className="space-y-4 animate-pulse" data-testid="personal-loading">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -341,7 +432,7 @@ export default function PersonalPage({
           <button
             type="button"
             onClick={handleRetryAll}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface border border-border text-sm font-medium text-text-primary hover:bg-surface-alt transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface border border-border text-sm font-medium text-text-primary hover:bg-surface-alt transition-colors cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             <span>Reintentar</span>
@@ -373,7 +464,7 @@ export default function PersonalPage({
               if (searchQuery) setSearchQuery("");
               else setIsModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-grape hover:bg-grape/90 text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-grape hover:bg-grape/90 text-white text-xs font-medium transition-colors cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>
@@ -396,7 +487,7 @@ export default function PersonalPage({
                   (s) => s.id === colab.sucursal_id,
                 );
                 const serviciosDelColab = servicios.filter((s) =>
-                  colab.serviciosIds.includes(s.id),
+                  (colab.serviciosIds || []).includes(s.id),
                 );
 
                 // Citas agendadas para este colaborador
@@ -405,10 +496,16 @@ export default function PersonalPage({
                     c.profesional_id === colab.id && c.estado !== "cancelada",
                 );
 
+                const esActivo = colab.activo !== false;
+
                 return (
                   <div
                     key={colab.id}
-                    className="bg-surface border border-border rounded-2xl p-5 space-y-4 hover:border-grape/40 transition-all flex flex-col justify-between shadow-xs"
+                    className={`bg-surface border rounded-2xl p-5 space-y-4 transition-all flex flex-col justify-between shadow-xs ${
+                      esActivo
+                        ? "border-border hover:border-grape/40"
+                        : "border-border/60 opacity-80"
+                    }`}
                   >
                     <div className="space-y-3.5">
                       {/* Avatar + Info Básica */}
@@ -423,8 +520,14 @@ export default function PersonalPage({
                             <h3 className="font-bricolage font-bold text-base text-text-primary truncate">
                               {colab.nombre} {colab.apellido ?? ""}
                             </h3>
-                            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-mint/15 text-mint-dark border border-mint/20 shrink-0">
-                              Activo
+                            <span
+                              className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                                esActivo
+                                  ? "bg-mint/15 text-mint-dark border-mint/20"
+                                  : "bg-surface-alt text-text-muted border-border"
+                              }`}
+                            >
+                              {esActivo ? "Activo" : "Inactivo"}
                             </span>
                           </div>
 
@@ -488,7 +591,7 @@ export default function PersonalPage({
                       </div>
                     </div>
 
-                    {/* Footer: Métricas y Acción Horario */}
+                    {/* Footer: Métricas y Acciones */}
                     <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                         <Clock className="w-3.5 h-3.5 text-grape" />
@@ -502,14 +605,58 @@ export default function PersonalPage({
                         </span>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("horarios")}
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-grape/10 hover:bg-grape/20 text-grape transition-colors inline-flex items-center gap-1"
-                      >
-                        <CalendarDays className="w-3.5 h-3.5" />
-                        <span>Ver horarios</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        {/* Botón Editar */}
+                        <button
+                          type="button"
+                          title="Editar colaborador"
+                          onClick={() => {
+                            setColaboradorAEditar(colab);
+                            setIsEditModalOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors inline-flex items-center cursor-pointer"
+                          aria-label={`Editar a ${colab.nombre}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Botón Activar / Desactivar */}
+                        <button
+                          type="button"
+                          title={
+                            esActivo
+                              ? "Desactivar colaborador"
+                              : "Reactivar colaborador"
+                          }
+                          onClick={() => handleToggleActivo(colab)}
+                          className={`p-1.5 rounded-lg transition-colors inline-flex items-center cursor-pointer ${
+                            esActivo
+                              ? "text-danger hover:bg-danger/10"
+                              : "text-mint-dark hover:bg-mint/10"
+                          }`}
+                          aria-label={
+                            esActivo
+                              ? `Desactivar a ${colab.nombre}`
+                              : `Activar a ${colab.nombre}`
+                          }
+                        >
+                          {esActivo ? (
+                            <UserX className="w-3.5 h-3.5" />
+                          ) : (
+                            <UserCheck className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+
+                        {/* Botón Ver Horarios */}
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("horarios")}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-grape/10 hover:bg-grape/20 text-grape transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <CalendarDays className="w-3.5 h-3.5" />
+                          <span>Ver horarios</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -642,6 +789,22 @@ export default function PersonalPage({
         servicios={servicios}
         onColaboradorCreado={handleColaboradorCreado}
       />
+
+      {/* Modal para Editar Colaborador */}
+      <ModalEditarColaborador
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setColaboradorAEditar(null);
+        }}
+        colaborador={colaboradorAEditar}
+        sucursales={sucursales}
+        servicios={servicios}
+        onColaboradorActualizado={handleColaboradorActualizado}
+      />
+
+      {/* Diálogo de Confirmación para Desactivar */}
+      <ConfirmDialog {...confirmDialog.dialogProps} />
     </div>
   );
 }

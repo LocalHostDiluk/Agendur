@@ -100,14 +100,23 @@ function renderWithClient(
   });
 
   if (options?.isLoading) {
-    // Leave catalog uninitialized to test loading
+    // Leave queries uninitialized to test loading
   } else {
+    const profs =
+      options?.profesionales !== undefined
+        ? options.profesionales
+        : mockProfesionales;
+
+    client.setQueryData(["negocio", "profesionales", undefined], {
+      profesionales: profs,
+    });
+
     client.setQueryData(["cliente", "catalogo", "barberia-elite"], {
       data: {
         negocio: { id: "neg-1", slug: "barberia-elite" },
         sucursales: mockSucursales,
         servicios: mockServicios,
-        profesionales: options?.profesionales !== undefined ? options.profesionales : mockProfesionales,
+        profesionales: profs,
       },
     });
   }
@@ -200,6 +209,34 @@ describe("Módulo de Personal y Horarios (/personal) — Tests de UI/UX", () => 
 
     expect(html).toContain("Aún no tienes personal registrado");
     expect(html).toContain("Registrar primer colaborador");
+  });
+
+  it("debe renderizar botones de acción para editar y desactivar en cada tarjeta de colaborador", () => {
+    const html = renderWithClient(<PersonalPage initialTab="directorio" />);
+
+    expect(html).toContain("aria-label=\"Editar a Alejandro\"");
+    expect(html).toContain("aria-label=\"Desactivar a Alejandro\"");
+    expect(html).toContain("aria-label=\"Editar a Beatriz\"");
+    expect(html).toContain("aria-label=\"Desactivar a Beatriz\"");
+  });
+
+  it("debe renderizar badge Inactivo cuando un colaborador está desactivado", () => {
+    const html = renderWithClient(<PersonalPage initialTab="directorio" />, {
+      profesionales: [
+        {
+          id: "prof-inactivo",
+          nombre: "Mario",
+          apellido: "Inactivo",
+          sucursal_id: "suc-1",
+          avatar_url: null,
+          activo: false,
+          serviciosIds: [],
+        },
+      ],
+    });
+
+    expect(html).toContain("Inactivo");
+    expect(html).toContain("aria-label=\"Activar a Mario\"");
   });
 });
 

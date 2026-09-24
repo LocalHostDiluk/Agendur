@@ -1,32 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, UserPlus, Clock, Store, Sparkles, Check, Loader2 } from "lucide-react";
+import { X, UserCheck, Store, Sparkles, Check, Loader2 } from "lucide-react";
 import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
-import { useCreateProfesional } from "@/lib/hooks";
+import { useUpdateProfesional } from "@/lib/hooks";
+import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
 
-export interface ColaboradorCreadoPayload {
-  id: string;
-  nombre: string;
-  apellido: string;
-  sucursal_id: string;
-  email: string;
-  telefono: string;
-  serviciosIds: string[];
-  rol: string;
-  hora_inicio: string;
-  hora_fin: string;
-  dias_laborables: number[];
-  activo: boolean;
-}
-
-export interface ModalNuevoColaboradorProps {
+export interface ModalEditarColaboradorProps {
   isOpen: boolean;
   onClose: () => void;
+  colaborador: UnifiedColaborador | null;
   sucursales: Sucursal[];
   servicios: Servicio[];
-  onColaboradorCreado?: (colaborador: ColaboradorCreadoPayload) => void;
+  onColaboradorActualizado?: (colaborador: UnifiedColaborador) => void;
 }
 
 const ROLES = [
@@ -36,45 +23,40 @@ const ROLES = [
   { value: "Asistente", label: "Asistente / Apoyo" },
 ];
 
-const DIAS_SEMANA = [
-  { dia: 1, label: "Lun" },
-  { dia: 2, label: "Mar" },
-  { dia: 3, label: "Mié" },
-  { dia: 4, label: "Jue" },
-  { dia: 5, label: "Vie" },
-  { dia: 6, label: "Sáb" },
-  { dia: 0, label: "Dom" },
-];
-
-const HORAS_OPCIONES = [
-  "07:00", "07:30", "08:00", "08:30", "09:00", "09:30",
-  "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
-  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00", "17:30", "18:00", "18:30",
-  "19:00", "19:30", "20:00", "20:30", "21:00",
-];
-
-export function ModalNuevoColaborador({
+export function ModalEditarColaborador({
   isOpen,
   onClose,
+  colaborador,
   sucursales,
   servicios,
-  onColaboradorCreado,
-}: ModalNuevoColaboradorProps) {
+  onColaboradorActualizado,
+}: ModalEditarColaboradorProps) {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
-  const defaultSucursalId =
-    sucursales.find((s) => s.es_matriz)?.id || sucursales[0]?.id || "";
-  const [sucursalId, setSucursalId] = useState(defaultSucursalId);
+  const [sucursalId, setSucursalId] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [rol, setRol] = useState("Especialista");
   const [selectedServicios, setSelectedServicios] = useState<string[]>([]);
-  const [horaInicio, setHoraInicio] = useState("09:00");
-  const [horaFin, setHoraFin] = useState("18:00");
-  const [diasLaborables, setDiasLaborables] = useState<number[]>([1, 2, 3, 4, 5, 6]);
+  const [activo, setActivo] = useState(true);
 
-  const createProfesional = useCreateProfesional();
+  const updateProfesional = useUpdateProfesional();
+
+  // Populate form with existing collaborator data
+  useEffect(() => {
+    if (colaborador) {
+      setNombre(colaborador.nombre || "");
+      setApellido(colaborador.apellido || "");
+      setSucursalId(
+        colaborador.sucursal_id || sucursales[0]?.id || "",
+      );
+      setEmail(colaborador.email || "");
+      setTelefono(colaborador.telefono || "");
+      setRol(colaborador.cargo || colaborador.rol || "Especialista");
+      setSelectedServicios(colaborador.serviciosIds || []);
+      setActivo(colaborador.activo !== false);
+    }
+  }, [colaborador, sucursales]);
 
   // Accessibility: escape key and body scroll lock
   useEffect(() => {
@@ -96,17 +78,11 @@ export function ModalNuevoColaborador({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !colaborador) return null;
 
   const toggleServicio = (id: string) => {
     setSelectedServicios((prev) =>
       prev.includes(id) ? prev.filter((sId) => sId !== id) : [...prev, id],
-    );
-  };
-
-  const toggleDia = (dia: number) => {
-    setDiasLaborables((prev) =>
-      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia],
     );
   };
 
@@ -116,18 +92,6 @@ export function ModalNuevoColaborador({
     } else {
       setSelectedServicios(servicios.map((s) => s.id));
     }
-  };
-
-  const resetForm = () => {
-    setNombre("");
-    setApellido("");
-    setEmail("");
-    setTelefono("");
-    setRol("Especialista");
-    setSelectedServicios([]);
-    setHoraInicio("09:00");
-    setHoraFin("18:00");
-    setDiasLaborables([1, 2, 3, 4, 5, 6]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,7 +113,8 @@ export function ModalNuevoColaborador({
     }
 
     try {
-      const response = await createProfesional.mutateAsync({
+      const response = await updateProfesional.mutateAsync({
+        id: colaborador.id,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         sucursal_id: sucursalId,
@@ -157,36 +122,33 @@ export function ModalNuevoColaborador({
         email: email.trim() || null,
         telefono: telefono.trim() || null,
         serviciosIds: selectedServicios,
-        activo: true,
+        activo,
       });
 
-      const prof = response.profesional;
+      const updated = response.profesional;
       notify.success(
-        "Colaborador registrado",
-        `${prof.nombre} ${prof.apellido ?? ""} ha sido agregado al equipo de trabajo.`,
+        "Colaborador actualizado",
+        `Se guardaron los cambios para ${updated.nombre} ${updated.apellido ?? ""}.`,
       );
 
-      onColaboradorCreado?.({
-        id: prof.id,
-        nombre: prof.nombre,
-        apellido: prof.apellido ?? "",
-        sucursal_id: prof.sucursal_id ?? sucursalId,
-        email: prof.email || "",
-        telefono: prof.telefono || "",
-        serviciosIds: prof.serviciosIds ?? selectedServicios,
-        rol: prof.cargo || rol,
-        hora_inicio: horaInicio,
-        hora_fin: horaFin,
-        dias_laborables: diasLaborables,
-        activo: true,
+      onColaboradorActualizado?.({
+        ...colaborador,
+        nombre: updated.nombre,
+        apellido: updated.apellido ?? "",
+        sucursal_id: updated.sucursal_id ?? sucursalId,
+        email: updated.email || null,
+        telefono: updated.telefono || null,
+        cargo: updated.cargo || rol,
+        rol: updated.cargo || rol,
+        serviciosIds: updated.serviciosIds ?? selectedServicios,
+        activo: updated.activo ?? activo,
       });
 
-      resetForm();
       onClose();
     } catch (err: unknown) {
       const errorMsg =
-        err instanceof Error ? err.message : "Error al registrar colaborador.";
-      notify.error("No se pudo registrar", errorMsg);
+        err instanceof Error ? err.message : "Error al actualizar colaborador.";
+      notify.error("No se pudo actualizar", errorMsg);
     }
   };
 
@@ -195,32 +157,29 @@ export function ModalNuevoColaborador({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-nuevo-colaborador-title"
+      aria-labelledby="modal-editar-colaborador-title"
     >
-      {/* Dark backdrop with blur */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal Card */}
       <div className="relative w-full max-w-xl bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-lg bg-grape/10 border border-grape/20 text-grape flex items-center justify-center">
-              <UserPlus className="w-5 h-5" />
+              <UserCheck className="w-5 h-5" />
             </div>
             <div>
               <h2
-                id="modal-nuevo-colaborador-title"
+                id="modal-editar-colaborador-title"
                 className="font-bricolage font-bold text-lg text-text-primary leading-tight"
               >
-                Registrar Colaborador
+                Editar Colaborador
               </h2>
               <p className="text-xs text-text-secondary">
-                Agrega un nuevo especialista o miembro de equipo a tu negocio.
+                Modifica el perfil, sede, servicios asignados y estado del especialista.
               </p>
             </div>
           </div>
@@ -234,19 +193,17 @@ export function ModalNuevoColaborador({
           </button>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* Nombre y Apellido */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label
-                htmlFor="colaborador-nombre"
+                htmlFor="edit-colaborador-nombre"
                 className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
               >
                 Nombre *
               </label>
               <input
-                id="colaborador-nombre"
+                id="edit-colaborador-nombre"
                 type="text"
                 required
                 value={nombre}
@@ -258,13 +215,13 @@ export function ModalNuevoColaborador({
 
             <div className="space-y-1.5">
               <label
-                htmlFor="colaborador-apellido"
+                htmlFor="edit-colaborador-apellido"
                 className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
               >
                 Apellido *
               </label>
               <input
-                id="colaborador-apellido"
+                id="edit-colaborador-apellido"
                 type="text"
                 required
                 value={apellido}
@@ -275,18 +232,17 @@ export function ModalNuevoColaborador({
             </div>
           </div>
 
-          {/* Sucursal y Rol */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label
-                htmlFor="colaborador-sucursal"
+                htmlFor="edit-colaborador-sucursal"
                 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5"
               >
                 <Store className="w-3.5 h-3.5 text-grape" />
                 <span>Sucursal Asignada *</span>
               </label>
               <select
-                id="colaborador-sucursal"
+                id="edit-colaborador-sucursal"
                 required
                 value={sucursalId}
                 onChange={(e) => setSucursalId(e.target.value)}
@@ -302,13 +258,13 @@ export function ModalNuevoColaborador({
 
             <div className="space-y-1.5">
               <label
-                htmlFor="colaborador-rol"
+                htmlFor="edit-colaborador-rol"
                 className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
               >
-                Rol en el Negocio
+                Cargo o Rol
               </label>
               <select
-                id="colaborador-rol"
+                id="edit-colaborador-rol"
                 value={rol}
                 onChange={(e) => setRol(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
@@ -322,17 +278,16 @@ export function ModalNuevoColaborador({
             </div>
           </div>
 
-          {/* Contacto: Teléfono y Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label
-                htmlFor="colaborador-telefono"
+                htmlFor="edit-colaborador-telefono"
                 className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
               >
                 Teléfono de Contacto
               </label>
               <input
-                id="colaborador-telefono"
+                id="edit-colaborador-telefono"
                 type="tel"
                 inputMode="tel"
                 value={telefono}
@@ -344,13 +299,13 @@ export function ModalNuevoColaborador({
 
             <div className="space-y-1.5">
               <label
-                htmlFor="colaborador-email"
+                htmlFor="edit-colaborador-email"
                 className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
               >
                 Correo Electrónico
               </label>
               <input
-                id="colaborador-email"
+                id="edit-colaborador-email"
                 type="email"
                 inputMode="email"
                 value={email}
@@ -361,89 +316,31 @@ export function ModalNuevoColaborador({
             </div>
           </div>
 
-          {/* Horario Base y Días Laborables */}
-          <div className="p-4 bg-surface-alt border border-border rounded-xl space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-grape" />
-                <span>Horario Laboral Semanal</span>
-              </span>
+          <div className="flex items-center justify-between p-3.5 bg-surface-alt border border-border rounded-xl">
+            <div>
+              <p className="text-xs font-semibold text-text-primary">Estado del Colaborador</p>
+              <p className="text-[11px] text-text-secondary">
+                {activo
+                  ? "Activo — Disponible para agendar citas y aparecer en el portal."
+                  : "Inactivo — Temporalmente suspendido de nuevas reservas."}
+              </p>
             </div>
-
-            {/* Días laborables chips */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-text-secondary mr-1">Días:</span>
-              {DIAS_SEMANA.map((d) => {
-                const isSelected = diasLaborables.includes(d.dia);
-                return (
-                  <button
-                    key={d.dia}
-                    type="button"
-                    onClick={() => toggleDia(d.dia)}
-                    className={`size-8 rounded-lg text-xs font-semibold transition-all ${
-                      isSelected
-                        ? "bg-grape text-white shadow-xs"
-                        : "bg-surface border border-border text-text-muted hover:text-text-primary"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Franja horaria */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <label
-                  htmlFor="colaborador-entrada"
-                  className="text-[11px] text-text-secondary block mb-1"
-                >
-                  Hora Entrada
-                </label>
-                <select
-                  id="colaborador-entrada"
-                  value={horaInicio}
-                  onChange={(e) => setHoraInicio(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-                >
-                  {HORAS_OPCIONES.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="colaborador-salida"
-                  className="text-[11px] text-text-secondary block mb-1"
-                >
-                  Hora Salida
-                </label>
-                <select
-                  id="colaborador-salida"
-                  value={horaFin}
-                  onChange={(e) => setHoraFin(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-                >
-                  {HORAS_OPCIONES.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={activo}
+                onChange={(e) => setActivo(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-border peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-mint"></div>
+            </label>
           </div>
 
-          {/* Servicios Asignados (Multi-selector) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-grape" />
-                <span>Servicios que Puede Atender</span>
+                <span>Servicios Asignados</span>
               </label>
               {servicios.length > 0 && (
                 <button
@@ -494,12 +391,11 @@ export function ModalNuevoColaborador({
               </div>
             ) : (
               <p className="text-xs text-text-muted italic">
-                No hay servicios creados en el catálogo. Podrás asignarlos más adelante.
+                No hay servicios creados en el catálogo.
               </p>
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <button
               type="button"
@@ -511,18 +407,18 @@ export function ModalNuevoColaborador({
 
             <button
               type="submit"
-              disabled={createProfesional.isPending}
+              disabled={updateProfesional.isPending}
               className="min-h-[44px] px-5 py-2 rounded-lg bg-grape hover:bg-grape/90 disabled:opacity-50 text-white text-sm font-medium transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              {createProfesional.isPending ? (
+              {updateProfesional.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Registrando...</span>
+                  <span>Guardando...</span>
                 </>
               ) : (
                 <>
-                  <UserPlus className="w-4 h-4" />
-                  <span>Registrar Colaborador</span>
+                  <UserCheck className="w-4 h-4" />
+                  <span>Guardar Cambios</span>
                 </>
               )}
             </button>

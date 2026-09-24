@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS public.profesionales (
   sucursal_id UUID NOT NULL REFERENCES public.sucursales(id) ON DELETE CASCADE,
   nombre TEXT NOT NULL,
   apellido TEXT NOT NULL,
+  cargo TEXT DEFAULT 'Especialista',
   email TEXT NULL,
   telefono VARCHAR(20) NULL,
   avatar_url TEXT NULL,
@@ -160,7 +161,7 @@ CREATE TRIGGER tr_profesionales_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 CREATE VIEW public.profesionales_publicos WITH (security_invoker = true) AS
-SELECT id, sucursal_id, nombre, apellido, avatar_url, activo
+SELECT id, sucursal_id, nombre, apellido, avatar_url, activo, cargo
 FROM public.profesionales
 WHERE activo = true;
 
@@ -237,6 +238,7 @@ CREATE TABLE IF NOT EXISTS public.citas (
   monto_anticipo_pagado NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (monto_anticipo_pagado >= 0),
   metodo_pago_anticipo VARCHAR(30) NULL,
   notas_cliente TEXT NULL,
+  notas_internas TEXT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   privacidad_aceptada_en TIMESTAMPTZ NULL,

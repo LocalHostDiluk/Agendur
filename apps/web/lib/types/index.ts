@@ -57,13 +57,40 @@ export interface Profesional {
   sucursalId?: string;
   nombre: string;
   apellido?: string;
+  cargo?: string | null;
   email?: string | null;
   telefono?: string | null;
   avatar_url?: string | null;
   avatarUrl?: string;
   activo?: boolean;
+  serviciosIds?: string[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CreateProfesionalPayload {
+  nombre: string;
+  apellido: string;
+  sucursal_id: string;
+  cargo?: string;
+  email?: string | null;
+  telefono?: string | null;
+  avatar_url?: string | null;
+  activo?: boolean;
+  serviciosIds?: string[];
+}
+
+export interface UpdateProfesionalPayload {
+  id: string;
+  nombre?: string;
+  apellido?: string;
+  sucursal_id?: string;
+  cargo?: string;
+  email?: string | null;
+  telefono?: string | null;
+  avatar_url?: string | null;
+  activo?: boolean;
+  serviciosIds?: string[];
 }
 
 export interface ProfesionalServicio {
@@ -128,6 +155,7 @@ export interface Cita {
   montoAnticipo?: number;
   metodo_pago_anticipo?: string | null;
   notas_cliente?: string | null;
+  notas_internas?: string | null;
   privacidad_aceptada_en?: string | null;
   politica_cancelacion_aceptada_en?: string | null;
   created_at?: string;
