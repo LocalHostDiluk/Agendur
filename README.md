@@ -315,9 +315,16 @@ No existe todavía un endpoint de profesionales para el panel: `/personal` lee e
 
 ### 1. Instalar dependencias
 
+> Para poder instalar bun necesitas instalar desde la documentacion
+> https://bun.com/docs/installation
+
 ```bash
 git clone https://github.com/LocalHostDiluk/Agendur.git
+
+curl -fsSL https://bun.com/install | bash
+
 cd Agendur
+
 bun install --frozen-lockfile
 ```
 
