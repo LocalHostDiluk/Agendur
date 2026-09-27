@@ -52,14 +52,23 @@ export async function getSubscriptionUsage(
 
   const suscripcion = subData as Suscripcion;
 
-  // 2. Contar sucursales activas
-  const { count: sucursalesCount } = await adminClient
-    .from("sucursales")
-    .select("id", { count: "exact", head: true })
-    .eq("negocio_id", negocioId)
-    .eq("activa", true);
+  // 2. Contar sucursales totales y activas sin descargar filas.
+  const [totalSucursales, sucursalesActivas] = await Promise.all([
+    adminClient.from("sucursales").select("id", { count: "exact", head: true })
+      .eq("negocio_id", negocioId),
+    adminClient.from("sucursales").select("id", { count: "exact", head: true })
+      .eq("negocio_id", negocioId).eq("activa", true),
+  ]);
 
-  const sucursalesUsadas = sucursalesCount ?? 0;
+  if (totalSucursales.error || sucursalesActivas.error) {
+    throw new Error(
+      "No se pudieron consultar las sucursales: " +
+      (totalSucursales.error?.message || sucursalesActivas.error?.message),
+    );
+  }
+
+  const sucursalesCreadas = totalSucursales.count ?? 0;
+  const sucursalesUsadas = sucursalesActivas.count ?? 0;
 
   // 3. Contar profesionales activos
   const { data: sucursales } = await adminClient
@@ -97,7 +106,7 @@ export async function getSubscriptionUsage(
   return {
     suscripcion,
     sucursales_usadas: sucursalesUsadas,
-    sucursales_creadas: sucursalesUsadas,
+    sucursales_creadas: sucursalesCreadas,
     sucursales_limite: suscripcion.limite_sucursales,
     sucursales_disponibles: Math.max(
       0,

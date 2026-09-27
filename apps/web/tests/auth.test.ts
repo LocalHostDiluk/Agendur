@@ -22,6 +22,10 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       apellidos: "López",
       nombreComercial: "Mi Negocio",
       giroComercial: "Barbería",
+      telefono: "+52 55 1234 5678",
+      rol: "Dueño",
+      sucursales: "2–3",
+      ciudad: "Ciudad de México",
       aceptaTerminos: true,
       aceptaPrivacidad: true,
       termsVersionAccepted: "v1",
@@ -39,6 +43,10 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       const cases = [
         [{ nombres: " " }, "nombres"],
         [{ apellidos: " " }, "apellidos"],
+        [{ telefono: "5512345678" }, "teléfono internacional"],
+        [{ rol: "Administrador global" }, "rol de registro"],
+        [{ sucursales: "muchas" }, "sucursales"],
+        [{ ciudad: " " }, "ciudad"],
         [{ password: "12345678901", confirmarPassword: "12345678901" }, "12 caracteres"],
         [{ confirmarPassword: "otra-clave-segura-123" }, "coinciden"],
         [{ aceptaTerminos: false }, "Términos"],
@@ -49,21 +57,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         const response = await registerHandler(registrationRequest({ ...validRegistration, ...change }));
         expect(response.status).toBe(400);
         expect((await response.json()).error).toContain(message);
-      }
-    });
-
-    it("no crea el usuario si falta la configuración legal", async () => {
-      const signUp = spyOn(supabaseServer, "createClient");
-      const previous = process.env.NEXT_PUBLIC_TERMS_VERSION;
-      delete process.env.NEXT_PUBLIC_TERMS_VERSION;
-      try {
-        const response = await registerHandler(registrationRequest(validRegistration));
-        expect(response.status).toBe(503);
-        expect(signUp).not.toHaveBeenCalled();
-      } finally {
-        signUp.mockRestore();
-        if (previous === undefined) delete process.env.NEXT_PUBLIC_TERMS_VERSION;
-        else process.env.NEXT_PUBLIC_TERMS_VERSION = previous;
       }
     });
 
@@ -81,7 +74,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       const inserts: Array<{ table: string; rows: unknown }> = [];
       let callbackUrl = "";
       let signUpCalls = 0;
-      let schemaAvailable = false;
       let subscriptionFails = false;
       let deleteCalls = 0;
       let obfuscated = false;
@@ -99,7 +91,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         auth: { admin: { deleteUser: async () => { deleteCalls++; return { error: null }; } } },
         from: (table: string) => ({
           select: () => ({
-            limit: async () => ({ error: schemaAvailable ? null : { message: "identity_data not installed" } }),
             eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
           }),
           insert: (rows: unknown) => {
@@ -122,11 +113,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         expect(staleDocument.status).toBe(409);
         expect(signUpCalls).toBe(0);
 
-        const unavailable = await registerHandler(registrationRequest(validRegistration));
-        expect(unavailable.status).toBe(503);
-        expect(signUpCalls).toBe(0);
-        schemaAvailable = true;
-
         obfuscated = true;
         const existingAccount = await registerHandler(registrationRequest(validRegistration));
         expect(existingAccount.status).toBe(400);
@@ -148,11 +134,21 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         expect(inserts.map((entry) => entry.table)).toEqual([
           "perfiles_usuario", "consentimientos_usuario", "negocios", "suscripciones",
         ]);
-        expect(inserts[0].rows).toEqual({ usuario_id: "user-1", nombres: "Ana", apellidos: "López" });
+        expect(inserts[0].rows).toEqual({
+          usuario_id: "user-1",
+          nombres: "Ana",
+          apellidos: "López",
+          telefono: "+525512345678",
+          rol: "Dueño",
+        });
         expect(inserts[1].rows).toEqual([
           { usuario_id: "user-1", documento: "terminos_servicio", version: "v1" },
           { usuario_id: "user-1", documento: "aviso_privacidad", version: "v2" },
         ]);
+        expect(inserts[2].rows).toMatchObject({
+          ciudad: "Ciudad de México",
+          sucursales_estimadas: "2–3",
+        });
         expect(callbackUrl).toBe("http://localhost:3000/api/auth/callback");
         expect(signUpCalls).toBe(3);
 
@@ -160,6 +156,15 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         const failedTrial = await registerHandler(registrationRequest(validRegistration));
         expect(failedTrial.status).toBe(500);
         expect(deleteCalls).toBe(1);
+
+        subscriptionFails = false;
+        keys.forEach((key) => delete process.env[key]);
+        const fallbackLegal = await registerHandler(registrationRequest({
+          ...validRegistration,
+          termsVersionAccepted: "v1",
+          privacyVersionAccepted: "v1",
+        }));
+        expect(fallbackLegal.status).toBe(201);
       } finally {
         adminSpy.mockRestore();
         serverSpy.mockRestore();

@@ -127,9 +127,7 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
         ];
 
   // Estado del Wizard
-  const [currentStepKey, setCurrentStepKey] = useState<StepKey>(
-    isMultiBranch ? "sucursal" : "fecha",
-  );
+  const [currentStepKey, setCurrentStepKey] = useState<StepKey>("sucursal");
 
   // Estados de selección de cita
   const [selectedSucursalId, setSelectedSucursalId] = useState<string>("");
@@ -161,7 +159,7 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
   const accentColor = "var(--grape)";
 
   // Sucursal y servicio activos (autoselecciona matriz o primera sede si no hay selección manual)
-  const defaultSucursal = sucursales.find((s) => s.es_matriz) || sucursales[0];
+  const defaultSucursal = sucursales.length === 1 ? sucursales[0] : undefined;
   const sucursalActiva =
     sucursales.find((s) => s.id === selectedSucursalId) || defaultSucursal;
   const servicioActivo = servicios.find((s) => s.id === servicioId);
@@ -206,7 +204,7 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
       setSelectedSucursalId(id);
       setServicioId("");
       setHora("");
-      setNotice("Actualizamos los horarios disponibles.");
+      if (servicioId || hora) setNotice("Actualizamos los horarios disponibles.");
       setTimeout(() => setNotice(""), 3500);
     }
   }
@@ -216,7 +214,7 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
       setFecha(newDate);
       setServicioId("");
       setHora("");
-      setNotice("Actualizamos los horarios disponibles.");
+      if (servicioId || hora) setNotice("Actualizamos los horarios disponibles.");
       setTimeout(() => setNotice(""), 3500);
     }
   }
@@ -225,7 +223,7 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
     if (id !== servicioId) {
       setServicioId(id);
       setHora("");
-      setNotice("Actualizamos los horarios disponibles.");
+      if (hora) setNotice("Actualizamos los horarios disponibles.");
       setTimeout(() => setNotice(""), 3500);
     }
   }
@@ -756,7 +754,10 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
                         </span>
                       </button>
                     ) : isActive ? (
-                      <div className="flex items-center gap-2">
+                      <div
+                        className="flex items-center gap-2"
+                        aria-current="step"
+                      >
                         <span className="w-8 h-8 rounded-full border-2 border-grape bg-transparent flex items-center justify-center font-mono text-sm font-bold text-grape">
                           {idx + 1}
                         </span>
@@ -791,8 +792,12 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
 
           {/* Aviso breve de actualización en cascada (REGLA B.5) */}
           {notice && (
-            <div className="mb-4 p-3 rounded-xl bg-grape/10 border border-grape/20 text-xs font-sans text-grape flex items-center gap-2 animate-in fade-in">
-              <Sparkles className="w-4 h-4 shrink-0" />
+            <div
+              role="status"
+              aria-live="polite"
+              className="mb-4 p-3 rounded-xl bg-grape/10 border border-grape/20 text-xs font-sans text-grape flex items-center gap-2 animate-in fade-in"
+            >
+              <Sparkles className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span>{notice}</span>
             </div>
           )}
@@ -911,18 +916,19 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
                     return (
                       <button
                         key={s.id}
-                        type="button"
-                        disabled={isClosed}
-                        onClick={() => handleSelectSucursal(s.id)}
-                        className={`w-full min-h-[56px] text-left p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                          isSelected
+                       type="button"
+                       disabled={isClosed}
+                       onClick={() => handleSelectSucursal(s.id)}
+                        aria-pressed={isSelected}
+                        className={`w-full min-h-[56px] text-left p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grape focus-visible:ring-offset-2 ${
+                         isSelected
                             ? "border-2 border-grape bg-grape-soft shadow-sm"
                             : isClosed
                               ? "border-border bg-surface opacity-50 cursor-not-allowed"
                               : "border-border bg-surface hover:bg-surface-alt"
                         }`}
                       >
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-sans text-base font-semibold text-text-primary">
                               {s.nombre}
@@ -942,11 +948,14 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
                             {s.direccion}
                             {s.ciudad ? `, ${s.ciudad}` : ""}
                           </p>
-                          <p className="text-xs text-text-muted mt-1">
-                            Hoy: 09:00 - 19:00
-                          </p>
-                        </div>
-                      </button>
+                       </div>
+                        {isSelected && (
+                          <Check
+                            className="w-5 h-5 shrink-0 text-grape"
+                            aria-hidden="true"
+                          />
+                        )}
+                     </button>
                     );
                   })}
                 </div>

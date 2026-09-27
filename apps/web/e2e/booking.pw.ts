@@ -73,6 +73,8 @@ test("registro, onboarding, configuración y reserva tras conflicto", async ({ p
   await expect.poll(() => requests.some((item) => item.path === "/api/auth/register")).toBe(true);
   expect((requests.find((item) => item.path === "/api/auth/register")?.body as Record<string, unknown>)).toMatchObject({
     aceptaTerminos: true, aceptaPrivacidad: true, nombres: "Ana", apellidos: "López",
+    telefono: "+52 8112345678", rol: "Dueño", sucursales: "1", ciudad: "Monterrey",
+    termsVersionAccepted: "v1", privacyVersionAccepted: "v1",
   });
 
   await page.goto("/onboarding");
