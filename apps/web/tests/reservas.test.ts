@@ -127,6 +127,45 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       );
     });
 
+    it("usa el horario semanal cuando no existen excepciones", async () => {
+      await withAvailabilityScenario({}, async () => {
+        const horarios = await obtenerDisponibilidad({
+          sucursalId: "suc-1",
+          servicioId: "serv-1",
+          profesionalId: "prof-1",
+          fecha: "2098-01-01",
+        });
+
+        expect(horarios).toHaveLength(16);
+        expect(horarios[0]).toBe("09:00");
+        expect(horarios.at(-1)).toBe("16:30");
+      });
+    });
+
+    it("no ofrece un slot cuya ocupación termina exactamente a medianoche", async () => {
+      await withAvailabilityScenario(
+        {
+          servicio: { duracion_minutos: 30, buffer_minutos: 30 },
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "23:00", hora_cierre: "24:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "23:00", hora_fin: "24:00" },
+          ],
+        },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual([]);
+        },
+      );
+    });
+
     it("bloquea citas hasta hora_fin_buffer y usa hora_fin para citas legacy", async () => {
       await withAvailabilityScenario(
         {

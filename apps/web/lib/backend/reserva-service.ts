@@ -268,7 +268,8 @@ export async function obtenerDisponibilidad(
       for (const ventana of ventanas) {
         for (
           let inicio = ventana.inicio;
-          inicio + ocupacionMin <= ventana.fin;
+          inicio + ocupacionMin <= ventana.fin &&
+          inicio + ocupacionMin < 24 * 60;
           inicio += pasoMin
         ) {
           const fin = inicio + ocupacionMin;
