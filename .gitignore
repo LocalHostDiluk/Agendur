@@ -75,9 +75,13 @@ Desktop.ini
 /.codex/
 /.codegraph/*
 !/.codegraph/.gitignore
+/.claude
+/.agents
+/.codegraph
 
 # Local convenience symlink to apps/web/tests
 /tests
+/tasks
 
 # landing page no utilizada
 /landing
