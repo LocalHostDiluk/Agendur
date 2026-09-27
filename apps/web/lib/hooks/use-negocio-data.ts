@@ -4,6 +4,9 @@ import type {
   Cita,
   EstadoCita,
   NegocioConfig,
+  Profesional,
+  CreateProfesionalPayload,
+  UpdateProfesionalPayload,
   Servicio,
   Sucursal,
 } from "@/lib/types";
@@ -190,3 +193,64 @@ export function useUpdateServicio() {
     },
   });
 }
+
+export function useProfesionales(filtros?: { sucursalId?: string; activo?: boolean }) {
+  return useQuery({
+    queryKey: ["negocio", "profesionales", filtros],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (filtros?.sucursalId && filtros.sucursalId !== "todas") {
+        searchParams.set("sucursalId", filtros.sucursalId);
+      }
+      if (filtros?.activo !== undefined) {
+        searchParams.set("activo", String(filtros.activo));
+      }
+      const qs = searchParams.toString();
+      return apiFetch<{ profesionales: (Profesional & { serviciosIds: string[] })[] }>(
+        `/api/negocio/profesionales${qs ? `?${qs}` : ""}`,
+      );
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCreateProfesional() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (nuevoProfesional: CreateProfesionalPayload) =>
+      apiFetch<{ profesional: Profesional & { serviciosIds: string[] } }>(
+        "/api/negocio/profesionales",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(nuevoProfesional),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["negocio", "suscripcion"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+
+export function useUpdateProfesional() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cambios: UpdateProfesionalPayload) =>
+      apiFetch<{ profesional: Profesional & { serviciosIds: string[] } }>(
+        "/api/negocio/profesionales",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cambios),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["negocio", "suscripcion"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+

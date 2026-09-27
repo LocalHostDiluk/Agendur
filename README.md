@@ -26,7 +26,7 @@ Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seg
 | DS-03 | P0 | Varias tablas consumidas mediante las APIs del servidor conservan grants y políticas públicas más amplios que la proyección ofrecida por esos endpoints. | Inventariar los consumidores reales y revocar acceso directo innecesario de `anon` y `authenticated`, manteniendo privilegio mínimo. | Catálogo y disponibilidad públicos funcionan por API; la Data API no expone columnas internas ni permite operaciones fuera del contrato. | DS-01; coordinar con BE-05. |
 | DS-04 | P0 | `public.rls_auto_enable` es `SECURITY DEFINER` ejecutable por roles públicos; `handle_updated_at` no fija `search_path`; la protección de contraseñas filtradas está desactivada. | Mover o retirar la función privilegiada, revocar `EXECUTE`, fijar `search_path` y activar la protección de contraseñas. | Los advisors de Supabase no reportan estas alertas y ninguna función privilegiada queda invocable por `anon` o `authenticated`. | DS-01. |
 | DS-05 | P1 | Advisors detectan políticas que evalúan `auth.uid()` por fila, políticas permisivas superpuestas e índices faltantes en `citas(servicio_id)` y `profesional_servicios(servicio_id)`. | Usar `(select auth.uid())`, consolidar políticas por operación y aplicar los índices versionados; conservar índices de integridad aunque el uso actual sea bajo. | Advisors sin estas advertencias, aislamiento multiempresa comprobado y planes de consulta usando los índices apropiados. | DS-01 y DS-03. |
-| DS-06 | P1 | La interfaz intenta guardar notas internas en una cita, pero el modelo sólo dispone de `notas_cliente`; el formulario de personal captura un cargo que tampoco se persiste. | Preparar migraciones para `citas.notas_internas` y `profesionales.cargo` si el campo permanece en el formulario. | Las notas internas nunca se mezclan con las del cliente ni aparecen en APIs públicas; el cargo sobrevive una recarga. | DS-01; desbloquea BE-03, FE-02 y OP-01. |
+| DS-06 | P1 | La interfaz intenta guardar notas internas en una cita, pero el modelo sólo dispone de `notas_cliente`; el formulario de personal captura un cargo que tampoco se persiste. | Preparar migraciones para `citas.notas_internas` y `profesionales.cargo` si el campo permanece en el formulario. | Las notas internas nunca se mezclan con las del cliente ni aparecen en APIs públicas; el cargo sobrevive una recarga. | Resuelto (migración y tipos creados). |
 
 **Aceptación del bloque:** migraciones reproducibles, advisors sin alertas críticas, acceso anónimo directo denegado y endpoints públicos de catálogo y reserva operativos.
 
@@ -45,7 +45,7 @@ Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seg
 
 | ID | Prioridad | Hallazgo y evidencia | Acción | Criterio de aceptación | Dependencias |
 | --- | --- | --- | --- | --- | --- |
-| OP-01 | P1 | El alta de personal genera un ID local aleatorio y guarda datos sólo en estado React; desaparecen al recargar y no existe API de profesionales. | Implementar `GET/POST/PATCH /api/negocio/profesionales` y persistir perfil, cargo, servicios asignados y estado `activo`. | Crear, editar y desactivar personal sobrevive una recarga y sólo afecta al negocio autenticado. | DS-06. |
+| OP-01 | P1 | El alta de personal genera un ID local aleatorio y guarda datos sólo en estado React; desaparecen al recargar y no existe API de profesionales. | Implementar `GET/POST/PATCH /api/negocio/profesionales` y persistir perfil, cargo, servicios asignados y estado `activo`. | Crear, editar y desactivar personal sobrevive una recarga y sólo afecta al negocio autenticado. | Resuelto (API, hooks, UI y persistencia completados). |
 | OP-02 | P1 | La matriz de horarios muestra valores fijos y no administra `horarios_profesional` ni `horarios_sucursal`. | Reutilizar las tablas existentes y añadir edición desde las pantallas actuales, sin crear un segundo modelo de horarios. | Los horarios editados reaparecen tras recargar y modifican correctamente la disponibilidad pública. | OP-01 para horarios personales; coordinar BE-04. |
 | OP-03 | P1 | Sucursales sólo dispone de `GET/POST`; no puede editarse ni desactivarse una existente. | Añadir `PATCH` y archivo lógico mediante `activo`, incluyendo sus horarios cuando corresponda; evitar borrado físico. | Datos, horarios y estado se actualizan de forma persistente; una sucursal inactiva deja de ofrecer reservas sin perder historial. | OP-02. |
 | OP-04 | P1 | Servicios permite crear y alternar `activo`, pero la UI no expone edición de los campos ya soportados por la API. | Completar el formulario de edición y conservar `activo` como mecanismo de archivo lógico. | Nombre, duración, precio, color y estado se actualizan tras recargar; citas históricas mantienen su referencia. | Sin dependencia de esquema. |
@@ -116,7 +116,7 @@ Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seg
 | Dashboard | Consulta usuario, citas y suscripción; calcula indicadores y gráficas a partir de las citas recibidas. |
 | Agendas | Página conectada a `/api/negocio/citas` con vistas de cronograma y semanal, navegación por fecha, filtros por sucursal y estado, panel de detalle de cita y alta manual de citas. |
 | Servicios y sucursales | Página conectada con pestañas de sucursales y servicios, alta mediante modal y activación/pausa de servicios contra la API. |
-| Personal | Página conectada que lista profesionales del catálogo con filtros por sucursal y búsqueda. El alta de colaboradores todavía no se persiste en la base de datos. |
+| Personal | Página conectada que gestiona profesionales mediante `/api/negocio/profesionales` con filtros por sucursal y búsqueda. Soporta alta, edición y activación/desactivación de colaboradores persistidos en la base de datos. |
 | Configuración | Página conectada con pestañas de perfil del negocio, políticas de reserva y suscripción, incluida la apertura del Customer Portal de Stripe. |
 | Suscripciones | Adaptadores Stripe y manual; consulta de uso y límites, Checkout, Customer Portal y procesamiento de webhooks. |
 | Errores | Páginas dedicadas de 404, 403, error de servidor y negocio no encontrado, con componentes visuales y fondos propios. |
@@ -265,7 +265,7 @@ La consulta de disponibilidad tiene `staleTime` de 30 segundos y se actualiza al
 | `/dashboard` | `useAuthMe`, `useCitasNegocio`, `useSuscripcion` | Indicadores, gráficas de citas por día e ingresos por mes, copia del enlace público. |
 | `/agendas` | `useCitasNegocio` con filtros, `useSucursales`, `useServicios`, `useCatalogo` | Vistas de cronograma y semanal, navegación por fecha, filtros por sucursal y estado, detalle de cita en panel lateral, cambio de estado y alta de cita manual. |
 | `/sucursales` | `useSucursales`, `useServicios`, `useUpdateServicio` | Pestañas de sucursales y servicios, alta por modal y activación o pausa de servicios. |
-| `/personal` | `useCatalogo`, `useSucursales`, `useServicios`, `useCitasNegocio` | Listado de profesionales con filtro por sucursal y búsqueda por nombre, rol o servicio. El modal de alta solo agrega el colaborador al estado local de la sesión. |
+| `/personal` | `useProfesionales`, `useSucursales`, `useServicios`, `useCitasNegocio` | Listado de profesionales con filtro por sucursal y búsqueda por nombre, cargo o servicio. El alta, edición y desactivación persisten en Supabase. |
 | `/configuracion` | `useConfiguracion`, `useUpdateConfiguracion`, `useSuscripcion`, `useAuthMe` | Perfil del negocio, políticas de reserva y gestión de la suscripción con acceso al Customer Portal. |
 
 El alta manual de citas reutiliza `useCrearReserva` y selecciona automáticamente el primer profesional elegible de la sucursal y servicio; todavía no permite escoger el profesional desde el formulario.
@@ -296,14 +296,13 @@ Páginas principales: `/`, `/login`, `/register`, `/onboarding`, `/dashboard`, `
 | GET / PATCH | `/api/negocio/citas` | Consultar citas con filtros de sucursal, rango de fechas y estado, y actualizar su estado o notas. |
 | GET / POST | `/api/negocio/sucursales` | Consultar y crear sucursales. |
 | GET / POST / PATCH | `/api/negocio/servicios` | Listar, crear y actualizar servicios del negocio autenticado. |
+| GET / POST / PATCH | `/api/negocio/profesionales` | Listar, crear, actualizar y desactivar profesionales del negocio autenticado, con asignación de servicios y control de límites del plan. |
 | GET / PUT | `/api/negocio/configuracion` | Consultar y actualizar configuración. |
 | GET / POST | `/api/negocio/suscripcion` | Consultar suscripción o iniciar el flujo de contratación. |
 | POST | `/api/negocio/suscripcion/portal` | Crear sesión del Customer Portal de Stripe. |
 | POST | `/api/webhooks/stripe` | Recibir eventos firmados de Stripe. |
 
-Las operaciones privadas verifican la sesión y la pertenencia del recurso; las guardas de suscripción se aplican donde corresponde. `/api/negocio/servicios` valida nombre, duración entera positiva, precio no negativo y descripción, y en `PATCH` comprueba que el servicio pertenezca al negocio antes de modificarlo. El portal de reservas es público y no requiere una cuenta del cliente.
-
-No existe todavía un endpoint de profesionales para el panel: `/personal` lee el personal desde el catálogo público del negocio.
+Las operaciones privadas verifican la sesión y la pertenencia del recurso; las guardas de suscripción se aplican donde corresponde. `/api/negocio/servicios` valida nombre, duración entera positiva, precio no negativo y descripción, y en `PATCH` comprueba que el servicio pertenezca al negocio antes de modificarlo. `/api/negocio/profesionales` valida pertinencia de sede y servicios, límites de colaboradores por plan y persistencia de cargo y estado activo. El portal de reservas es público y no requiere una cuenta del cliente.
 
 ## Instalación y configuración
 
