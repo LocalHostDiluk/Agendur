@@ -9,8 +9,156 @@ import {
   GET as getConfigHandler,
   PUT as putConfigHandler,
 } from "@/app/api/negocio/configuracion/route";
+import { obtenerDisponibilidad } from "@/lib/backend/reserva-service";
+
+type AvailabilityScenario = {
+  servicio?: Record<string, unknown>;
+  excepcionesSucursal?: Array<Record<string, unknown>>;
+  excepcionesProfesional?: Array<Record<string, unknown>>;
+  citas?: Array<Record<string, unknown>>;
+};
+
+async function withAvailabilityScenario(
+  scenario: AvailabilityScenario,
+  run: () => Promise<void>,
+) {
+  const { getAdminClient } = await import("@/lib/supabase/admin");
+  const client = getAdminClient();
+  const originalFrom = client.from;
+
+  try {
+    (client as unknown as Record<string, unknown>).from = (table: string) => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        in: () => query,
+        maybeSingle: async () => {
+          const rows: Record<string, unknown> = {
+            sucursales: { id: "suc-1", activa: true },
+            horarios_sucursal: {
+              hora_apertura: "09:00",
+              hora_cierre: "17:00",
+              es_laborable: true,
+            },
+            servicios: {
+              id: "serv-1",
+              duracion_minutos: 30,
+              buffer_minutos: 0,
+              activo: true,
+              ...scenario.servicio,
+            },
+            profesionales: {
+              id: "prof-1",
+              sucursal_id: "suc-1",
+              activo: true,
+            },
+            profesional_servicios: { servicio_id: "serv-1" },
+            horarios_profesional: {
+              hora_inicio: "09:00",
+              hora_fin: "17:00",
+              es_laborable: true,
+            },
+          };
+          return { data: rows[table] ?? null, error: null };
+        },
+        then: (
+          resolve: (value: { data: unknown[]; error: null }) => void,
+        ) => {
+          const rows: Record<string, unknown[]> = {
+            excepciones_horario_sucursal:
+              scenario.excepcionesSucursal ?? [],
+            excepciones_horario_profesional:
+              scenario.excepcionesProfesional ?? [],
+            citas: scenario.citas ?? [],
+          };
+          resolve({ data: rows[table] ?? [], error: null });
+        },
+      };
+      return query;
+    };
+
+    await run();
+  } finally {
+    (client as unknown as Record<string, unknown>).from = originalFrom;
+  }
+}
 
 describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
+  describe("Disponibilidad v2", () => {
+    it("intersecta múltiples bloques especiales y exige que duración más buffer quepan completos", async () => {
+      await withAvailabilityScenario(
+        {
+          servicio: { duracion_minutos: 30, buffer_minutos: 30 },
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "09:00", hora_cierre: "12:00" },
+            { cerrado: false, hora_apertura: "14:00", hora_cierre: "17:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "10:00", hora_fin: "11:00" },
+            { cerrado: false, hora_inicio: "14:00", hora_fin: "15:00" },
+          ],
+        },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual(["10:00", "14:00"]);
+        },
+      );
+    });
+
+    it("un cierre especial total reemplaza el horario semanal", async () => {
+      await withAvailabilityScenario(
+        { excepcionesSucursal: [{ cerrado: true }] },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual([]);
+        },
+      );
+    });
+
+    it("bloquea citas hasta hora_fin_buffer y usa hora_fin para citas legacy", async () => {
+      await withAvailabilityScenario(
+        {
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "09:00", hora_cierre: "12:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "09:00", hora_fin: "12:00" },
+          ],
+          citas: [
+            {
+              hora_inicio: "09:00",
+              hora_fin: "09:30",
+              hora_fin_buffer: "10:00",
+            },
+            { hora_inicio: "10:00", hora_fin: "10:30", hora_fin_buffer: null },
+          ],
+        },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual(["10:30", "11:00", "11:30"]);
+        },
+      );
+    });
+  });
+
   describe("POST /api/cliente/reservas", () => {
     it("debería retornar 400 si faltan campos obligatorios", async () => {
       const req = new NextRequest("http://localhost:3000/api/cliente/reservas", {
@@ -94,7 +242,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", activa: true },
                 horarios_sucursal: { hora_apertura: "09:00", hora_cierre: "17:00", es_laborable: true },
-                servicios: { id: "serv-1", duracion_minutos: 30, activo: true },
+                servicios: { id: "serv-1", duracion_minutos: 30, buffer_minutos: 30, activo: true },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true },
                 profesional_servicios: { servicio_id: "serv-1" },
                 suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
@@ -107,7 +255,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
                 sucursales: { id: "suc-1", negocio_id: "neg-1", activa: true, nombre: "Sucursal", zona_horaria: "UTC" },
                 suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
                 negocios: { telefono_cliente_requerido: false, email_cliente_requerido: true, notas_cliente_habilitadas: true, politica_cancelacion: politica, zona_horaria: "UTC" },
-                servicios: { id: "serv-1", negocio_id: "neg-1", duracion_minutos: 30, precio: 100, activo: true, nombre: "Servicio" },
+                servicios: { id: "serv-1", negocio_id: "neg-1", duracion_minutos: 30, buffer_minutos: 30, precio: 100, activo: true, nombre: "Servicio" },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true, nombre: "Profesional" },
               };
               return { data: data[table], error: null };
@@ -141,6 +289,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         expect(res.status).toBe(409);
         expect((await res.json()).code).toBe("SLOT_UNAVAILABLE");
         expect(insertPayloads[0].cliente_telefono).toBeNull();
+        expect(insertPayloads[0].hora_fin).toBe("10:30:00");
         expect(insertPayloads[0].privacidad_aceptada_en).toMatch(/^20\d\d-/);
         expect(insertPayloads[0].politica_cancelacion_aceptada_en).toBe(insertPayloads[0].privacidad_aceptada_en);
         expect(estadosFiltrados[0]).toEqual(["pendiente_pago", "confirmada"]);
@@ -162,7 +311,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           body: JSON.stringify({
             sucursalId: "suc-1", servicioId: "serv-1", profesionalId: "prof-1",
             clienteNombre: "Juan", clienteApellido: "Pérez", clienteEmail: "juan@ejemplo.com",
-            fecha: "2098-01-01", hora: "23:45", aceptaPrivacidad: true,
+            fecha: "2098-01-01", hora: "23:15", aceptaPrivacidad: true,
           }),
         }));
         expect(crossesMidnight.status).toBe(400);

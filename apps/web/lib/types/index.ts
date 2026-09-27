@@ -59,6 +59,7 @@ export interface Servicio {
   descripcion?: string | null;
   duracionMinutos?: number;
   duracion_minutos?: number;
+  buffer_minutos?: number;
   precio: number;
   activo?: boolean;
   created_at?: string;

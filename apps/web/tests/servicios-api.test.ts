@@ -110,6 +110,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
         negocio_id: "neg-456",
         nombre: "Corte Clásico",
         duracion_minutos: 30,
+        buffer_minutos: 0,
         precio: 250,
         descripcion: "Corte de cabello con lavado",
         activo: true,
@@ -119,6 +120,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
         negocio_id: "neg-456",
         nombre: "Perfilado de Barba",
         duracion_minutos: 20,
+        buffer_minutos: 10,
         precio: 150,
         descripcion: null,
         activo: true,
@@ -362,6 +364,24 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       }
     });
 
+    it("debe retornar 400 si buffer_minutos no es un entero mayor o igual a 0", async () => {
+      for (const buffer_minutos of [-1, 1.5, "10"]) {
+        const req = new NextRequest("http://localhost:3000/api/negocio/servicios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: "Corte",
+            duracion_minutos: 30,
+            precio: 200,
+            buffer_minutos,
+          }),
+        });
+
+        const res = await POST(req);
+        expect(res.status).toBe(400);
+      }
+    });
+
     it("debe insertar en servicios y retornar 201 con el nuevo servicio cuando los datos son válidos", async () => {
       const payloadValido = {
         nombre: "Corte Clásico",
@@ -385,6 +405,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       expect(json.servicio).toBeDefined();
       expect(json.servicio.nombre).toBe("Corte Clásico");
       expect(json.servicio.duracion_minutos).toBe(45);
+      expect(json.servicio.buffer_minutos).toBe(0);
       expect(json.servicio.precio).toBe(350);
       expect(json.servicio.descripcion).toBe("Incluye lavado y peinado");
       expect(json.servicio.activo).toBe(true);
@@ -516,6 +537,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
           id: "11111111-1111-1111-1111-111111111111",
           nombre: "Corte Premium Exclusivo",
           duracion_minutos: 60,
+          buffer_minutos: 15,
           precio: 500,
           descripcion: "Servicio VIP con tratamiento completo",
         }),
@@ -528,8 +550,25 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       expect(json.success).toBe(true);
       expect(json.servicio.nombre).toBe("Corte Premium Exclusivo");
       expect(json.servicio.duracion_minutos).toBe(60);
+      expect(json.servicio.buffer_minutos).toBe(15);
       expect(json.servicio.precio).toBe(500);
       expect(json.servicio.descripcion).toBe("Servicio VIP con tratamiento completo");
+    });
+
+    it("debe rechazar buffer_minutos inválido en PATCH", async () => {
+      const req = new NextRequest("http://localhost:3000/api/negocio/servicios", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "11111111-1111-1111-1111-111111111111",
+          buffer_minutos: -1,
+        }),
+      });
+
+      const res = await PATCH(req);
+      const json = await res.json();
+      expect(res.status).toBe(400);
+      expect(json.error).toContain("buffer_minutos");
     });
   });
 

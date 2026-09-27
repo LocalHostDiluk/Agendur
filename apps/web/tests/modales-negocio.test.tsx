@@ -110,6 +110,11 @@ describe("Modales de Negocio (ModalNuevaSucursal y ModalNuevoServicio)", () => {
       expect(html).toContain("120 min");
       expect(html).toContain('id="servicio-duracion"');
 
+      // Buffer posterior
+      expect(html).toContain('id="servicio-buffer"');
+      expect(html).toContain("Tiempo entre citas");
+      expect(html).toContain('min="0"');
+
       // Precio en MXN con prefijo $ y sufijo MXN en Space Mono
       expect(html).toContain('id="servicio-precio"');
       expect(html).toContain("$");
@@ -233,4 +238,3 @@ describe("Modales de Negocio (ModalNuevaSucursal y ModalNuevoServicio)", () => {
     });
   });
 });
-
