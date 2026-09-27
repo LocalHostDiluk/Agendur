@@ -82,6 +82,10 @@ Desktop.ini
 # Local convenience symlink to apps/web/tests
 /tests
 /tasks
+/apps/web/tasks
+/apps/web/AGENTS.MD
+/apps/web/CLAUDE.MD
+
 
 # landing page no utilizada
 /landing
