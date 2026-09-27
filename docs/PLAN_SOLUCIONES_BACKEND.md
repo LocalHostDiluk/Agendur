@@ -1,8 +1,8 @@
 # Plan acumulativo de soluciones — auditoría del backend
 
-**Fecha de corte:** 2026-09-19
+**Fecha de corte:** 2026-09-26
 **Fuente:** `PLAN.md`, sección «Hallazgos de auditoría del backend»
-**Cobertura actual:** 24 de 24 hallazgos auditados (22 de `PLAN.md` + 2 detectados durante la corrección). 19 implementados en el árbol local, 2 descartados, 0 pendientes de decisión. Quedan 5 que además necesitan ejecución y validación remota.
+**Cobertura actual:** 24 de 24 hallazgos auditados (22 de `PLAN.md` + 2 detectados durante la corrección). Las migraciones de seguridad de Supabase ya están aplicadas al remoto; quedan validaciones externas de Stripe, una reserva real controlada, Upstash y un ajuste de Auth en Dashboard.
 
 ## Propósito y reglas de evidencia
 
@@ -11,7 +11,7 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 - **Local:** «confirmado» significa comprobado contra rutas, flujos o pruebas del repositorio en la fecha de corte.
 - **Remoto:** migraciones, RLS, Stripe, Upstash, Sentry y comportamiento desplegado deben validarse en el entorno remoto correspondiente antes de cerrar el hallazgo.
 - **No verificado:** no se presenta como resuelto ni como comportamiento de producción.
-- **Implementación:** los bloques A, B (código), C, D, E (SQL escrito) y F están aplicados en el árbol local. Las tres migraciones pendientes —idempotencia de Stripe, endurecimiento de esquema y revocación del INSERT público— **no** se han ejecutado contra ninguna base de datos.
+- **Implementación:** los bloques A–F están aplicados. El 26 de septiembre se ejecutaron cinco migraciones nuevas contra el proyecto remoto: cierre de `anon`, funciones, RLS autenticado, idempotencia de Stripe e índices.
 - **Árbol compartido:** antes de implementar, volver a comprobar el archivo objetivo y sus cambios sin confirmar para no sobrescribir trabajo paralelo.
 
 ### Leyenda
@@ -19,6 +19,7 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 | Estado | Significado |
 | --- | --- |
 | `IMPLEMENTADO` | Corregido en el árbol local, con prueba focal verde. |
+| `IMPLEMENTADO · REMOTO APLICADO` | Código y migración aplicados; puede quedar una validación externa del proveedor. |
 | `IMPLEMENTADO · PENDIENTE REMOTO` | Código aplicado; falta ejecutar y validar la migración o el límite distribuido en el entorno remoto. |
 | `CONFIRMADO · IMPLEMENTAR` | El defecto es alcanzable y tiene una solución mínima aprobada, aún sin aplicar. |
 | `PARCIAL · DESCARTADO` | Hay una debilidad teórica, pero no se reprodujo impacto en el flujo normal; no genera cambio activo. |
@@ -32,7 +33,7 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 | 1.3 | `manual-adapter.ts`: `notasAdmin` y correo del usuario enviados a Sentry en `extra`. | `IMPLEMENTADO` |
 | 2.1 | `stripe-adapter.ts`: `session.subscription` / `session.customer` tratados como `string` sin cubrir el objeto expandido. | `PARCIAL · DESCARTADO` |
 | 2.2 | `stripe-adapter.ts`: `.update()` de cero filas responde 200 a Stripe sin activar el servicio. | `IMPLEMENTADO` |
-| 2.3 | `stripe-adapter.ts`: sin registro de idempotencia por `event.id`. | `IMPLEMENTADO · PENDIENTE REMOTO` |
+| 2.3 | `stripe-adapter.ts`: sin registro de idempotencia por `event.id`. | `IMPLEMENTADO · REMOTO APLICADO` |
 | 2.4 | `guards.ts`: un fallo de red o timeout con Supabase se reporta como suscripción vencida (402). | `IMPLEMENTADO` |
 | 3.1 | `proxy.ts`: `/onboarding` fuera de `isProtectedRoute`. | `IMPLEMENTADO` (ya estaba en código; ahora con prueba) |
 | 3.2 | `app/api/auth/callback/route.ts`: la validación no cubre la secuencia `/\`. | `PARCIAL · DESCARTADO` |
@@ -47,10 +48,10 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 | 5.1 | Faltan interfaces `PerfilUsuario`, `ConsentimientoUsuario`, `ProfesionalPublico`. | `PARCIAL · DESCARTADO` |
 | 5.2 | `Cita.privacidad_aceptada_en` no admite `null` a diferencia de la columna. | `IMPLEMENTADO` |
 | 5.3 | `Profesional.especialidad` y `Servicio.moneda` no existen en la base de datos. | `IMPLEMENTADO` |
-| 6.1 | `public.handle_updated_at()` sin `SET search_path = ''`. | `IMPLEMENTADO · PENDIENTE REMOTO` |
-| 6.2 | Faltan índices en `profesional_servicios(servicio_id)`, `citas(servicio_id)` y `suscripciones(subscription_external_id)`. | `IMPLEMENTADO · PENDIENTE REMOTO` |
+| 6.1 | `public.handle_updated_at()` sin `SET search_path = ''`. | `IMPLEMENTADO · REMOTO APLICADO` |
+| 6.2 | Faltan índices en `profesional_servicios(servicio_id)`, `citas(servicio_id)` y `suscripciones(subscription_external_id)`. | `IMPLEMENTADO · REMOTO APLICADO` |
 | 7.1 | `stripe-adapter.ts`: `webhooks.constructEvent` (síncrono) falla con el proveedor WebCrypto —«SubtleCryptoProvider cannot be used in a synchronous context»— y rechaza toda firma válida en un runtime sin crypto de Node. | `IMPLEMENTADO` |
-| 8.1 | Política `"Público puede crear reservas de citas"`: daba INSERT a `anon` sobre `public.citas` con un `WITH CHECK` mínimo. Con la clave anónima se podían crear citas por `/rest/v1/citas` saltándose el rate limit, el consentimiento y el chequeo de disponibilidad —suficiente para ocupar la agenda de un negocio—. Permiso muerto: todas las escrituras del código usan `service_role`. | `IMPLEMENTADO · PENDIENTE REMOTO` |
+| 8.1 | Política `"Público puede crear reservas de citas"`: daba INSERT a `anon` sobre `public.citas` con un `WITH CHECK` mínimo. Con la clave anónima se podían crear citas por `/rest/v1/citas` saltándose el rate limit, el consentimiento y el chequeo de disponibilidad —suficiente para ocupar la agenda de un negocio—. Permiso muerto: todas las escrituras del código usan `service_role`. | `IMPLEMENTADO · REMOTO APLICADO` |
 
 ## Detalle de hallazgos auditados
 
@@ -85,12 +86,12 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 - **Alcance deliberado:** las ramas `customer.subscription.updated/deleted` e `invoice.payment_failed` se dejaron sin `.single()`. Si no existe fila local para ese `subscription_external_id`, ningún reintento la creará y un 500 sólo genera una tormenta de reintentos durante ~3 días. Si se quiere señal, el camino es una alerta, no un 500.
 - **Prueba:** `tests/payments.test.ts` → «no crea recursos en Stripe si el negocio no tiene fila local de suscripción».
 
-### 2.3 — Idempotencia de webhooks Stripe · `IMPLEMENTADO · PENDIENTE REMOTO`
+### 2.3 — Idempotencia de webhooks Stripe · `IMPLEMENTADO · REMOTO APLICADO`
 
-- **Aplicado:** nueva migración `supabase/migrations/20260918090000_stripe_webhook_idempotency.sql` con `stripe_webhook_events(event_id PRIMARY KEY, event_type, processed_at)`, RLS habilitada, `REVOKE` a `anon`/`authenticated` y privilegios sólo para `service_role`. Reflejado en `supabase/schema.sql`.
+- **Aplicado al remoto:** `20260926214841_wave1_create_stripe_webhook_events.sql` creó la tabla con RLS y únicamente `SELECT, INSERT` para `service_role`; `anon` y `authenticated` no pueden consultarla ni escribirla.
 - **Aplicado en código:** `handleWebhookEvent` verifica firma → consulta `event_id` → si existe responde `handled: false` sin mutar → aplica el efecto en el método privado `aplicarEventoVerificado` → registra el evento. El registro ocurre **después** del efecto, así que un fallo previo no queda marcado; un `23505` por entregas simultáneas se ignora y no se almacena payload.
 - **Prueba:** `tests/payments.test.ts` → «aplica el efecto una sola vez y responde sin mutar ante un reintento del mismo `event.id`», con firma HMAC real.
-- **Pendiente remoto:** ejecutar la migración y comprobar con `anon` y `authenticated` que la tabla no es legible por la Data API.
+- **Pendiente externo:** reenviar un evento real de Stripe dos veces para comprobar el ciclo completo del proveedor.
 
 ### 2.4 — Fallos de Supabase clasificados como suscripción vencida · `IMPLEMENTADO`
 
@@ -171,16 +172,14 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 - **Comportamiento:** idéntico. Si la moneda debe mostrarse de verdad algún día, la fuente es `negocios.moneda_principal`, que sí existe; eso es un cambio de producto.
 - **Verificación:** `bunx tsc --noEmit` limpio.
 
-### 6.1 — `handle_updated_at()` sin `search_path` · `IMPLEMENTADO · PENDIENTE REMOTO`
+### 6.1 — `handle_updated_at()` sin `search_path` · `IMPLEMENTADO · REMOTO APLICADO`
 
 - **Confirmado contra la base remota:** el Security Advisor del proyecto `dolpnpuycjfppflcqexe` reporta `function_search_path_mutable` para esta función, y `pg_get_functiondef` confirma que no tiene `SET search_path`.
-- **Aplicado:** migración `supabase/migrations/20260918100000_schema_hardening.sql` con `CREATE OR REPLACE ... SET search_path = ''` y el mismo cuerpo; los 9 triggers que la usan sobreviven al `REPLACE`. Snapshot alineado.
-- **Pendiente remoto:** ejecutar la migración y comprobar que el advisor deja de reportarla.
+- **Aplicado al remoto:** `20260926214653_wave1_harden_public_functions.sql` fijó el `search_path`, conservó los triggers y retiró `EXECUTE` de los roles de la Data API. El advisor dejó de reportar las tres alertas de funciones.
 
-### 6.2 — Índices de claves foráneas · `IMPLEMENTADO · PENDIENTE REMOTO`
+### 6.2 — Índices de claves foráneas · `IMPLEMENTADO · REMOTO APLICADO`
 
-- **Confirmado contra la base remota:** ninguno de los tres índices existe.
-- **Aplicado:** `idx_suscripciones_subscription_external_id` en la migración de idempotencia (el webhook busca por esa columna en tres ramas) y los otros dos en la de endurecimiento. El beneficio de estos dos últimos es el `DELETE` sobre `servicios`, que hoy valida la FK con un escaneo; con los volúmenes actuales no es medible, y se incluyen porque el coste es una línea cada uno.
+- **Aplicado al remoto:** `20260926214859_wave1_add_security_supporting_indexes.sql` creó `idx_suscripciones_subscription_external_id`, `idx_profesional_servicios_servicio_id` e `idx_citas_servicio_id`. El advisor ya no reporta claves foráneas sin índice.
 
 ### 7.1 — Verificación de firma de Stripe dependiente del runtime · `IMPLEMENTADO`
 
@@ -190,14 +189,14 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 - **Prueba:** la prueba de 2.3 falla si se vuelve a la variante síncrona.
 - **Pendiente remoto:** confirmar con un evento real de Stripe que el endpoint desplegado responde 200.
 
-### 8.1 — INSERT público sobre `citas` · `IMPLEMENTADO · PENDIENTE REMOTO`
+### 8.1 — INSERT público sobre `citas` · `IMPLEMENTADO · REMOTO APLICADO`
 
 - **Cómo apareció:** auditando los grants y las políticas de la base remota para planificar la validación de 2.3.
 - **Evidencia remota:** la política `"Público puede crear reservas de citas"` otorga `INSERT` a `anon` y `authenticated` sobre `public.citas`, con un `WITH CHECK` que sólo exige `estado = 'pendiente_pago'`, `monto_anticipo_pagado = 0` y una sucursal activa del mismo negocio. La clave anónima es pública: viaja en el bundle.
 - **Impacto:** cualquiera podía crear citas por `/rest/v1/citas` saltándose el rate limit, el consentimiento de privacidad, la validación de pertenencia y el pre-chequeo de disponibilidad, con `precio_total` y datos de cliente arbitrarios. La restricción de exclusión impide solapar, lo que convierte el abuso realista en **ocupar la agenda entera de un negocio** con citas basura.
 - **Por qué era permiso muerto:** todas las escrituras en `citas` del código pasan por `service_role` —`adminClient` en `reserva-service.ts`, `createAdminClient` en `app/api/negocio/citas`— y ningún cliente de navegador inserta citas. `service_role` ignora RLS, así que la política no habilitaba ningún flujo real.
-- **Aplicado:** `DROP POLICY` en `supabase/migrations/20260918110000_revoke_public_citas_insert.sql`, en su propio archivo para poder ejecutarlo y verificarlo aislado. El bloque correspondiente sale del snapshot con una nota que explica la ausencia.
-- **Pendiente remoto y obligatorio:** ejecutar el `DROP`, completar una reserva real en el portal (debe seguir dando 201) e intentar un `INSERT` directo con la clave anónima (debe dar 401/403). Revertir es un `CREATE POLICY` con el mismo `WITH CHECK`, que queda en el historial de git de `schema.sql`.
+- **Aplicado al remoto:** `20260926214630_wave1_close_anonymous_data_api.sql` retiró la policy y todos los grants de tabla y columna de `anon`. Un `POST /rest/v1/citas` con la clave anónima devuelve `401 / 42501`; el catálogo real del backend devuelve `200`.
+- **Pendiente externo:** completar una reserva real controlada (`201`) y limpiar sus datos; no se ejecutó automáticamente para evitar disparar integraciones o notificaciones fuera de esta migración.
 
 ## Lo implementado
 
@@ -212,7 +211,7 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 | `lib/backend/reserva-service.ts` | 2.4 — fuera la captura duplicada de `crearReservaCita`. |
 | `lib/payments/stripe-adapter.ts` | 2.2, 2.3, 7.1 — fila local exigida, idempotencia, firma asíncrona. |
 | `app/api/negocio/suscripcion/route.ts` | 3.3 — límite de 5 Checkouts por negocio cada 10 minutos. |
-| `supabase/migrations/20260918090000_...sql` | 2.3, 6.2 — tabla de idempotencia, RLS, grants e índice. |
+| Migración histórica retirada en Oleada 0 | 2.3, 6.2 — SQL preparado pero nunca aplicado al remoto; se reemitirá como migración nueva. |
 | `tests/payments.test.ts`, `tests/auth.test.ts` | 5 pruebas nuevas. |
 
 ### Oleada 2 (2026-09-19) — bloques D, E, F y hallazgo 8.1
@@ -229,23 +228,23 @@ Este documento conserva en un solo lugar los hallazgos anteriores y posteriores,
 | `app/api/negocio/suscripcion/route.ts` | 4.5 — 11 respuestas a `apiError`/`apiSuccess`; 429 intacta. |
 | `lib/types/index.ts` | 5.2, 5.3 — nulabilidad y borrado de dos campos fantasma. |
 | `app/(negocio)/sucursales/page.tsx`, `components/negocio/ModalNuevaCitaManual.tsx` | 5.3 — `"MXN"` literal. |
-| `supabase/migrations/20260918100000_schema_hardening.sql` | 6.1, 6.2 — `search_path` y dos índices. **No ejecutada.** |
-| `supabase/migrations/20260918110000_revoke_public_citas_insert.sql` | 8.1 — `DROP POLICY`. **No ejecutada.** |
-| `supabase/schema.sql` | Snapshot alineado con ambas migraciones. |
+| Migración histórica de endurecimiento retirada | 6.1, 6.2 — `search_path` y dos índices. **Nunca ejecutada en remoto.** |
+| Migración histórica de política pública retirada | 8.1 — `DROP POLICY`. **Nunca ejecutada en remoto.** |
+| `supabase/migrations/00000000000000_remote_baseline.sql` | Estado remoto verificado antes de las correcciones de seguridad. |
 | `tests/business-date.test.ts`, `tests/auth.test.ts`, `tests/reservas.test.ts`, `tests/identity-onboarding.test.ts` | Checks de 4.2, 4.1, 4.6 y 4.3. |
 
 ## Lo que queda
 
-Sólo trabajo remoto. No hay hallazgos abiertos de código.
+La parte SQL remota de esta oleada está cerrada. Quedan comprobaciones con proveedores o configuración externa.
 
 | Orden | Alcance | Condición de salida |
 | --- | --- | --- |
-| 1 | Ejecutar `20260918090000_stripe_webhook_idempotency.sql` y `20260918100000_schema_hardening.sql`. | Tabla e índices creados; `SELECT` como `anon` y `authenticated` sobre `stripe_webhook_events` falla; el advisor deja de reportar `function_search_path_mutable`. |
-| 2 | Ejecutar `20260918110000_revoke_public_citas_insert.sql` (8.1), aislado. | Una reserva real desde el portal sigue devolviendo 201; un `INSERT` directo con la clave anónima devuelve 401/403. |
-| 3 | Cerrar el gate de Stripe: reenviar dos veces el mismo evento con Stripe CLI. | El primero muta y se registra; el segundo devuelve 200 con `handled: false` y no muta. |
+| 1 | Completar una reserva real controlada y limpiar sus datos. | El endpoint devuelve `201`; el rechazo anónimo `401 / 42501` ya está verificado. |
+| 2 | Cerrar el gate de Stripe: reenviar dos veces el mismo evento con Stripe CLI. | El primero muta y se registra; el segundo devuelve 200 con `handled: false` y no muta. |
+| 3 | Activar protección de contraseñas filtradas en Supabase Auth. | El Security Advisor deja de mostrar `auth_leaked_password_protection`. |
 | 4 | Configurar Upstash. | El límite de Checkout protege todas las instancias, no sólo una. |
 
-Nota sobre el ledger: `supabase_migrations` está vacío en remoto —las seis migraciones anteriores se aplicaron a mano—, así que ejecutar estas tres por el SQL editor mantiene la coherencia. Empezar el registro desde la séptima dejaría un ledger a medias.
+Nota sobre el ledger: el remoto contiene el baseline reconciliado, el respaldo de Oleada 0 y las cinco migraciones de Oleada 1 con las mismas versiones que Git.
 
 ### Fuera del alcance, registrado
 

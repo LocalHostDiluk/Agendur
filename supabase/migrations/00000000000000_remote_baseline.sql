@@ -1,8 +1,9 @@
 -- ==============================================================================
--- Agendur - snapshot para una base Supabase nueva (hasta Oleada 3.5)
+-- CitaSync - baseline verificado del proyecto remoto dolpnpuycjfppflcqexe
+-- Capturado el 2026-09-24 antes de iniciar las mejoras de base de datos.
 -- Multi-tenant RLS, Multi-Sucursal, Horarios a 2 Niveles, Citas y Suscripciones
--- Ejecutar este archivo una sola vez en una base vacía; NO reaplicar después
--- las migraciones ya incorporadas aquí. En bases existentes, usar migraciones.
+-- Este archivo existe para auditoría y recuperación. NO ejecutarlo en el
+-- proyecto remoto actual: sus objetos ya existen allí.
 -- ==============================================================================
 
 -- Habilitar extensión pgcrypto para gen_random_uuid si no está activa
@@ -16,7 +17,6 @@ SET search_path = public, extensions;
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SET search_path = ''
 AS $$
 BEGIN
   NEW.updated_at = now();
@@ -35,18 +35,18 @@ CREATE TABLE IF NOT EXISTS public.negocios (
   logo_url TEXT NULL,
   giro_comercial TEXT NOT NULL,
   moneda_principal VARCHAR(3) NOT NULL DEFAULT 'MXN',
+  porcentaje_anticipo_default NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (porcentaje_anticipo_default BETWEEN 0 AND 100),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   pais VARCHAR(2) NOT NULL DEFAULT 'MX'
     CONSTRAINT negocios_pais_formato_check CHECK (pais ~ '^[A-Z]{2}$'),
   zona_horaria VARCHAR(50) NOT NULL DEFAULT 'America/Mexico_City',
-  porcentaje_anticipo_default NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (porcentaje_anticipo_default BETWEEN 0 AND 100),
   telefono_cliente_requerido BOOLEAN NOT NULL DEFAULT true,
   email_cliente_requerido BOOLEAN NOT NULL DEFAULT false,
   notas_cliente_habilitadas BOOLEAN NOT NULL DEFAULT true,
   politica_cancelacion TEXT NULL,
   CONSTRAINT negocios_contacto_reserva_requerido_check
-    CHECK (telefono_cliente_requerido OR email_cliente_requerido),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    CHECK (telefono_cliente_requerido OR email_cliente_requerido)
 );
 
 CREATE INDEX IF NOT EXISTS idx_negocios_owner_id ON public.negocios(owner_id);
@@ -152,8 +152,6 @@ CREATE TABLE IF NOT EXISTS public.profesionales (
 );
 
 CREATE INDEX IF NOT EXISTS idx_profesionales_sucursal_id ON public.profesionales(sucursal_id);
-CREATE INDEX IF NOT EXISTS idx_profesional_servicios_servicio_id
-  ON public.profesional_servicios(servicio_id);
 
 CREATE TRIGGER tr_profesionales_updated_at
   BEFORE UPDATE ON public.profesionales
@@ -255,7 +253,6 @@ CREATE TABLE IF NOT EXISTS public.citas (
 CREATE INDEX IF NOT EXISTS idx_citas_negocio_fecha ON public.citas(negocio_id, fecha);
 CREATE INDEX IF NOT EXISTS idx_citas_sucursal_fecha ON public.citas(sucursal_id, fecha);
 CREATE INDEX IF NOT EXISTS idx_citas_profesional_fecha ON public.citas(profesional_id, fecha);
-CREATE INDEX IF NOT EXISTS idx_citas_servicio_id ON public.citas(servicio_id);
 
 CREATE TRIGGER tr_citas_updated_at
   BEFORE UPDATE ON public.citas
@@ -285,21 +282,10 @@ CREATE TABLE IF NOT EXISTS public.suscripciones (
 );
 
 CREATE INDEX IF NOT EXISTS idx_suscripciones_negocio ON public.suscripciones(negocio_id);
-CREATE INDEX IF NOT EXISTS idx_suscripciones_subscription_external_id
-  ON public.suscripciones(subscription_external_id);
 
 CREATE TRIGGER tr_suscripciones_updated_at
   BEFORE UPDATE ON public.suscripciones
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
--- ------------------------------------------------------------------------------
--- 10A. TABLA: stripe_webhook_events (Idempotencia de webhooks)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
-  event_id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 -- ==============================================================================
 -- 11. ROW LEVEL SECURITY (RLS) POLICIES
@@ -317,32 +303,24 @@ ALTER TABLE public.horarios_sucursal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.horarios_profesional ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.citas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suscripciones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stripe_webhook_events ENABLE ROW LEVEL SECURITY;
 
--- Grants explícitos para exposición controlada mediante Supabase Data API.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+-- Privilegios efectivos observados en el remoto al capturar el baseline.
+-- La Oleada 1 los reducirá; aquí se conservan para representar el punto de
+-- partida real, no el estado de seguridad deseado.
+GRANT ALL PRIVILEGES ON TABLE
   public.negocios, public.sucursales, public.servicios, public.profesionales,
   public.profesional_servicios, public.horarios_sucursal,
-  public.horarios_profesional, public.citas
-  TO authenticated, service_role;
-GRANT SELECT ON TABLE public.suscripciones TO authenticated;
-GRANT ALL PRIVILEGES ON TABLE public.suscripciones TO service_role;
--- Idempotencia de webhooks Stripe: sólo service_role, nunca expuesta por la Data API.
-REVOKE ALL PRIVILEGES ON TABLE public.stripe_webhook_events FROM anon, authenticated;
-GRANT ALL PRIVILEGES ON TABLE public.stripe_webhook_events TO service_role;
-GRANT SELECT ON TABLE
-  public.negocios, public.sucursales, public.servicios,
-  public.profesional_servicios, public.horarios_sucursal,
-  public.horarios_profesional TO anon;
-GRANT INSERT ON TABLE public.citas TO anon;
+  public.horarios_profesional, public.citas, public.suscripciones
+  TO anon, authenticated, service_role;
 
 -- El rol anon no recibe SELECT de tabla: solo columnas públicas.
 REVOKE SELECT ON TABLE public.profesionales FROM PUBLIC, anon;
 GRANT SELECT (id, sucursal_id, nombre, apellido, avatar_url, activo)
   ON TABLE public.profesionales TO anon;
 REVOKE ALL PRIVILEGES ON TABLE public.profesionales_publicos
-  FROM PUBLIC, anon, authenticated;
+  FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON TABLE public.profesionales_publicos TO anon, authenticated;
+GRANT ALL PRIVILEGES ON TABLE public.profesionales_publicos TO service_role;
 
 REVOKE ALL PRIVILEGES ON TABLE public.perfiles_usuario
   FROM PUBLIC, anon, authenticated, service_role;
@@ -595,10 +573,21 @@ CREATE POLICY "Dueño puede gestionar citas de su negocio"
     )
   );
 
--- Sin política de INSERT para anon/authenticated (hallazgo 8.1): las reservas
--- públicas se crean desde el servidor con service_role, que ignora RLS. Una
--- política pública sólo permitiría crear citas por la Data API saltándose el
--- rate limit, el consentimiento y el chequeo de disponibilidad.
+CREATE POLICY "Público puede crear reservas de citas"
+  ON public.citas
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    citas.estado = 'pendiente_pago'
+    AND citas.monto_anticipo_pagado = 0
+    AND EXISTS (
+      SELECT 1
+      FROM public.sucursales s
+      WHERE s.id = citas.sucursal_id
+        AND s.negocio_id = citas.negocio_id
+        AND s.activa = true
+    )
+  );
 
 -- ------------------------------------------------------------------------------
 -- Políticas para: suscripciones

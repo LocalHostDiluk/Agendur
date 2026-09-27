@@ -7,7 +7,9 @@ El repositorio contiene una aplicación **full-stack con Next.js**, organizada c
 
 ## Mejoras prioritarias del sistema
 
-Auditoría técnica del frontend, backend y proyecto Supabase activo `Citas`, realizada sobre el estado actual del workspace. Esta sección es un backlog de remediación: documenta problemas comprobados, pero no implica que las correcciones o migraciones ya se hayan aplicado.
+Auditoría técnica del frontend, backend y proyecto Supabase activo `Citas`, realizada sobre el estado actual del workspace. Esta sección conserva el backlog de remediación; las correcciones remotas aplicadas se registran explícitamente para no confundir hallazgos históricos con pendientes.
+
+**Estado Supabase al 26 de septiembre de 2026:** Oleadas 0 y 1 aplicadas. El ledger remoto está reconciliado, `anon` no tiene grants ni policies sobre tablas `public`, las funciones públicas no son invocables por roles de API, `stripe_webhook_events` existe con acceso exclusivo de `service_role` y los advisors no muestran alertas de seguridad o rendimiento relacionadas con los objetos modificados. Queda activar en Dashboard la protección de contraseñas filtradas y ejecutar las pruebas reales de reserva y webhook señaladas al final del documento.
 
 Prioridades:
 
@@ -214,8 +216,8 @@ También se usan **guardas de negocio**, como `assertActiveSubscription()`, y **
 | `apps/web/tests/` | Pruebas con Bun (30 archivos). |
 | `apps/web/e2e/` | Escenario Playwright. |
 | `apps/web/proxy.ts` | Renovación de sesión y redirecciones de acceso. |
-| `supabase/schema.sql` | Snapshot SQL para una base nueva. |
-| `supabase/migrations/` | Cambios históricos del esquema. |
+| `supabase/migrations/00000000000000_remote_baseline.sql` | Baseline verificado del proyecto remoto; no se reaplica sobre la base actual. |
+| `supabase/migrations/` | Baseline y cambios nuevos aplicados directamente al remoto. |
 | `docs/` | Planes de trabajo y especificaciones de diseño en `docs/diseño/`. |
 | `tasks/` | Notas de planificación y pendientes de la iteración en curso. |
 | `.github/workflows/ci.yml` | Pipeline de verificación. |
@@ -323,14 +325,20 @@ bun install --frozen-lockfile
 
 ### 2. Preparar la base de datos
 
-Consulta primero [`supabase/README.md`](supabase/README.md).
+La base `Citas` (`dolpnpuycjfppflcqexe`) es el único entorno de desarrollo y la
+fuente de verdad operativa. No se inicia una base Supabase local.
 
-- **Base nueva:** ejecuta `supabase/schema.sql` una sola vez desde el SQL Editor de Supabase. Es un snapshot consolidado que ya incorpora las migraciones históricas.
-- **Base existente:** identifica su estado y aplica únicamente los cambios que le falten. No ejecutes el snapshot como una actualización general.
-- **No ejecutes todas las migraciones históricas encima del snapshot:** pueden recrear tablas, columnas, políticas y restricciones ya presentes.
-- El README de Supabase registra que el entorno de desarrollo se gestionó mediante SQL Editor y sin historial `supabase_migrations.schema_migrations`. Antes de adoptar un flujo con CLI debe reconciliarse ese historial.
-
-La información sobre la base remota procede de la auditoría documentada en el repositorio; debe comprobarse para cada entorno.
+- `00000000000000_remote_baseline.sql` representa el estado remoto verificado el
+  24 de septiembre de 2026. No debe ejecutarse sobre ese proyecto.
+- Cada cambio posterior se aplica directamente al remoto y conserva exactamente
+  el mismo archivo SQL y versión en `supabase/migrations/`.
+- Antes de cada cambio se verifican precondiciones, respaldo, RLS, grants y
+  asesores. Si una precondición falla, la migración se aborta sin modificar datos.
+- El ledger remoto contiene el baseline, el respaldo de Oleada 0 y las cinco
+  migraciones de Oleada 1 con versiones `20260926214630` a `20260926214859`.
+- El snapshot lógico previo a cambios vive en el esquema privado remoto
+  `backup_wave0_20260924`; es una ayuda de reversión del mismo proyecto, no un
+  reemplazo de un respaldo externo.
 
 ### 3. Configurar variables de entorno
 
@@ -453,7 +461,7 @@ El pipeline fija Bun 1.3.14. Playwright no forma parte de esas etapas. Turborepo
 - La página `/403` se marca con `robots: { index: false, follow: false }`.
 - Errores y excepciones integrados con Sentry mediante `error.tsx` y `global-error.tsx`; restricciones de base de datos para contacto, intervalos válidos y solapamientos.
 
-Consulta [`supabase/README.md`](supabase/README.md) para los resultados, correcciones y consultas reproducibles de la auditoría de datos. La configuración efectiva del entorno debe corresponder al esquema versionado.
+Consulta el [baseline remoto](supabase/migrations/00000000000000_remote_baseline.sql) y el ledger de migraciones para el punto de partida verificado. La configuración efectiva del entorno debe corresponder al esquema versionado.
 
 ## Limitaciones y próximos pasos
 
@@ -477,8 +485,8 @@ Para proponer cambios, trabaja en una rama, conserva `bun.lock` y ejecuta lint, 
 
 Documentación complementaria:
 
-- [Esquema, migraciones y auditoría Supabase](supabase/README.md).
-- [Snapshot SQL](supabase/schema.sql).
+- [Baseline y migraciones Supabase](supabase/migrations/).
+- [Baseline remoto verificado](supabase/migrations/00000000000000_remote_baseline.sql).
 - [Sistema de diseño](docs/diseño/Design-system.md).
 - [Errores y portal de reservas](docs/diseño/errores-y-portal-reservas-agendur.md).
 - [Skeletons, carga y confirmaciones](docs/diseño/skeletons-carga-confirmaciones-agendur.md).

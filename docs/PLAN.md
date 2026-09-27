@@ -180,10 +180,12 @@ Verificación de ownership, configuración por negocio, catálogo público sin P
 
 ### Oleada 3.5 — Seguridad y coherencia del esquema Supabase
 
+**Estado remoto al 26 de septiembre de 2026:** cierre de Oleada 1 aplicado. Se retiraron los grants y policies de `anon` en `public`, se endurecieron las funciones, se optimizaron las policies de propietario, se creó `stripe_webhook_events` y se añadieron los índices faltantes. Los advisors conservan únicamente la protección de contraseñas filtradas como `WARN` de configuración de Auth; la reserva real `201` y el reenvío real de Stripe siguen pendientes de validación externa.
+
 **Subagente: `supabase-schema-reconciliation`**
 
-1. **Auditar RLS y permisos.** Comparar `supabase/schema.sql` con todas las migraciones aplicadas: políticas RLS de tablas expuestas, acceso a vistas y Storage, y privilegios efectivos de `anon` y `authenticated`. Comprobar grants de tabla y columna —un `REVOKE` de columna no neutraliza un `GRANT` de tabla— y verificar si `profesionales` u otras tablas exponen PII por la Data API. Registrar diferencias confirmadas y consultas reproducibles; no asumir una brecha solo por la ausencia de un `REVOKE` en el snapshot.
-2. **Reconciliar el snapshot.** Actualizar `schema.sql` para reflejar las migraciones aplicadas: `citas` con contacto configurable, consentimientos, checks y restricción de solapamiento mediante `btree_gist`; vista `profesionales_publicos` y configuración de seguridad que resulte de la auditoría. Identificar explícitamente si `schema.sql` es un snapshot o un punto de partida para migraciones y dejar un único procedimiento reproducible de creación de una base nueva, sin reaplicar objetos duplicados.
+1. **Auditar RLS y permisos.** Comparar el baseline remoto verificado con las migraciones aplicadas: políticas RLS de tablas expuestas, acceso a vistas y Storage, y privilegios efectivos de `anon` y `authenticated`. Comprobar grants de tabla y columna —un `REVOKE` de columna no neutraliza un `GRANT` de tabla— y verificar si `profesionales` u otras tablas exponen PII por la Data API. Registrar diferencias confirmadas y consultas reproducibles; no asumir una brecha solo por la ausencia de un `REVOKE` en el baseline.
+2. **Reconciliar el baseline.** Mantener `supabase/migrations/00000000000000_remote_baseline.sql` como reflejo del punto remoto verificado y registrar únicamente migraciones nuevas en adelante. El baseline no se reaplica sobre el proyecto remoto existente.
 3. **Corregir solo brechas reales.** Si la auditoría confirma una exposición de PII o una divergencia en la base actual, preparar una migración aditiva mínima para corregirla. No reescribir migraciones ya aplicadas ni cambiar permisos sin evidencia de sus grants efectivos.
 4. **Verificar el resultado.** Comparar esquema y migraciones con la base actual de desarrollo; ejecutar consultas de RLS/grants para `anon` y `authenticated`, comprobar que el catálogo público no expone PII y validar una reserva con consentimiento y dos peticiones concurrentes al mismo slot (`201` y `409`). Documentar qué quedó verificado y qué requiere comprobación manual.
 
@@ -244,8 +246,8 @@ Anotaciones estructuradas derivadas de la auditoría de sólo lectura realizada 
 - **Asimetría de nulabilidad:** `Cita.privacidad_aceptada_en` está tipado como opcional pero no admite `null`, a diferencia de la columna en base de datos (`TIMESTAMPTZ NULL`).
 - **Campos en TS inexistentes en BD:** `Profesional.especialidad` y `Servicio.moneda` están tipados en la interfaz pero no existen como columnas en `public.profesionales` ni `public.servicios`.
 
-### 6. Base de datos y esquema Supabase (`supabase/schema.sql`)
-- **Seguridad en funciones:** `public.handle_updated_at()` carece de `SET search_path = ''`, señalada por el Security Advisor de Supabase por riesgo potencial de búsqueda no calificada.
+### 6. Base de datos y esquema Supabase (`supabase/migrations/00000000000000_remote_baseline.sql`)
+- **Seguridad en funciones (resuelto en remoto):** `public.handle_updated_at()` fija `search_path = ''` y las funciones públicas de trigger no son invocables por roles de la Data API.
 - **Índices foráneos recomendados:** Faltan índices de optimización para `profesional_servicios(servicio_id)`, `citas(servicio_id)` y `suscripciones(subscription_external_id)`.
 
 ## Reglas para todos los subagentes

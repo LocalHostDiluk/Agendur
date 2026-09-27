@@ -96,10 +96,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { nombre, duracion_minutos, precio, descripcion } = body as Record<
-      string,
-      unknown
-    >;
+    const {
+      nombre,
+      duracion_minutos,
+      buffer_minutos = 0,
+      precio,
+      descripcion,
+    } = body as Record<string, unknown>;
 
     // Validar nombre (string no vacío, max 120 caracteres)
     if (
@@ -136,6 +139,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    if (
+      typeof buffer_minutos !== "number" ||
+      !Number.isInteger(buffer_minutos) ||
+      buffer_minutos < 0
+    ) {
+      return apiError(
+        "Campos inválidos: buffer_minutos debe ser un entero mayor o igual a 0.",
+        undefined,
+        { status: 400 },
+      );
+    }
+
     // descripcion opcional (string o null)
     if (
       descripcion !== undefined &&
@@ -158,6 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         negocio_id: negocio.id,
         nombre: nombre.trim(),
         duracion_minutos,
+        buffer_minutos,
         precio,
         descripcion: cleanDescripcion,
         activo: true,
@@ -199,8 +215,15 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { id, nombre, duracion_minutos, precio, descripcion, activo } =
-      body as Record<string, unknown>;
+    const {
+      id,
+      nombre,
+      duracion_minutos,
+      buffer_minutos,
+      precio,
+      descripcion,
+      activo,
+    } = body as Record<string, unknown>;
 
     // Extraer y validar id (UUID requerido)
     if (!id || typeof id !== "string" || !id.trim()) {
@@ -228,6 +251,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const updates: {
       nombre?: string;
       duracion_minutos?: number;
+      buffer_minutos?: number;
       precio?: number;
       descripcion?: string | null;
       activo?: boolean;
@@ -261,6 +285,21 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         );
       }
       updates.duracion_minutos = duracion_minutos;
+    }
+
+    if (buffer_minutos !== undefined) {
+      if (
+        typeof buffer_minutos !== "number" ||
+        !Number.isInteger(buffer_minutos) ||
+        buffer_minutos < 0
+      ) {
+        return apiError(
+          "Campos inválidos: buffer_minutos debe ser un entero mayor o igual a 0.",
+          undefined,
+          { status: 400 },
+        );
+      }
+      updates.buffer_minutos = buffer_minutos;
     }
 
     if (precio !== undefined) {

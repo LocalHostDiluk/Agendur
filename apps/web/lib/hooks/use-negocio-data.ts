@@ -162,6 +162,7 @@ export function useCreateServicio() {
     mutationFn: (nuevoServicio: {
       nombre: string;
       duracion_minutos: number;
+      buffer_minutos?: number;
       precio: number;
       descripcion?: string;
     }) =>
