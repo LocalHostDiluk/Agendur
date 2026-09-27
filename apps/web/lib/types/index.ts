@@ -2,6 +2,18 @@
 // Agendur - Definiciones de Tipos TypeScript (Sincronizadas con Supabase DB)
 // ==============================================================================
 
+export type RegistroRol = "Dueño" | "Gerente" | "Recepcionista" | "Otro";
+export type SucursalesEstimadas = "1" | "2–3" | "4+";
+
+export interface PerfilUsuario {
+  usuario_id?: string;
+  nombres: string;
+  apellidos: string;
+  telefono: string | null;
+  rol: RegistroRol | null;
+  locale: string;
+}
+
 export interface Negocio {
   id: string;
   owner_id: string;
@@ -9,6 +21,8 @@ export interface Negocio {
   slug: string;
   logo_url: string | null;
   giro_comercial: string;
+  ciudad?: string | null;
+  sucursales_estimadas?: SucursalesEstimadas | null;
   moneda_principal: string; // default 'MXN'
   pais?: string | null;
   zona_horaria?: string | null;

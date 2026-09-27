@@ -137,8 +137,8 @@ export default function RegisterPage() {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
-  const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL;
-  const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL;
+  const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL || "/terminos";
+  const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || "/privacidad";
 
   // Brand copy synchronization based on active step
   useEffect(() => {
@@ -324,8 +324,8 @@ export default function RegisterPage() {
           confirmarPassword: password,
           aceptaTerminos: true,
           aceptaPrivacidad: true,
-          termsVersionAccepted: process.env.NEXT_PUBLIC_TERMS_VERSION,
-          privacyVersionAccepted: process.env.NEXT_PUBLIC_PRIVACY_VERSION,
+          termsVersionAccepted: process.env.NEXT_PUBLIC_TERMS_VERSION || "v1",
+          privacyVersionAccepted: process.env.NEXT_PUBLIC_PRIVACY_VERSION || "v1",
           turnstileToken,
           telefono: `${codigoPais} ${telefono}`.trim(),
           rol,

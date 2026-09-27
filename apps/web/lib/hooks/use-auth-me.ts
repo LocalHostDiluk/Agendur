@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/query/api-client";
-import type { Negocio, Suscripcion } from "@/lib/types";
+import type { Negocio, PerfilUsuario, Suscripcion } from "@/lib/types";
 
 export interface AuthMeResponse {
   user: {
@@ -10,8 +10,9 @@ export interface AuthMeResponse {
   } | null;
   negocio: Negocio | null;
   suscripcion: Suscripcion | null;
-  perfil?: { nombres: string; apellidos: string; telefono: string | null; locale: string } | null;
+  perfil?: PerfilUsuario | null;
   sucursalesCount?: number;
+  sucursalesActivasCount?: number;
   onboardingStatus?: "required" | "complete";
 }
 

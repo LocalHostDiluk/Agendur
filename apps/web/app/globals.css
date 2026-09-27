@@ -343,11 +343,10 @@ body {
 }
 
 .language-switch button {
-  padding: 0.25rem 0.625rem;
+  padding: 0.45rem 0.6rem;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
-  background: transparent;
   border: none;
   transition:
     color 160ms ease,

@@ -378,7 +378,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
                 if (opts?.head) {
                   return {
                     eq: () => ({
-                      eq: () => ({ count: 1 }),
+                      eq: (column: string) => ({ count: column === "activa" ? 0 : 1 }),
                       in: () => ({ count: 1 }),
                       count: 1,
                     }),

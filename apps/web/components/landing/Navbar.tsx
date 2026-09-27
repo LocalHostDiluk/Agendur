@@ -9,16 +9,18 @@ function LanguageSwitch({
   lang,
   setLang,
   inverted = false,
+  className = "",
 }: {
   lang: "es" | "en";
   setLang: (lang: "es" | "en") => void;
   inverted?: boolean;
+  className?: string;
 }) {
   return (
     <div
       className={`language-switch font-mono text-xs ${
         inverted ? "border-paper/40" : "border-ink/30"
-      }`}
+      } ${className}`}
       aria-label="Selector de idioma"
     >
       {(["es", "en"] as const).map((item) => (
@@ -134,7 +136,11 @@ export function Navbar() {
             >
               {t.nav.login}
             </Link>
-            <LanguageSwitch lang={lang} setLang={setLang} />
+            <LanguageSwitch
+              lang={lang}
+              setLang={setLang}
+              className="self-start"
+            />
             <Link
               href="/register"
               onClick={closeMenu}
