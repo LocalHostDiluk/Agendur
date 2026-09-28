@@ -2,6 +2,18 @@
 // Agendur - Definiciones de Tipos TypeScript (Sincronizadas con Supabase DB)
 // ==============================================================================
 
+export type RegistroRol = "Dueño" | "Gerente" | "Recepcionista" | "Otro";
+export type SucursalesEstimadas = "1" | "2–3" | "4+";
+
+export interface PerfilUsuario {
+  usuario_id?: string;
+  nombres: string;
+  apellidos: string;
+  telefono: string | null;
+  rol: RegistroRol | null;
+  locale: string;
+}
+
 export interface Negocio {
   id: string;
   owner_id: string;
@@ -9,6 +21,8 @@ export interface Negocio {
   slug: string;
   logo_url: string | null;
   giro_comercial: string;
+  ciudad?: string | null;
+  sucursales_estimadas?: SucursalesEstimadas | null;
   moneda_principal: string; // default 'MXN'
   pais?: string | null;
   zona_horaria?: string | null;
@@ -58,13 +72,40 @@ export interface Profesional {
   sucursalId?: string;
   nombre: string;
   apellido?: string;
+  cargo?: string | null;
   email?: string | null;
   telefono?: string | null;
   avatar_url?: string | null;
   avatarUrl?: string;
   activo?: boolean;
+  serviciosIds?: string[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CreateProfesionalPayload {
+  nombre: string;
+  apellido: string;
+  sucursal_id: string;
+  cargo?: string;
+  email?: string | null;
+  telefono?: string | null;
+  avatar_url?: string | null;
+  activo?: boolean;
+  serviciosIds?: string[];
+}
+
+export interface UpdateProfesionalPayload {
+  id: string;
+  nombre?: string;
+  apellido?: string;
+  sucursal_id?: string;
+  cargo?: string;
+  email?: string | null;
+  telefono?: string | null;
+  avatar_url?: string | null;
+  activo?: boolean;
+  serviciosIds?: string[];
 }
 
 export interface ProfesionalServicio {
@@ -135,6 +176,7 @@ export interface Cita {
   montoAnticipo?: number;
   metodo_pago_anticipo?: string | null;
   notas_cliente?: string | null;
+  notas_internas?: string | null;
   privacidad_aceptada_en?: string | null;
   politica_cancelacion_aceptada_en?: string | null;
   created_at?: string;

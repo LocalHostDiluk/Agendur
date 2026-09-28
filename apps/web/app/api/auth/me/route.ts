@@ -35,7 +35,7 @@ export async function GET() {
     // no existir aún en una instalación donde la migración se aplica a mano.
     const { data: perfil, error: perfilError } = await admin
       .from("perfiles_usuario")
-      .select("nombres, apellidos, telefono, locale")
+      .select("nombres, apellidos, telefono, rol, locale")
       .eq("usuario_id", user.id)
       .maybeSingle();
     if (perfilError && !["42P01", "PGRST205"].includes(perfilError.code)) {
@@ -43,15 +43,20 @@ export async function GET() {
     }
 
     let sucursalesCount = 0;
+    let sucursalesActivasCount = 0;
     if (negocio?.id) {
-      const { count, error: sucursalesError } = await admin
-        .from("sucursales")
-        .select("id", { count: "exact", head: true })
-        .eq("negocio_id", negocio.id);
-      if (sucursalesError || typeof count !== "number") {
-        return apiError(sucursalesError || "No se pudo contar sucursales.", "No se pudo consultar las sucursales.", { status: 503 });
+      const [total, activas] = await Promise.all([
+        admin.from("sucursales").select("id", { count: "exact", head: true })
+          .eq("negocio_id", negocio.id),
+        admin.from("sucursales").select("id", { count: "exact", head: true })
+          .eq("negocio_id", negocio.id).eq("activa", true),
+      ]);
+      if (total.error || activas.error ||
+        typeof total.count !== "number" || typeof activas.count !== "number") {
+        return apiError(total.error || activas.error || "No se pudo contar sucursales.", "No se pudo consultar las sucursales.", { status: 503 });
       }
-      sucursalesCount = count;
+      sucursalesCount = total.count;
+      sucursalesActivasCount = activas.count;
     }
 
     // 3. Obtener suscripción
@@ -79,6 +84,9 @@ export async function GET() {
           slug: negocio.slug,
           giroComercial: negocio.giro_comercial,
           giro_comercial: negocio.giro_comercial,
+          ciudad: negocio.ciudad ?? null,
+          sucursalesEstimadas: negocio.sucursales_estimadas ?? null,
+          sucursales_estimadas: negocio.sucursales_estimadas ?? null,
           logoUrl: negocio.logo_url,
           logo_url: negocio.logo_url,
           monedaPrincipal: negocio.moneda_principal,
@@ -98,6 +106,7 @@ export async function GET() {
       suscripcion,
       perfil: perfilError ? null : perfil,
       sucursalesCount,
+      sucursalesActivasCount,
       onboardingStatus: negocio && sucursalesCount > 0 ? "complete" : "required",
     };
 

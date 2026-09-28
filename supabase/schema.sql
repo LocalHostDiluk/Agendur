@@ -15,6 +15,7 @@ SET search_path = public, extensions;
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = ''
 AS $$
 BEGIN
   NEW.updated_at = now();
@@ -35,12 +36,10 @@ CREATE TABLE IF NOT EXISTS public.negocios (
   ciudad TEXT NULL,
   sucursales_estimadas TEXT NULL,
   moneda_principal VARCHAR(3) NOT NULL DEFAULT 'MXN',
-  porcentaje_anticipo_default NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (porcentaje_anticipo_default BETWEEN 0 AND 100),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   pais VARCHAR(2) NOT NULL DEFAULT 'MX'
     CONSTRAINT negocios_pais_formato_check CHECK (pais ~ '^[A-Z]{2}$'),
   zona_horaria VARCHAR(50) NOT NULL DEFAULT 'America/Mexico_City',
+  porcentaje_anticipo_default NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (porcentaje_anticipo_default BETWEEN 0 AND 100),
   telefono_cliente_requerido BOOLEAN NOT NULL DEFAULT true,
   email_cliente_requerido BOOLEAN NOT NULL DEFAULT false,
   notas_cliente_habilitadas BOOLEAN NOT NULL DEFAULT true,
@@ -291,6 +290,7 @@ CREATE TABLE IF NOT EXISTS public.citas (
 CREATE INDEX IF NOT EXISTS idx_citas_negocio_fecha ON public.citas(negocio_id, fecha);
 CREATE INDEX IF NOT EXISTS idx_citas_sucursal_fecha ON public.citas(sucursal_id, fecha);
 CREATE INDEX IF NOT EXISTS idx_citas_profesional_fecha ON public.citas(profesional_id, fecha);
+CREATE INDEX IF NOT EXISTS idx_citas_servicio_id ON public.citas(servicio_id);
 
 DROP TRIGGER IF EXISTS tr_citas_updated_at ON public.citas;
 CREATE TRIGGER tr_citas_updated_at
@@ -324,11 +324,22 @@ ALTER TABLE public.suscripciones
   ALTER COLUMN plan_nombre SET DEFAULT 'starter';
 
 CREATE INDEX IF NOT EXISTS idx_suscripciones_negocio ON public.suscripciones(negocio_id);
+CREATE INDEX IF NOT EXISTS idx_suscripciones_subscription_external_id
+  ON public.suscripciones(subscription_external_id);
 
 DROP TRIGGER IF EXISTS tr_suscripciones_updated_at ON public.suscripciones;
 CREATE TRIGGER tr_suscripciones_updated_at
   BEFORE UPDATE ON public.suscripciones
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- ------------------------------------------------------------------------------
+-- 10A. TABLA: stripe_webhook_events (Idempotencia de webhooks)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
+  event_id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- ==============================================================================
 -- 11. ROW LEVEL SECURITY (RLS) POLICIES
@@ -421,9 +432,8 @@ GRANT SELECT (
 GRANT SELECT (id, sucursal_id, nombre, apellido, avatar_url, activo)
   ON TABLE public.profesionales TO anon;
 REVOKE ALL PRIVILEGES ON TABLE public.profesionales_publicos
-  FROM PUBLIC, anon, authenticated, service_role;
+  FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.profesionales_publicos TO anon, authenticated;
-GRANT ALL PRIVILEGES ON TABLE public.profesionales_publicos TO service_role;
 
 -- Las funciones de mantenimiento no forman parte de la API.
 REVOKE EXECUTE ON FUNCTION public.handle_updated_at()
@@ -677,21 +687,10 @@ CREATE POLICY "Dueño puede gestionar citas de su negocio"
     )
   );
 
-CREATE POLICY "Público puede crear reservas de citas"
-  ON public.citas
-  FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (
-    citas.estado = 'pendiente_pago'
-    AND citas.monto_anticipo_pagado = 0
-    AND EXISTS (
-      SELECT 1
-      FROM public.sucursales s
-      WHERE s.id = citas.sucursal_id
-        AND s.negocio_id = citas.negocio_id
-        AND s.activa = true
-    )
-  );
+-- Sin política de INSERT para anon/authenticated (hallazgo 8.1): las reservas
+-- públicas se crean desde el servidor con service_role, que ignora RLS. Una
+-- política pública sólo permitiría crear citas por la Data API saltándose el
+-- rate limit, el consentimiento y el chequeo de disponibilidad.
 
 -- ------------------------------------------------------------------------------
 -- Políticas para: suscripciones

@@ -51,11 +51,11 @@ describe("Oleada 2 B: identidad autenticada", () => {
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const admin = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
       from: (table: string) => ({
-        select: () => ({ eq: () => ({
-          maybeSingle: async () => ({ data: table === "negocios" ? { id: "neg-1", nombre_comercial: "Mi negocio", slug: "mi-negocio", giro_comercial: "Salón", logo_url: null, moneda_principal: "MXN" } : table === "perfiles_usuario" ? { nombres: "Ana", apellidos: "López", telefono: null, locale: "es-MX" } : { plan_nombre: "starter", estado: "trialing" }, error: null }),
-          count: 0,
-          error: null,
-        }) }),
+        select: () => ({ eq: () => table === "sucursales"
+          ? ({ count: 0, error: null, eq: () => ({ count: 0, error: null }) })
+          : ({
+              maybeSingle: async () => ({ data: table === "negocios" ? { id: "neg-1", nombre_comercial: "Mi negocio", slug: "mi-negocio", giro_comercial: "Salón", logo_url: null, moneda_principal: "MXN" } : table === "perfiles_usuario" ? { nombres: "Ana", apellidos: "López", telefono: null, rol: "Dueño", locale: "es-MX" } : { plan_nombre: "starter", estado: "trialing" }, error: null }),
+            }) }),
       }),
     }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
     try {
@@ -65,6 +65,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       expect(json.perfil).toMatchObject({ nombres: "Ana", apellidos: "López" });
       expect(json.onboardingStatus).toBe("required");
       expect(json.sucursalesCount).toBe(0);
+      expect(json.sucursalesActivasCount).toBe(0);
       expect(json.negocio.id).toBe("neg-1");
     } finally {
       admin.mockRestore();
@@ -77,12 +78,13 @@ describe("Oleada 2 B: identidad autenticada", () => {
       auth: { getUser: async () => ({ data: { user: { id: "legacy-owner", email: "legacy@example.com", created_at: "before" } }, error: null }) },
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const admin = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
-      from: (table: string) => ({ select: () => ({ eq: () => ({
-        maybeSingle: async () => table === "perfiles_usuario"
-          ? { data: null, error: { code: "PGRST205" } }
-          : { data: table === "negocios" ? { id: "legacy-business", nombre_comercial: "Antiguo", slug: "antiguo", giro_comercial: "Barbería" } : { plan_nombre: "pro" }, error: null },
-        count: 1, error: null,
-      }) }) }),
+      from: (table: string) => ({ select: () => ({ eq: () => table === "sucursales"
+        ? ({ count: 1, error: null, eq: () => ({ count: 1, error: null }) })
+        : ({
+            maybeSingle: async () => table === "perfiles_usuario"
+              ? { data: null, error: { code: "PGRST205" } }
+              : { data: table === "negocios" ? { id: "legacy-business", nombre_comercial: "Antiguo", slug: "antiguo", giro_comercial: "Barbería" } : { plan_nombre: "pro" }, error: null },
+          }) }) }),
     }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
     try {
       const response = await getMe();
@@ -91,6 +93,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       expect(json.perfil).toBeNull();
       expect(json.onboardingStatus).toBe("complete");
       expect(json.sucursalesCount).toBe(1);
+      expect(json.sucursalesActivasCount).toBe(1);
     } finally {
       admin.mockRestore();
       server.mockRestore();
