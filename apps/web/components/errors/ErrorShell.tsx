@@ -117,14 +117,17 @@ export function ErrorShell({
         {isLogoLink ? (
           <Link
             href="/"
-            className="font-[family-name:var(--font-bricolage)] text-[20px] font-bold text-[var(--text-on-ink,#F3EEDF)] tracking-tight hover:opacity-85 transition-opacity"
+            className="brand-mark text-[22px] text-[var(--text-on-ink,#F3EEDF)] tracking-tight hover:opacity-90 transition-opacity"
             aria-label="Agendur inicio"
           >
-            Agendur
+            <span>A</span>gendur
           </Link>
         ) : (
-          <span className="font-[family-name:var(--font-bricolage)] text-[20px] font-bold text-[var(--text-on-ink,#F3EEDF)] tracking-tight cursor-default">
-            Agendur
+          <span
+            className="brand-mark text-[22px] text-[var(--text-on-ink,#F3EEDF)] tracking-tight cursor-default"
+            aria-label="Agendur"
+          >
+            <span>A</span>gendur
           </span>
         )}
       </div>

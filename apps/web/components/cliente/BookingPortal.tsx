@@ -1483,7 +1483,7 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
                     <span>
                       Acepto el{" "}
                       <Link
-                        href="/privacidad"
+                        href="/legal/privacidad"
                         target="_blank"
                         className="text-grape underline font-medium"
                       >

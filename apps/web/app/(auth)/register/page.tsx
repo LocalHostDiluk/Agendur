@@ -137,8 +137,8 @@ export default function RegisterPage() {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
-  const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL || "/terminos";
-  const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || "/privacidad";
+  const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL || "/legal/terminos";
+  const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || "/legal/privacidad";
 
   // Brand copy synchronization based on active step
   useEffect(() => {
@@ -642,7 +642,7 @@ export default function RegisterPage() {
                   <span>
                     Acepto los{" "}
                     <a
-                      href={termsUrl || "/terminos"}
+                      href={termsUrl || "/legal/terminos"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-grape font-medium underline hover:opacity-80"
@@ -651,7 +651,7 @@ export default function RegisterPage() {
                     </a>{" "}
                     y el{" "}
                     <a
-                      href={privacyUrl || "/privacidad"}
+                      href={privacyUrl || "/legal/privacidad"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-grape font-medium underline hover:opacity-80"

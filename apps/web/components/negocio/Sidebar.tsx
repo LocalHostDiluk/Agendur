@@ -228,24 +228,22 @@ export function Sidebar({
       >
         <div className="space-y-4">
           {/* Top Logo */}
-          <div className="h-8 flex items-center justify-between">
+          <div className="h-9 flex items-center justify-between">
             <Link
               href="/dashboard"
               onClick={onClose}
-              className="group relative flex items-center px-3 py-1 focus:outline-hidden"
+              className="brand-mark group relative px-1.5 py-0.5 text-[22px] text-white leading-none tracking-tight focus:outline-hidden"
               aria-label="Agendur Inicio"
             >
-              <span className="font-bricolage font-bold text-[22px] text-[#F1ECE2] leading-none tracking-tight flex items-center">
-                <span>A</span>
-                <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
-                    isCollapsed
-                      ? "max-w-[120px] md:max-w-0 md:opacity-0 md:-translate-x-1"
-                      : "max-w-[120px] opacity-100 translate-x-0"
-                  }`}
-                >
-                  gendur
-                </span>
+              <span className="transition-transform duration-150 group-hover:scale-[1.03]">A</span>
+              <span
+                className={`text-white overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
+                  isCollapsed
+                    ? "max-w-[120px] md:max-w-0 md:opacity-0 md:-translate-x-1"
+                    : "max-w-[120px] opacity-100 translate-x-0"
+                }`}
+              >
+                gendur
               </span>
               {isCollapsed && (
                 <div className="hidden md:block absolute left-full ml-3 px-2.5 py-1 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
