@@ -16,6 +16,7 @@ type AvailabilityScenario = {
   excepcionesSucursal?: Array<Record<string, unknown>>;
   excepcionesProfesional?: Array<Record<string, unknown>>;
   citas?: Array<Record<string, unknown>>;
+  negocioDesactivado?: boolean;
 };
 
 async function withAvailabilityScenario(
@@ -31,8 +32,12 @@ async function withAvailabilityScenario(
       const query = {
         select: () => query,
         eq: () => query,
+        is: () => query,
         in: () => query,
         maybeSingle: async () => {
+          if (table === "sucursales" && scenario.negocioDesactivado) {
+            return { data: null, error: null };
+          }
           const rows: Record<string, unknown> = {
             sucursales: { id: "suc-1", activa: true },
             horarios_sucursal: {
@@ -125,6 +130,19 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           ).toEqual([]);
         },
       );
+    });
+
+    it("no ofrece disponibilidad de un negocio desactivado", async () => {
+      await withAvailabilityScenario({ negocioDesactivado: true }, async () => {
+        expect(
+          await obtenerDisponibilidad({
+            sucursalId: "suc-1",
+            servicioId: "serv-1",
+            profesionalId: "prof-1",
+            fecha: "2098-01-01",
+          }),
+        ).toEqual([]);
+      });
     });
 
     it("usa el horario semanal cuando no existen excepciones", async () => {
@@ -274,6 +292,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           const query = {
             select: () => query,
             eq: () => query,
+            is: () => query,
             in: (column: string, values: string[]) => { if (column === "estado") estadosFiltrados.push(values); return query; },
             then: (resolve: (value: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null }),
             insert: (payload: Record<string, unknown>) => { inserting = true; insertPayloads.push(payload); return query; },

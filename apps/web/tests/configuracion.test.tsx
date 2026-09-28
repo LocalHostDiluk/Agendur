@@ -58,6 +58,9 @@ function renderWithClient(
         options?.config !== undefined ? options.config : mockConfiguracion,
     });
     client.setQueryData(["negocio", "suscripcion"], mockSuscripcionData);
+    client.setQueryData(["auth", "me"], {
+      user: { id: "user-1", email: "owner@example.com" },
+    });
   }
 
   const html = renderToStaticMarkup(
@@ -90,6 +93,9 @@ describe("Módulo de Configuración (/configuracion) — Tests de UI/UX", () => 
     expect(html).toContain("Moneda Comercial");
     expect(html).toContain("MXN ($) — Peso Mexicano");
     expect(html).toContain("Ciudad de México / Centro (GMT-6)");
+    expect(html).toContain("Zona de peligro");
+    expect(html).toContain("Eliminar mi cuenta");
+    expect(html).toContain("conservaremos el historial");
   });
 
   it("debe renderizar la pestaña de Políticas y Reservas con anticipo, switches y política de cancelación", () => {

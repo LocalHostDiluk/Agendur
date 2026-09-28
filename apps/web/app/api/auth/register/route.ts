@@ -303,8 +303,30 @@ export async function POST(request: Request) {
 
     const userId = signedUpUser.id;
 
-    const failProvisioning = async (cause: unknown) => {
+    const failProvisioning = async (cause: unknown, negocioId?: string) => {
       Sentry.captureException(cause);
+
+      if (negocioId) {
+        const { error: negocioCleanupError } = await admin
+          .from("negocios")
+          .delete()
+          .eq("id", negocioId)
+          .eq("owner_id", userId);
+
+        if (negocioCleanupError) {
+          Sentry.captureException(negocioCleanupError);
+          return NextResponse.json(
+            {
+              success: false,
+              ok: false,
+              error:
+                "No se pudo completar el registro. Por favor intenta de nuevo.",
+            },
+            { status: 500 },
+          );
+        }
+      }
+
       const { error: rollbackError } = await admin.auth.admin.deleteUser(userId);
       if (rollbackError) Sentry.captureException(rollbackError);
       return NextResponse.json(
@@ -313,7 +335,8 @@ export async function POST(request: Request) {
       );
     };
 
-    // Los tres registros comparten el usuario; su eliminación revierte las FK en cascada.
+    // Perfil y consentimientos se revierten al eliminar el usuario; si ya existe,
+    // el negocio se elimina primero para respetar la FK restrictiva.
     const { error: profileError } = await admin.from("perfiles_usuario").insert({
       usuario_id: userId,
       nombres: nombres.trim(),
@@ -363,7 +386,7 @@ export async function POST(request: Request) {
     });
 
     if (subError) {
-      return failProvisioning(subError);
+      return failProvisioning(subError, negocio.id);
     }
 
     const needsEmailConfirmation = !authData.session;

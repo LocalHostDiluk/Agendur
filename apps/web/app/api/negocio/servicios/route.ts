@@ -1,46 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import {
+  NegocioAccessError,
+  requireNegocioAccess,
+  type NegocioAccess,
+  type NegocioCapability,
+} from "@/lib/auth/negocio-access";
 
 /**
  * Autentica al usuario y obtiene el negocio asociado (owner_id = user.id).
  */
-async function getAuthenticatedNegocio(): Promise<
-  | { ok: false; error: NextResponse }
-  | { ok: true; user: { id: string; email?: string }; negocio: { id: string } }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+async function getAuthenticatedNegocio(
+  capability: NegocioCapability,
+): Promise<NegocioAccess> {
+  return requireNegocioAccess(capability);
+}
 
-  if (authError || !user) {
-    return {
-      ok: false,
-      error: apiError("No autorizado", undefined, { status: 401 }),
-    };
-  }
-
-  const { data: negocio, error: negError } = await supabase
-    .from("negocios")
-    .select("id")
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (negError || !negocio) {
-    return {
-      ok: false,
-      error: apiError(
-        "No se encontró un negocio para esta cuenta.",
-        undefined,
-        { status: 404 },
-      ),
-    };
-  }
-
-  return { ok: true, user, negocio };
+function accessFailure(error: unknown): NextResponse | null {
+  if (!(error instanceof NegocioAccessError)) return null;
+  return apiError(error.message, undefined, { status: error.status, code: error.code });
 }
 
 /**
@@ -49,18 +28,25 @@ async function getAuthenticatedNegocio(): Promise<
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
+    const access = await getAuthenticatedNegocio("services:read");
+
+    let allowedServiceIds: string[] | null = null;
+    if (access.profesionalId) {
+      const { data: assignments, error: assignmentError } = await adminClient
+        .from("profesional_servicios")
+        .select("servicio_id")
+        .eq("profesional_id", access.profesionalId);
+      if (assignmentError) throw assignmentError;
+      allowedServiceIds = (assignments ?? []).map((item) => item.servicio_id);
+      if (allowedServiceIds.length === 0) return apiSuccess({ servicios: [] });
     }
 
-    const { negocio } = auth;
-
-    const { data: servicios, error } = await adminClient
+    let query = adminClient
       .from("servicios")
       .select("*")
-      .eq("negocio_id", negocio.id)
-      .order("nombre", { ascending: true });
+      .eq("negocio_id", access.negocioId);
+    if (allowedServiceIds) query = query.in("id", allowedServiceIds);
+    const { data: servicios, error } = await query.order("nombre", { ascending: true });
 
     if (error) {
       throw error;
@@ -68,6 +54,8 @@ export async function GET(): Promise<NextResponse> {
 
     return apiSuccess({ servicios: servicios || [] });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al consultar servicios.", {
       extra: { route: "GET /api/negocio/servicios" },
     });
@@ -80,12 +68,7 @@ export async function GET(): Promise<NextResponse> {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
-    }
-
-    const { negocio } = auth;
+    const access = await getAuthenticatedNegocio("services:write");
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -170,7 +153,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { data: nuevoServicio, error: insertError } = await adminClient
       .from("servicios")
       .insert({
-        negocio_id: negocio.id,
+        negocio_id: access.negocioId,
         nombre: nombre.trim(),
         duracion_minutos,
         buffer_minutos,
@@ -187,6 +170,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return apiSuccess({ servicio: nuevoServicio }, 201);
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al crear el servicio.", {
       extra: { route: "POST /api/negocio/servicios" },
     });
@@ -199,12 +184,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
-    }
-
-    const { negocio } = auth;
+    const access = await getAuthenticatedNegocio("services:write");
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -237,7 +217,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .from("servicios")
       .select("id")
       .eq("id", servicioId)
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .maybeSingle();
 
     if (findError || !servicioExistente) {
@@ -348,7 +328,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .from("servicios")
       .update(updates)
       .eq("id", servicioId)
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .select()
       .single();
 
@@ -358,6 +338,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return apiSuccess({ servicio: updatedServicio });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al actualizar el servicio.", {
       extra: { route: "PATCH /api/negocio/servicios" },
     });

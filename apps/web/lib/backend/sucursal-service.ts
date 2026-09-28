@@ -15,6 +15,7 @@ export async function getSucursalesByNegocio(
       .from("negocios")
       .select("id")
       .eq("slug", slug)
+      .is("desactivado_at", null)
       .maybeSingle();
 
     if (negError || !negocio) {
