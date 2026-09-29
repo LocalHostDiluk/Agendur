@@ -68,7 +68,7 @@ const mockProfesionales = [
 function renderWithClient(
   element: React.ReactElement,
   options?: {
-    profesionales?: typeof mockProfesionales;
+    profesionales?: Array<(typeof mockProfesionales)[number] & { cargo?: string; telefono?: string }>;
     isLoading?: boolean;
   },
 ) {
@@ -238,5 +238,86 @@ describe("Módulo de Personal y Horarios (/personal) — Tests de UI/UX", () => 
     expect(html).toContain("Inactivo");
     expect(html).toContain("aria-label=\"Activar a Mario\"");
   });
+
+  it("debe renderizar roles con Badge de diseño (Administrador, Especialista, Recepcionista)", () => {
+    const html = renderWithClient(<PersonalPage initialTab="directorio" />, {
+      profesionales: [
+        {
+          id: "prof-admin",
+          nombre: "Laura",
+          apellido: "Gerente",
+          sucursal_id: "suc-1",
+          avatar_url: null,
+          activo: true,
+          cargo: "Administrador",
+          serviciosIds: [],
+        },
+        {
+          id: "prof-recep",
+          nombre: "Diana",
+          apellido: "Recepción",
+          sucursal_id: "suc-1",
+          avatar_url: null,
+          activo: true,
+          cargo: "Recepcionista",
+          serviciosIds: [],
+        },
+      ],
+    });
+
+    expect(html).toContain("Administrador");
+    expect(html).toContain("Recepcionista");
+    // Badge variant class checks
+    expect(html).toContain("text-grape bg-grape-soft"); // Administrador / grape
+  });
+
+  it("debe renderizar el modal de Roles y Permisos con PendingBadge para permisos en desarrollo (§10)", () => {
+    const html = renderWithClient(
+      <PersonalPage initialPermisosOpen={true} />
+    );
+
+    expect(html).toContain("Roles y Permisos del Personal");
+    expect(html).toContain("Gestión de Permisos Granulares");
+    expect(html).toContain("Pendiente");
+    expect(html).toContain("Gestión avanzada de permisos en desarrollo");
+  });
+
+  it("debe transformar la vista en mobile (<640px) como tarjetas limpias apiladas (§8)", () => {
+    const html = renderWithClient(<PersonalPage initialTab="directorio" />);
+
+    // Contenedor mobile específico
+    expect(html).toContain('data-testid="colaboradores-mobile-list"');
+    expect(html).toContain("sm:hidden");
+    // Tabla para desktop
+    expect(html).toContain("hidden sm:block");
+  });
+
+  it("debe formatear teléfonos en Space Mono (font-mono tabular-nums)", () => {
+    const html = renderWithClient(<PersonalPage initialTab="directorio" />, {
+      profesionales: [
+        {
+          id: "prof-tel",
+          nombre: "Carlos",
+          apellido: "Teléfono",
+          sucursal_id: "suc-1",
+          avatar_url: null,
+          activo: true,
+          telefono: "+52 55 1234 5678",
+          serviciosIds: [],
+        },
+      ],
+    });
+
+    expect(html).toContain("+52 55 1234 5678");
+    expect(html).toContain("font-mono tabular-nums");
+  });
+
+  it("debe renderizar el botón para eliminar colaborador con aria-label para Confirmación Nivel 2 (§5.11)", () => {
+    const html = renderWithClient(<PersonalPage initialTab="directorio" />);
+
+    expect(html).toContain('aria-label="Eliminar a Alejandro"');
+    expect(html).toContain('aria-label="Eliminar a Beatriz"');
+  });
 });
+
 

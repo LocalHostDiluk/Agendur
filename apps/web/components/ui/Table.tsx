@@ -5,7 +5,7 @@ export const Table = forwardRef<HTMLTableElement, React.TableHTMLAttributes<HTML
     <div className="overflow-x-auto">
       <table
         ref={ref}
-        className={`min-w-full divide-y divide-gray-200 dark:divide-neutral-700 ${className}`.trim()}
+        className={`min-w-full divide-y divide-border text-left ${className}`.trim()}
         {...props}
       >
         {children}
@@ -21,7 +21,7 @@ export const TableHeader = forwardRef<
 >(({ className = "", children, ...props }, ref) => (
   <thead
     ref={ref}
-    className={`bg-gray-50 dark:bg-neutral-800 ${className}`.trim()}
+    className={`bg-surface-alt border-b border-border sticky top-0 z-10 ${className}`.trim()}
     {...props}
   >
     {children}
@@ -35,7 +35,7 @@ export const TableBody = forwardRef<
 >(({ className = "", children, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={`divide-y divide-gray-200 dark:divide-neutral-700 bg-white dark:bg-neutral-900 ${className}`.trim()}
+    className={`divide-y divide-border/50 bg-surface ${className}`.trim()}
     {...props}
   >
     {children}
@@ -47,7 +47,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTM
   ({ className = "", children, ...props }, ref) => (
     <tr
       ref={ref}
-      className={`hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors ${className}`.trim()}
+      className={`hover:bg-surface-alt transition-colors h-12 ${className}`.trim()}
       {...props}
     >
       {children}
@@ -63,7 +63,7 @@ export const TableHead = forwardRef<
   <th
     ref={ref}
     scope="col"
-    className={`px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-400 ${className}`.trim()}
+    className={`px-6 py-3 text-start text-xs font-medium text-text-secondary ${className}`.trim()}
     {...props}
   >
     {children}
@@ -77,7 +77,7 @@ export const TableCell = forwardRef<
 >(({ className = "", children, ...props }, ref) => (
   <td
     ref={ref}
-    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200 ${className}`.trim()}
+    className={`px-6 py-3 whitespace-nowrap text-sm text-text-primary border-b border-border/50 ${className}`.trim()}
     {...props}
   >
     {children}

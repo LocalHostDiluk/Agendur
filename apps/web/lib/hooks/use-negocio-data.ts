@@ -255,3 +255,22 @@ export function useUpdateProfesional() {
   });
 }
 
+export function useDeleteProfesional() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ success: boolean; id: string }>(
+        `/api/negocio/profesionales?id=${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["negocio", "suscripcion"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+
+

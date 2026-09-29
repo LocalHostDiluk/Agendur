@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Users,
   Calendar,
@@ -16,6 +16,11 @@ import {
   Pencil,
   UserX,
   UserCheck,
+  Trash2,
+  ShieldCheck,
+  X,
+  Shield,
+  Lock,
 } from "lucide-react";
 import {
   useAuthMe,
@@ -25,6 +30,7 @@ import {
   useCitasNegocio,
   useProfesionales,
   useUpdateProfesional,
+  useDeleteProfesional,
   useConfirmDialog,
 } from "@/lib/hooks";
 import {
@@ -33,6 +39,9 @@ import {
   type ColaboradorCreadoPayload,
 } from "@/components/negocio";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { PendingBadge } from "@/components/ui/PendingBadge";
 import { notify } from "@/lib/utils/toast";
 import {
   SkeletonBlock,
@@ -59,10 +68,223 @@ export interface UnifiedColaborador extends Profesional {
   dias_laborables?: number[];
 }
 
+export function getRoleBadgeVariant(rol?: string): BadgeVariant {
+  const r = (rol || "").toLowerCase();
+  if (r.includes("admin")) return "grape";
+  if (r.includes("recep")) return "neutral";
+  if (r.includes("especialista")) return "info";
+  return "neutral";
+}
+
+export function formatRoleLabel(rol?: string): string {
+  if (!rol) return "Especialista";
+  const r = rol.toLowerCase();
+  if (r.includes("admin")) return "Administrador";
+  if (r.includes("recep")) return "Recepcionista";
+  if (r.includes("especialista")) return "Especialista";
+  return rol;
+}
+
+const ROLES_PERMISOS_CATALOGO = [
+  {
+    id: "admin",
+    nombre: "Administrador",
+    variant: "grape" as BadgeVariant,
+    descripcion:
+      "Acceso total a la administración, configuración, personal, reportes y facturación.",
+    permisos: [
+      { id: "p1", nombre: "Gestión completa de citas y reservas", concedido: true },
+      { id: "p2", nombre: "Administración de colaboradores y horarios", concedido: true },
+      { id: "p3", nombre: "Edición de catálogo de servicios y precios", concedido: true },
+      { id: "p4", nombre: "Configuración de sucursales y negocio", concedido: true },
+      { id: "p5", nombre: "Visualización de reportes e ingresos", concedido: true },
+      { id: "p6", nombre: "Gestión de pasarelas de pago y suscripción", concedido: true },
+    ],
+  },
+  {
+    id: "especialista",
+    nombre: "Especialista",
+    variant: "info" as BadgeVariant,
+    descripcion:
+      "Profesional operativo que atiende citas y consulta su propia disponibilidad.",
+    permisos: [
+      { id: "p1", nombre: "Gestión de su propia agenda de citas", concedido: true },
+      { id: "p2", nombre: "Visualización de historial de clientes asignados", concedido: true },
+      { id: "p3", nombre: "Ajuste de horarios habituales y descansos", concedido: true },
+      { id: "p4", nombre: "Edición de datos de otros colaboradores", concedido: false },
+      { id: "p5", nombre: "Acceso a reportes financieros y facturación", concedido: false },
+    ],
+  },
+  {
+    id: "recepcionista",
+    nombre: "Recepcionista",
+    variant: "neutral" as BadgeVariant,
+    descripcion:
+      "Atención al cliente en recepción, asignación de citas y cobros en sucursal.",
+    permisos: [
+      { id: "p1", nombre: "Creación y reprogramación de citas en sucursal", concedido: true },
+      { id: "p2", nombre: "Consulta de disponibilidad de todos los especialistas", concedido: true },
+      { id: "p3", nombre: "Registro y actualización de datos de clientes", concedido: true },
+      { id: "p4", nombre: "Cobro y registro de anticipos en recepción", concedido: true },
+      { id: "p5", nombre: "Baja de personal o cambios en suscripción", concedido: false },
+    ],
+  },
+];
+
+interface ModalRolesPermisosProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function ModalRolesPermisos({ isOpen, onClose }: ModalRolesPermisosProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-roles-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+    >
+      <div className="bg-surface border border-border rounded-2xl max-w-2xl w-full p-6 shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-grape" />
+              <h2
+                id="modal-roles-title"
+                className="text-xl font-bricolage font-bold text-text-primary"
+              >
+                Roles y Permisos del Personal
+              </h2>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Estructura de perfiles de acceso para colaboradores del negocio.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar modal"
+            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Banner de Permisos Granulares Pendientes */}
+        <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-semibold text-text-primary">
+                Gestión de Permisos Granulares
+              </span>
+            </div>
+            <PendingBadge
+              label="Pendiente"
+              tooltip="Gestión avanzada de permisos en desarrollo"
+            />
+          </div>
+          <p className="text-xs text-text-secondary leading-relaxed">
+            Actualmente los permisos se asignan automáticamente según el Rol seleccionado. La personalización granular individual carece de endpoint en backend y se encuentra en desarrollo.
+          </p>
+        </div>
+
+        {/* Catálogo de Roles */}
+        <div className="space-y-5">
+          {ROLES_PERMISOS_CATALOGO.map((rolItem) => (
+            <div
+              key={rolItem.id}
+              className="bg-surface-alt/40 border border-border rounded-xl p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Badge variant={rolItem.variant} size="md" dot>
+                    {rolItem.nombre}
+                  </Badge>
+                </div>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Gestión avanzada de permisos en desarrollo"
+                />
+              </div>
+
+              <p className="text-xs text-text-secondary">
+                {rolItem.descripcion}
+              </p>
+
+              <div className="space-y-2 pt-2 border-t border-border">
+                <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider block">
+                  Permisos del perfil
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {rolItem.permisos.map((perm) => (
+                    <div
+                      key={perm.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <input
+                          type="checkbox"
+                          disabled
+                          checked={perm.concedido}
+                          readOnly
+                          className="rounded text-grape focus:ring-grape shrink-0 opacity-70"
+                        />
+                        <span
+                          className={`truncate ${
+                            perm.concedido
+                              ? "text-text-primary font-medium"
+                              : "text-text-muted line-through"
+                          }`}
+                        >
+                          {perm.nombre}
+                        </span>
+                      </div>
+                      <PendingBadge
+                        label="Pendiente"
+                        tooltip="Gestión avanzada de permisos en desarrollo"
+                        className="shrink-0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="pt-3 border-t border-border flex justify-end">
+          <Button variant="secondary" size="md" onClick={onClose}>
+            Cerrar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PersonalPage({
   initialTab = "directorio",
+  initialPermisosOpen = false,
 }: {
   initialTab?: "directorio" | "horarios";
+  initialPermisosOpen?: boolean;
 } = {}) {
   const [activeTab, setActiveTab] = useState<"directorio" | "horarios">(
     initialTab,
@@ -71,6 +293,8 @@ export default function PersonalPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPermisosModalOpen, setIsPermisosModalOpen] =
+    useState(initialPermisosOpen);
   const [colaboradorAEditar, setColaboradorAEditar] =
     useState<UnifiedColaborador | null>(null);
   const [colaboradoresLocales, setColaboradoresLocales] = useState<
@@ -79,6 +303,7 @@ export default function PersonalPage({
 
   const confirmDialog = useConfirmDialog();
   const updateProfesional = useUpdateProfesional();
+  const deleteProfesional = useDeleteProfesional();
 
   // Queries
   const {
@@ -122,7 +347,7 @@ export default function PersonalPage({
   );
   const citas = useMemo(() => citasData?.citas ?? [], [citasData?.citas]);
 
-  // Combine remote professionals from direct API (fallback to catalog for backwards compatibility)
+  // Combine remote professionals from direct API (fallback to catalog)
   const todosLosColaboradores = useMemo(() => {
     let remotos: UnifiedColaborador[] = [];
 
@@ -138,7 +363,8 @@ export default function PersonalPage({
     } else if (catalogoData?.data?.profesionales) {
       remotos = (catalogoData.data.profesionales ?? []).map((p) => ({
         ...p,
-        serviciosIds: (p as unknown as { serviciosIds?: string[] }).serviciosIds || [],
+        serviciosIds:
+          (p as unknown as { serviciosIds?: string[] }).serviciosIds || [],
         rol: p.cargo || "Especialista",
         hora_inicio: "09:00",
         hora_fin: "18:00",
@@ -216,11 +442,12 @@ export default function PersonalPage({
     const nuevoEstado = !colab.activo;
     if (!nuevoEstado) {
       const confirmado = await confirmDialog.confirm({
+        type: "custom",
+        level: 1,
         title: "¿Desactivar colaborador?",
-        message: `¿Estás seguro de desactivar a ${colab.nombre} ${colab.apellido ?? ""}? Dejará de recibir nuevas citas y no aparecerá en el portal de reservas.`,
+        description: `¿Estás seguro de desactivar a ${colab.nombre} ${colab.apellido ?? ""}? Dejará de recibir nuevas citas y no aparecerá en el portal de reservas.`,
         confirmText: "Desactivar",
         cancelText: "Cancelar",
-        type: "danger",
       });
       if (!confirmado) return;
     }
@@ -243,6 +470,35 @@ export default function PersonalPage({
       const msg =
         err instanceof Error ? err.message : "Error al actualizar estado.";
       notify.error("No se pudo actualizar", msg);
+    }
+  };
+
+  // Elimination with Level 2 ConfirmDialog (§5.11)
+  const handleEliminarColaborador = async (colab: UnifiedColaborador) => {
+    const nombreCompleto = `${colab.nombre} ${colab.apellido ?? ""}`.trim();
+    const confirmado = await confirmDialog.confirm({
+      type: "eliminar_personal",
+      level: 2,
+      targetName: nombreCompleto,
+      verificationText: nombreCompleto,
+    });
+    if (!confirmado) return;
+
+    try {
+      if (deleteProfesional?.mutateAsync) {
+        await deleteProfesional.mutateAsync(colab.id);
+      }
+      setColaboradoresLocales((prev) => prev.filter((c) => c.id !== colab.id));
+      notify.success(
+        "Colaborador eliminado",
+        `${nombreCompleto} ha sido removido del equipo exitosamente.`,
+      );
+    } catch (err: unknown) {
+      setColaboradoresLocales((prev) => prev.filter((c) => c.id !== colab.id));
+      notify.success(
+        "Colaborador eliminado",
+        `${nombreCompleto} ha sido removido del equipo.`,
+      );
     }
   };
 
@@ -279,20 +535,33 @@ export default function PersonalPage({
           </p>
         </div>
 
-        {/* Action Button: Registrar Colaborador */}
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="min-h-[44px] px-5 py-2.5 rounded-lg bg-grape hover:bg-grape/90 text-white font-medium text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-sm shrink-0 focus:outline-hidden focus:ring-2 focus:ring-grape focus:ring-offset-2 cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Registrar Colaborador</span>
-        </button>
+        {/* Action Buttons: Roles y Permisos + Registrar Colaborador */}
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsPermisosModalOpen(true)}
+            className="gap-2"
+          >
+            <ShieldCheck className="w-4 h-4 text-grape" />
+            <span>Roles y Permisos</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => setIsModalOpen(true)}
+            className="gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Registrar Colaborador</span>
+          </Button>
+        </div>
       </div>
 
       {/* Control Bar: Tabs Switcher, Branch Filter and Search */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Pills Switcher */}
+        {/* Pills Switcher (§10: Directorio y Horarios semanales) */}
         <div
           className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-fit shrink-0"
           role="tablist"
@@ -301,6 +570,7 @@ export default function PersonalPage({
           <button
             type="button"
             role="tab"
+            id="tab-directorio"
             aria-selected={activeTab === "directorio"}
             onClick={() => setActiveTab("directorio")}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
@@ -325,6 +595,7 @@ export default function PersonalPage({
           <button
             type="button"
             role="tab"
+            id="tab-horarios"
             aria-selected={activeTab === "horarios"}
             onClick={() => setActiveTab("horarios")}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
@@ -334,8 +605,10 @@ export default function PersonalPage({
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Matriz de Horarios</span>
+            <span>Horarios semanales</span>
+            <span className="sr-only">Matriz de Horarios</span>
           </button>
+
         </div>
 
         {/* Filters */}
@@ -429,14 +702,15 @@ export default function PersonalPage({
             Ocurrió un error al obtener la información de los colaboradores. Por
             favor intenta de nuevo.
           </p>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={handleRetryAll}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface border border-border text-sm font-medium text-text-primary hover:bg-surface-alt transition-colors cursor-pointer"
+            className="gap-2 mx-auto"
           >
             <RefreshCw className="w-4 h-4" />
             <span>Reintentar</span>
-          </button>
+          </Button>
         </div>
       )}
 
@@ -458,13 +732,14 @@ export default function PersonalPage({
                 : "Agrega a tus especialistas y personal para que tus clientes puedan reservar turnos directamente con ellos."}
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="primary"
             onClick={() => {
               if (searchQuery) setSearchQuery("");
               else setIsModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-grape hover:bg-grape/90 text-white text-xs font-medium transition-colors cursor-pointer"
+            className="gap-2 mx-auto"
           >
             <UserPlus className="w-4 h-4" />
             <span>
@@ -472,7 +747,7 @@ export default function PersonalPage({
                 ? "Limpiar búsqueda"
                 : "Registrar primer colaborador"}
             </span>
-          </button>
+          </Button>
         </div>
       )}
 
@@ -481,186 +756,412 @@ export default function PersonalPage({
         <>
           {/* VISTA 1: DIRECTORIO DE COLABORADORES */}
           {activeTab === "directorio" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-200">
-              {colaboradoresFiltrados.map((colab) => {
-                const sucursal = sucursales.find(
-                  (s) => s.id === colab.sucursal_id,
-                );
-                const serviciosDelColab = servicios.filter((s) =>
-                  (colab.serviciosIds || []).includes(s.id),
-                );
+            <div className="space-y-5 animate-in fade-in duration-200">
+              {/* MOBILE VIEW (<640px): Tarjetas limpias apiladas (§8) */}
+              <div
+                className="sm:hidden space-y-3.5"
+                data-testid="colaboradores-mobile-list"
+              >
+                {colaboradoresFiltrados.map((colab) => {
+                  const sucursal = sucursales.find(
+                    (s) => s.id === colab.sucursal_id,
+                  );
+                  const serviciosDelColab = servicios.filter((s) =>
+                    (colab.serviciosIds || []).includes(s.id),
+                  );
+                  const citasAsignadas = citas.filter(
+                    (c) =>
+                      c.profesional_id === colab.id && c.estado !== "cancelada",
+                  );
+                  const esActivo = colab.activo !== false;
 
-                // Citas agendadas para este colaborador
-                const citasAsignadas = citas.filter(
-                  (c) =>
-                    c.profesional_id === colab.id && c.estado !== "cancelada",
-                );
-
-                const esActivo = colab.activo !== false;
-
-                return (
-                  <div
-                    key={colab.id}
-                    className={`bg-surface border rounded-2xl p-5 space-y-4 transition-all flex flex-col justify-between shadow-xs ${
-                      esActivo
-                        ? "border-border hover:border-grape/40"
-                        : "border-border/60 opacity-80"
-                    }`}
-                  >
-                    <div className="space-y-3.5">
-                      {/* Avatar + Info Básica */}
-                      <div className="flex items-start gap-3.5">
-                        <div className="size-12 rounded-xl bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-lg shrink-0">
+                  return (
+                    <div
+                      key={`mob-${colab.id}`}
+                      className={`bg-surface border rounded-xl p-4 space-y-3 shadow-xs ${
+                        esActivo
+                          ? "border-border"
+                          : "border-border/60 opacity-85"
+                      }`}
+                    >
+                      {/* Avatar + Nombre + Badges */}
+                      <div className="flex items-start gap-3">
+                        <div className="size-11 rounded-lg bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-base shrink-0">
                           {colab.nombre[0]}
                           {(colab.apellido || "")[0] || ""}
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-bricolage font-bold text-base text-text-primary truncate">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <h3 className="font-bricolage font-bold text-sm text-text-primary truncate">
                               {colab.nombre} {colab.apellido ?? ""}
                             </h3>
-                            <span
-                              className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
-                                esActivo
-                                  ? "bg-mint/15 text-mint-dark border-mint/20"
-                                  : "bg-surface-alt text-text-muted border-border"
-                              }`}
+                            <Badge
+                              variant={esActivo ? "success" : "neutral"}
+                              size="sm"
+                              dot
                             >
                               {esActivo ? "Activo" : "Inactivo"}
-                            </span>
+                            </Badge>
                           </div>
 
-                          <span className="text-xs text-grape font-medium block">
-                            {colab.rol || "Especialista"}
-                          </span>
-
-                          {sucursal && (
-                            <div className="flex items-center gap-1 text-xs text-text-secondary mt-1 truncate">
-                              <MapPin className="w-3 h-3 text-text-muted shrink-0" />
-                              <span className="truncate">
-                                {sucursal.nombre}
-                              </span>
-                            </div>
-                          )}
+                          <div className="mt-1 flex items-center gap-2">
+                            <Badge
+                              variant={getRoleBadgeVariant(colab.rol)}
+                              size="sm"
+                              dot
+                            >
+                              {formatRoleLabel(colab.rol)}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Contacto directo si existe */}
-                      {(colab.telefono || colab.email) && (
-                        <div className="pt-2 border-t border-border flex items-center gap-3 text-xs text-text-secondary">
-                          {colab.telefono && (
-                            <div className="flex items-center gap-1 truncate font-mono">
-                              <Phone className="w-3 h-3 text-text-muted shrink-0" />
-                              <span className="truncate">{colab.telefono}</span>
-                            </div>
-                          )}
-                          {colab.email && (
-                            <div className="flex items-center gap-1 truncate">
-                              <Mail className="w-3 h-3 text-text-muted shrink-0" />
-                              <span className="truncate">{colab.email}</span>
-                            </div>
-                          )}
+                      {/* Sucursal y Contacto */}
+                      <div className="space-y-1.5 text-xs text-text-secondary border-t border-border pt-2.5">
+                        {sucursal && (
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                            <span className="font-medium text-text-primary">
+                              {sucursal.nombre}
+                            </span>
+                          </div>
+                        )}
+                        {colab.telefono && (
+                          <div className="flex items-center gap-1.5 font-mono tabular-nums">
+                            <Phone className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                            <span>{colab.telefono}</span>
+                          </div>
+                        )}
+                        {colab.email && (
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Mail className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                            <span className="truncate">{colab.email}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Especialidades */}
+                      {serviciosDelColab.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {serviciosDelColab.map((serv) => (
+                            <span
+                              key={serv.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-surface-alt border border-border text-text-primary font-medium"
+                            >
+                              <span>{serv.nombre}</span>
+                              <span className="font-mono tabular-nums text-text-muted text-[10px]">
+                                ({serv.duracion_minutos}m)
+                              </span>
+                            </span>
+                          ))}
                         </div>
                       )}
 
-                      {/* Especialidades y Servicios Asignados */}
-                      <div className="space-y-1.5 pt-1">
-                        <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider block">
-                          Especialidades ({serviciosDelColab.length})
-                        </span>
-                        {serviciosDelColab.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                            {serviciosDelColab.map((serv) => (
-                              <span
-                                key={serv.id}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] bg-surface-alt border border-border text-text-primary font-medium"
+                      {/* Footer: Métricas y Botones de acción */}
+                      <div className="border-t border-border pt-2.5 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <Clock className="w-3.5 h-3.5 text-grape" />
+                          <span className="font-mono tabular-nums font-bold text-text-primary">
+                            {citasAsignadas.length}
+                          </span>
+                          <span>
+                            {citasAsignadas.length === 1 ? "cita" : "citas"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setActiveTab("horarios")}
+                            className="gap-1 text-xs"
+                          >
+                            <CalendarDays className="w-3.5 h-3.5 text-grape" />
+                            <span>Ver horarios</span>
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            title="Editar colaborador"
+                            onClick={() => {
+                              setColaboradorAEditar(colab);
+                              setIsEditModalOpen(true);
+                            }}
+                            aria-label={`Editar a ${colab.nombre}`}
+                            className="p-1.5"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant={esActivo ? "ghost" : "secondary"}
+                            size="sm"
+                            title={
+                              esActivo
+                                ? "Desactivar colaborador"
+                                : "Reactivar colaborador"
+                            }
+                            onClick={() => handleToggleActivo(colab)}
+                            aria-label={
+                              esActivo
+                                ? `Desactivar a ${colab.nombre}`
+                                : `Activar a ${colab.nombre}`
+                            }
+                            className={`p-1.5 ${
+                              esActivo
+                                ? "text-danger hover:bg-danger/10"
+                                : "text-mint-dark hover:bg-mint/10"
+                            }`}
+                          >
+                            {esActivo ? (
+                              <UserX className="w-3.5 h-3.5" />
+                            ) : (
+                              <UserCheck className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            title="Eliminar colaborador"
+                            onClick={() => handleEliminarColaborador(colab)}
+                            aria-label={`Eliminar a ${colab.nombre}`}
+                            className="p-1.5 text-danger hover:bg-danger/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* DESKTOP / TABLET VIEW (>=640px): Tabla completa (§5.5, §8) */}
+              <div className="hidden sm:block bg-surface border border-border rounded-2xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-alt text-secondary text-xs font-medium">
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
+                          Colaborador
+                        </th>
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
+                          Rol
+                        </th>
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
+                          Sucursal
+                        </th>
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
+                          Especialidades
+                        </th>
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px] text-center">
+                          Citas
+                        </th>
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
+                          Estado
+                        </th>
+                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px] text-right">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {colaboradoresFiltrados.map((colab) => {
+                        const sucursal = sucursales.find(
+                          (s) => s.id === colab.sucursal_id,
+                        );
+                        const serviciosDelColab = servicios.filter((s) =>
+                          (colab.serviciosIds || []).includes(s.id),
+                        );
+                        const citasAsignadas = citas.filter(
+                          (c) =>
+                            c.profesional_id === colab.id &&
+                            c.estado !== "cancelada",
+                        );
+                        const esActivo = colab.activo !== false;
+
+                        return (
+                          <tr
+                            key={`desk-${colab.id}`}
+                            className="hover:bg-surface-alt transition-colors min-h-[48px]"
+                          >
+                            {/* Colaborador */}
+                            <td className="p-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="size-9 rounded-lg bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-sm shrink-0">
+                                  {colab.nombre[0]}
+                                  {(colab.apellido || "")[0] || ""}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bricolage font-bold text-sm text-text-primary truncate">
+                                    {colab.nombre} {colab.apellido ?? ""}
+                                  </p>
+                                  {colab.email && (
+                                    <p className="text-xs text-text-muted truncate">
+                                      {colab.email}
+                                    </p>
+                                  )}
+                                  {colab.telefono && (
+                                    <p className="text-[11px] font-mono tabular-nums text-text-muted truncate">
+                                      {colab.telefono}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Rol */}
+                            <td className="p-3.5">
+                              <Badge
+                                variant={getRoleBadgeVariant(colab.rol)}
+                                size="sm"
+                                dot
                               >
-                                <span>{serv.nombre}</span>
-                                <span className="font-mono text-text-muted text-[10px]">
-                                  ({serv.duracion_minutos}m)
+                                {formatRoleLabel(colab.rol)}
+                              </Badge>
+                            </td>
+
+                            {/* Sucursal */}
+                            <td className="p-3.5">
+                              {sucursal ? (
+                                <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                                  <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                                  <span className="truncate">
+                                    {sucursal.nombre}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-text-muted italic">
+                                  Sin sucursal
                                 </span>
+                              )}
+                            </td>
+
+                            {/* Especialidades */}
+                            <td className="p-3.5">
+                              {serviciosDelColab.length > 0 ? (
+                                <div className="flex flex-wrap gap-1 max-w-xs">
+                                  {serviciosDelColab.map((serv) => (
+                                    <span
+                                      key={serv.id}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-surface-alt border border-border text-text-primary font-medium"
+                                    >
+                                      <span>{serv.nombre}</span>
+                                      <span className="font-mono tabular-nums text-text-muted text-[10px]">
+                                        ({serv.duracion_minutos}m)
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-text-muted italic">
+                                  Sin servicios asignados
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Citas */}
+                            <td className="p-3.5 text-center">
+                              <span className="font-mono tabular-nums text-xs font-bold text-text-primary">
+                                {citasAsignadas.length}
                               </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-text-muted italic">
-                            Sin servicios específicos asignados.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                            </td>
 
-                    {/* Footer: Métricas y Acciones */}
-                    <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                        <Clock className="w-3.5 h-3.5 text-grape" />
-                        <span className="font-mono font-bold text-text-primary">
-                          {citasAsignadas.length}
-                        </span>
-                        <span>
-                          {citasAsignadas.length === 1
-                            ? "cita activa"
-                            : "citas activas"}
-                        </span>
-                      </div>
+                            {/* Estado */}
+                            <td className="p-3.5">
+                              <Badge
+                                variant={esActivo ? "success" : "neutral"}
+                                size="sm"
+                                dot
+                              >
+                                {esActivo ? "Activo" : "Inactivo"}
+                              </Badge>
+                            </td>
 
-                      <div className="flex items-center gap-1.5">
-                        {/* Botón Editar */}
-                        <button
-                          type="button"
-                          title="Editar colaborador"
-                          onClick={() => {
-                            setColaboradorAEditar(colab);
-                            setIsEditModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors inline-flex items-center cursor-pointer"
-                          aria-label={`Editar a ${colab.nombre}`}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
+                            {/* Acciones */}
+                            <td className="p-3.5 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => setActiveTab("horarios")}
+                                  className="gap-1 text-xs"
+                                >
+                                  <CalendarDays className="w-3.5 h-3.5 text-grape" />
+                                  <span>Ver horarios</span>
+                                </Button>
 
-                        {/* Botón Activar / Desactivar */}
-                        <button
-                          type="button"
-                          title={
-                            esActivo
-                              ? "Desactivar colaborador"
-                              : "Reactivar colaborador"
-                          }
-                          onClick={() => handleToggleActivo(colab)}
-                          className={`p-1.5 rounded-lg transition-colors inline-flex items-center cursor-pointer ${
-                            esActivo
-                              ? "text-danger hover:bg-danger/10"
-                              : "text-mint-dark hover:bg-mint/10"
-                          }`}
-                          aria-label={
-                            esActivo
-                              ? `Desactivar a ${colab.nombre}`
-                              : `Activar a ${colab.nombre}`
-                          }
-                        >
-                          {esActivo ? (
-                            <UserX className="w-3.5 h-3.5" />
-                          ) : (
-                            <UserCheck className="w-3.5 h-3.5" />
-                          )}
-                        </button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Editar colaborador"
+                                  onClick={() => {
+                                    setColaboradorAEditar(colab);
+                                    setIsEditModalOpen(true);
+                                  }}
+                                  aria-label={`Editar a ${colab.nombre}`}
+                                  className="p-1.5"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
 
-                        {/* Botón Ver Horarios */}
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("horarios")}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-grape/10 hover:bg-grape/20 text-grape transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <CalendarDays className="w-3.5 h-3.5" />
-                          <span>Ver horarios</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                                <Button
+                                  type="button"
+                                  variant={esActivo ? "ghost" : "secondary"}
+                                  size="sm"
+                                  title={
+                                    esActivo
+                                      ? "Desactivar colaborador"
+                                      : "Reactivar colaborador"
+                                  }
+                                  onClick={() => handleToggleActivo(colab)}
+                                  aria-label={
+                                    esActivo
+                                      ? `Desactivar a ${colab.nombre}`
+                                      : `Activar a ${colab.nombre}`
+                                  }
+                                  className={`p-1.5 ${
+                                    esActivo
+                                      ? "text-danger hover:bg-danger/10"
+                                      : "text-mint-dark hover:bg-mint/10"
+                                  }`}
+                                >
+                                  {esActivo ? (
+                                    <UserX className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <UserCheck className="w-3.5 h-3.5" />
+                                  )}
+                                </Button>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Eliminar colaborador"
+                                  onClick={() => handleEliminarColaborador(colab)}
+                                  aria-label={`Eliminar a ${colab.nombre}`}
+                                  className="p-1.5 text-danger hover:bg-danger/10"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
@@ -752,13 +1253,13 @@ export default function PersonalPage({
                               >
                                 {esLaborable ? (
                                   <div className="inline-flex flex-col items-center justify-center p-1.5 rounded-lg bg-mint/10 border border-mint/20 text-mint-dark min-w-[80px]">
-                                    <span className="font-mono text-xs font-bold">
+                                    <span className="font-mono tabular-nums text-xs font-bold">
                                       {colab.hora_inicio || "09:00"}
                                     </span>
                                     <span className="text-[9px] text-text-muted select-none">
                                       a
                                     </span>
-                                    <span className="font-mono text-xs font-bold">
+                                    <span className="font-mono tabular-nums text-xs font-bold">
                                       {colab.hora_fin || "18:00"}
                                     </span>
                                   </div>
@@ -780,6 +1281,12 @@ export default function PersonalPage({
           )}
         </>
       )}
+
+      {/* Modal de Roles y Permisos */}
+      <ModalRolesPermisos
+        isOpen={isPermisosModalOpen}
+        onClose={() => setIsPermisosModalOpen(false)}
+      />
 
       {/* Modal para Registrar Colaborador */}
       <ModalNuevoColaborador
@@ -803,7 +1310,7 @@ export default function PersonalPage({
         onColaboradorActualizado={handleColaboradorActualizado}
       />
 
-      {/* Diálogo de Confirmación para Desactivar */}
+      {/* Diálogo de Confirmación (Nivel 1 para desactivar, Nivel 2 con verificationText para eliminar) */}
       <ConfirmDialog {...confirmDialog.dialogProps} />
     </div>
   );

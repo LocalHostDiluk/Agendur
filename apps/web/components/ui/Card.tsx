@@ -4,7 +4,7 @@ export const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
   ({ className = "", children, ...props }, ref) => (
     <div
       ref={ref}
-      className={`flex flex-col bg-white border border-gray-200 rounded-xl shadow-xs dark:bg-neutral-900 dark:border-neutral-700 ${className}`.trim()}
+      className={`flex flex-col bg-surface border border-border rounded-[var(--radius-md)] shadow-xs transition-colors ${className}`.trim()}
       {...props}
     >
       {children}
@@ -17,7 +17,7 @@ export const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className = "", children, ...props }, ref) => (
     <div
       ref={ref}
-      className={`px-6 py-4 border-b border-gray-200 dark:border-neutral-700 ${className}`.trim()}
+      className={`px-6 py-4 border-b border-border ${className}`.trim()}
       {...props}
     >
       {children}
@@ -30,7 +30,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTM
   ({ className = "", children, ...props }, ref) => (
     <h3
       ref={ref}
-      className={`text-lg font-semibold text-gray-800 dark:text-white ${className}`.trim()}
+      className={`text-text-primary font-semibold text-base ${className}`.trim()}
       {...props}
     >
       {children}
@@ -43,7 +43,7 @@ export const CardDescription = forwardRef<HTMLParagraphElement, React.HTMLAttrib
   ({ className = "", children, ...props }, ref) => (
     <p
       ref={ref}
-      className={`text-sm text-gray-500 dark:text-neutral-400 mt-1 ${className}`.trim()}
+      className={`text-text-secondary text-sm mt-1 ${className}`.trim()}
       {...props}
     >
       {children}
@@ -69,7 +69,7 @@ export const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className = "", children, ...props }, ref) => (
     <div
       ref={ref}
-      className={`px-6 py-4 border-t border-gray-200 dark:border-neutral-700 flex items-center justify-between ${className}`.trim()}
+      className={`px-6 py-4 border-t border-border flex items-center justify-between ${className}`.trim()}
       {...props}
     >
       {children}

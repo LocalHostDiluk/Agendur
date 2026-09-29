@@ -18,6 +18,7 @@ export interface ConfirmDialogOptions {
   type: ConfirmActionType;
   level?: 1 | 2;
   targetName?: string;
+  verificationText?: string;
   title?: string;
   description?: string;
   consequences?: string[];
@@ -55,7 +56,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   logout: {
     level: 1,
     icon: LogOut,
-    iconColorClass: "text-[var(--grape)]",
+    iconColorClass: "text-grape text-[var(--grape)]",
     title: (_target, locale) => (locale === "en" ? "Heading out?" : "¿Ya te vas?"),
     description: (_target, locale) =>
       locale === "en"
@@ -69,7 +70,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   cancelar_cita: {
     level: 1,
     icon: CalendarX,
-    iconColorClass: "text-[var(--danger)]",
+    iconColorClass: "text-danger text-[var(--danger)]",
     title: (_target, locale) => (locale === "en" ? "Cancel this appointment?" : "¿Cancelar esta cita?"),
     description: (_target, locale) =>
       locale === "en"
@@ -83,7 +84,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   descartar_cambios: {
     level: 1,
     icon: FileWarning,
-    iconColorClass: "text-[var(--grape)]",
+    iconColorClass: "text-grape text-[var(--grape)]",
     title: (_target, locale) => (locale === "en" ? "You have unsaved changes" : "Tienes cambios sin guardar"),
     description: (_target, locale) =>
       locale === "en"
@@ -97,7 +98,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   eliminar_sucursal: {
     level: 2,
     icon: TriangleAlert,
-    iconColorClass: "text-[var(--danger)]",
+    iconColorClass: "text-danger text-[var(--danger)]",
     title: (target, locale) =>
       locale === "en"
         ? `You're about to delete ${target || "this branch"}`
@@ -126,7 +127,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   eliminar_servicio: {
     level: 2,
     icon: TriangleAlert,
-    iconColorClass: "text-[var(--danger)]",
+    iconColorClass: "text-danger text-[var(--danger)]",
     title: (target, locale) =>
       locale === "en"
         ? `You're about to delete ${target || "this service"}`
@@ -153,7 +154,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   eliminar_personal: {
     level: 2,
     icon: TriangleAlert,
-    iconColorClass: "text-[var(--danger)]",
+    iconColorClass: "text-danger text-[var(--danger)]",
     title: (target, locale) =>
       locale === "en"
         ? `You're about to remove ${target || "this member"} from the team`
@@ -180,7 +181,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   eliminar_cuenta: {
     level: 2,
     icon: TriangleAlert,
-    iconColorClass: "text-[var(--danger)]",
+    iconColorClass: "text-danger text-[var(--danger)]",
     title: (target, locale) =>
       locale === "en"
         ? `You're about to delete your ${target || "business"} account`
@@ -209,7 +210,7 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
   cancelar_suscripcion: {
     level: 2,
     icon: TriangleAlert,
-    iconColorClass: "text-[var(--danger)]",
+    iconColorClass: "text-danger text-[var(--danger)]",
     title: (target, locale) =>
       locale === "en"
         ? `You're about to cancel your ${target || "Pro"} plan`
@@ -236,6 +237,7 @@ export function ConfirmDialog({
   type = "logout",
   level: explicitLevel,
   targetName = "",
+  verificationText,
   title: customTitle,
   description: customDescription,
   consequences: customConsequences,
@@ -250,6 +252,7 @@ export function ConfirmDialog({
   onCancel,
   className = "",
 }: ConfirmDialogProps) {
+  const effectiveTarget = targetName || verificationText || "";
   const titleId = useId();
   const descriptionId = useId();
   const consequencesId = useId();
@@ -264,17 +267,17 @@ export function ConfirmDialog({
 
   const level: 1 | 2 = explicitLevel ?? (config?.level ?? 1);
   const IconComponent = config?.icon ?? (level === 2 ? TriangleAlert : LogOut);
-  const iconColor = config?.iconColorClass ?? (level === 2 ? "text-[var(--danger)]" : "text-[var(--grape)]");
+  const iconColor = config?.iconColorClass ?? (level === 2 ? "text-danger text-[var(--danger)]" : "text-grape text-[var(--grape)]");
 
   const title =
     customTitle ??
-    (config ? config.title(targetName, locale) : locale === "en" ? "Confirm action" : "Confirmar acción");
+    (config ? config.title(effectiveTarget, locale) : locale === "en" ? "Confirm action" : "Confirmar acción");
 
   const description =
-    customDescription ?? (config?.description ? config.description(targetName, locale) : undefined);
+    customDescription ?? (config?.description ? config.description(effectiveTarget, locale) : undefined);
 
   const consequences =
-    customConsequences ?? (config?.consequences ? config.consequences(targetName, locale) : undefined);
+    customConsequences ?? (config?.consequences ? config.consequences(effectiveTarget, locale) : undefined);
 
   const confirmText =
     customConfirmText ??
@@ -285,18 +288,18 @@ export function ConfirmDialog({
     (config ? config.cancelText(locale) : locale === "en" ? "Cancel" : "Cancelar");
 
   const requiresExactMatch =
-    level === 2 && (config ? config.requiresExactMatch : Boolean(targetName));
+    level === 2 && (config ? config.requiresExactMatch : Boolean(effectiveTarget));
 
   const inputLabel =
     customInputLabel ??
     (config?.inputLabel
-      ? config.inputLabel(targetName, locale)
+      ? config.inputLabel(effectiveTarget, locale)
       : locale === "en"
-      ? `Type "${targetName}" to confirm`
-      : `Escribe "${targetName}" para confirmar`);
+      ? `Type "${effectiveTarget}" to confirm`
+      : `Escribe "${effectiveTarget}" para confirmar`);
 
-  const effectivePlaceholder = inputPlaceholder ?? targetName;
-  const isExactMatched = !requiresExactMatch || inputValue === targetName;
+  const effectivePlaceholder = inputPlaceholder ?? effectiveTarget;
+  const isExactMatched = !requiresExactMatch || inputValue === effectiveTarget;
   const isConfirmDisabled = !isExactMatched || isLoading || isSubmitting;
   const confirmVariant = config?.confirmButtonVariant ?? (level === 2 ? "danger" : "grape");
   const hasTicketClass = level === 2 && useTicketButton;
@@ -362,14 +365,14 @@ export function ConfirmDialog({
 
   if (confirmVariant === "grape") {
     confirmButtonClass +=
-      " bg-[var(--grape)] text-white hover:opacity-90 focus:ring-[var(--grape)] shadow-xs";
+      " bg-grape bg-[var(--grape)] text-white hover:opacity-90 focus:ring-grape focus:ring-[var(--grape)] shadow-xs";
   } else if (confirmVariant === "danger-ghost") {
     confirmButtonClass +=
-      " text-[var(--danger)] bg-transparent hover:bg-[var(--danger-soft)] focus:ring-[var(--danger)]";
+      " text-danger text-[var(--danger)] bg-transparent hover:bg-danger-soft hover:bg-[var(--danger-soft)] focus:ring-danger focus:ring-[var(--danger)]";
   } else {
     // default danger
     confirmButtonClass +=
-      " bg-[var(--danger)] text-white hover:opacity-90 focus:ring-[var(--danger)] shadow-xs";
+      " bg-danger bg-[var(--danger)] text-white hover:opacity-90 focus:ring-danger focus:ring-[var(--danger)] shadow-xs";
   }
 
   if (hasTicketClass) {
@@ -384,7 +387,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden bg-black/60 bg-[#17121b]/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onCancel();
@@ -398,10 +401,10 @@ export function ConfirmDialog({
         aria-labelledby={titleId}
         aria-describedby={describedBy}
         style={{ ["--ink" as string]: "var(--surface)" }}
-        className={`bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] rounded-[var(--radius-lg)] shadow-2xl w-full transform transition-all p-6 relative overflow-visible ${
+        className={`bg-surface bg-[var(--surface)] text-text-primary text-[var(--text-primary)] border border-border border-[var(--border)] rounded-[var(--radius-lg)] shadow-2xl w-full transform transition-all p-6 relative overflow-visible ${
           level === 1
             ? "max-w-[400px] text-center"
-            : "max-w-[460px] border-t-[3px] border-t-[var(--danger)]"
+            : "max-w-[460px] border-t-[3px] border-t-danger border-t-[var(--danger)]"
         } ${className}`.trim()}
         onClick={(e) => e.stopPropagation()}
       >
@@ -412,22 +415,43 @@ export function ConfirmDialog({
               <div
                 className={`size-12 rounded-full flex items-center justify-center ${
                   iconColor.includes("danger")
-                    ? "bg-[var(--danger-soft)] text-[var(--danger)]"
-                    : "bg-[var(--grape-soft)] text-[var(--grape)]"
+                    ? "bg-danger-soft bg-[var(--danger-soft)] text-danger text-[var(--danger)]"
+                    : "bg-grape-soft bg-[var(--grape-soft)] text-grape text-[var(--grape)]"
                 }`}
               >
-                <IconComponent className="size-10" strokeWidth={1.75} />
+                <IconComponent className="size-6" strokeWidth={1.75} />
               </div>
             </div>
 
-            <h2 id={titleId} className="text-lg font-semibold text-[var(--text-primary)] leading-tight">
+            <h2
+              id={titleId}
+              className="font-bricolage text-lg font-bold text-text-primary text-[var(--text-primary)] leading-tight"
+            >
               {title}
             </h2>
 
             {description && (
-              <p id={descriptionId} className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">
+              <p
+                id={descriptionId}
+                className="text-sm text-text-secondary text-[var(--text-secondary)] mt-2 leading-relaxed"
+              >
                 {description}
               </p>
+            )}
+
+            {consequences && consequences.length > 0 && (
+              <div className="bg-surface-alt/40 border border-border/60 rounded-xl p-3.5 my-4 text-left">
+                <ul
+                  id={consequencesId}
+                  className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm text-text-secondary text-[var(--text-secondary)]"
+                >
+                  {consequences.map((consequence, idx) => (
+                    <li key={idx} className="leading-relaxed">
+                      {consequence}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             <div className="flex items-center justify-end gap-3 mt-6">
@@ -436,7 +460,7 @@ export function ConfirmDialog({
                 type="button"
                 autoFocus
                 onClick={onCancel}
-                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--grape)] cursor-pointer"
+                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-text-secondary text-[var(--text-secondary)] hover:text-text-primary hover:text-[var(--text-primary)] hover:bg-surface-alt hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-grape focus:ring-[var(--grape)] cursor-pointer"
               >
                 {cancelText}
               </button>
@@ -460,19 +484,19 @@ export function ConfirmDialog({
         ) : (
           /* Nivel 2 — Confirmación Crítica */
           <>
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="size-12 rounded-xl bg-[var(--danger-soft)] text-[var(--danger)] flex items-center justify-center shrink-0">
-                <TriangleAlert className="size-10" strokeWidth={1.75} />
+            <div className="flex items-start gap-3.5 mb-4 text-left">
+              <div className="size-10 rounded-xl bg-danger-soft bg-[var(--danger-soft)] text-danger text-[var(--danger)] flex items-center justify-center shrink-0">
+                <TriangleAlert className="size-5" strokeWidth={1.75} />
               </div>
               <div className="pt-0.5">
                 <h2
                   id={titleId}
-                  className="text-base sm:text-lg font-semibold text-[var(--text-primary)] leading-snug"
+                  className="font-bricolage text-base sm:text-lg font-bold text-text-primary text-[var(--text-primary)] leading-snug"
                 >
                   {title}
                 </h2>
                 {description && (
-                  <p id={descriptionId} className="text-xs text-[var(--text-secondary)] mt-1">
+                  <p id={descriptionId} className="text-xs text-text-secondary text-[var(--text-secondary)] mt-1">
                     {description}
                   </p>
                 )}
@@ -480,10 +504,10 @@ export function ConfirmDialog({
             </div>
 
             {consequences && consequences.length > 0 && (
-              <div className="my-4">
+              <div className="bg-surface-alt/40 border border-border/60 rounded-xl p-3.5 my-4 text-left">
                 <ul
                   id={consequencesId}
-                  className="list-disc pl-5 space-y-1.5 text-sm text-[var(--text-secondary)]"
+                  className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm text-text-secondary text-[var(--text-secondary)]"
                 >
                   {consequences.map((consequence, idx) => (
                     <li key={idx} className="leading-relaxed">
@@ -495,10 +519,10 @@ export function ConfirmDialog({
             )}
 
             {requiresExactMatch && (
-              <div className="mt-4 mb-2">
+              <div className="mt-4 mb-2 text-left">
                 <label
                   htmlFor={inputId}
-                  className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5"
+                  className="block text-xs font-medium text-text-secondary text-[var(--text-secondary)] mb-1.5"
                 >
                   {inputLabel}
                 </label>
@@ -511,7 +535,7 @@ export function ConfirmDialog({
                   placeholder={effectivePlaceholder}
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--grape)] focus:ring-2 focus:ring-[var(--grape-soft)] transition-colors"
+                  className="w-full px-3 py-2 text-sm font-mono rounded-[var(--radius-sm)] border border-border bg-surface-alt/50 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-grape focus:ring-1 focus:ring-grape transition-colors"
                 />
               </div>
             )}
@@ -522,7 +546,7 @@ export function ConfirmDialog({
                 type="button"
                 autoFocus
                 onClick={onCancel}
-                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--grape)] cursor-pointer"
+                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-text-secondary text-[var(--text-secondary)] hover:text-text-primary hover:text-[var(--text-primary)] hover:bg-surface-alt hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-grape focus:ring-[var(--grape)] cursor-pointer"
               >
                 {cancelText}
               </button>
