@@ -474,7 +474,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
 
     it("debería propagar cookies acumuladas en response a redirectResponse al acceder a ruta de autenticación con sesión activa", async () => {
       let registeredSetAll: CookieSetAllFn | null = null;
-      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url, _key, options) => {
+      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url: any, _key: any, options: any) => {
         if ("setAll" in options.cookies && typeof options.cookies.setAll === "function") {
           registeredSetAll = options.cookies.setAll as CookieSetAllFn;
         }
@@ -511,7 +511,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
 
     it("debería respetar maxAge efímero (< 7 días) en setAll de proxy", async () => {
       let registeredSetAll: CookieSetAllFn | null = null;
-      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url, _key, options) => {
+      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url: any, _key: any, options: any) => {
         if ("setAll" in options.cookies && typeof options.cookies.setAll === "function") {
           registeredSetAll = options.cookies.setAll as CookieSetAllFn;
         }
@@ -555,7 +555,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       } as unknown as Awaited<ReturnType<typeof nextHeaders.cookies>>);
 
       let registeredSetAll: CookieSetAllFn | null = null;
-      const spySsr = spyOn(ssr, "createServerClient").mockImplementation((_url, _key, options) => {
+      const spySsr = spyOn(ssr, "createServerClient").mockImplementation((_url: any, _key: any, options: any) => {
         if ("setAll" in options.cookies && typeof options.cookies.setAll === "function") {
           registeredSetAll = options.cookies.setAll as CookieSetAllFn;
         }

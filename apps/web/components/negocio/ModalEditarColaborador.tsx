@@ -5,6 +5,7 @@ import { X, UserCheck, Store, Sparkles, Check, Loader2 } from "lucide-react";
 import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
 import { useUpdateProfesional } from "@/lib/hooks";
+import { PendingBadge } from "@/components/ui/PendingBadge";
 import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
 
 export interface ModalEditarColaboradorProps {
@@ -257,12 +258,18 @@ export function ModalEditarColaborador({
             </div>
 
             <div className="space-y-1.5">
-              <label
-                htmlFor="edit-colaborador-rol"
-                className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-              >
-                Cargo o Rol
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="edit-colaborador-rol"
+                  className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+                >
+                  Cargo o Rol
+                </label>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Gestión avanzada de permisos en desarrollo"
+                />
+              </div>
               <select
                 id="edit-colaborador-rol"
                 value={rol}

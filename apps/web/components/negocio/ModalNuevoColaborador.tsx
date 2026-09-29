@@ -5,6 +5,7 @@ import { X, UserPlus, Clock, Store, Sparkles, Check, Loader2 } from "lucide-reac
 import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
 import { useCreateProfesional } from "@/lib/hooks";
+import { PendingBadge } from "@/components/ui/PendingBadge";
 
 export interface ColaboradorCreadoPayload {
   id: string;
@@ -301,12 +302,18 @@ export function ModalNuevoColaborador({
             </div>
 
             <div className="space-y-1.5">
-              <label
-                htmlFor="colaborador-rol"
-                className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-              >
-                Rol en el Negocio
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="colaborador-rol"
+                  className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+                >
+                  Rol en el Negocio
+                </label>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Gestión avanzada de permisos en desarrollo"
+                />
+              </div>
               <select
                 id="colaborador-rol"
                 value={rol}
