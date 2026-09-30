@@ -19,6 +19,7 @@ import TurnstileWidget from "@/components/security/TurnstileWidget";
 import { RegisterConfirmation } from "@/components/auth/RegisterConfirmation";
 import { RegisterStepper } from "@/components/auth/RegisterStepper";
 import { RegisterPasswordStrength } from "@/components/auth/RegisterPasswordStrength";
+import { RegisterSucursalesSelector } from "@/components/auth/RegisterSucursalesSelector";
 import { useRegisterForm } from "@/lib/hooks";
 
 const COUNTRY_CODES = [
@@ -42,8 +43,6 @@ const GIROS_PREDEFINIDOS = [
   "Consultorio",
   "Otro",
 ];
-
-const SUCURSALES_OPTIONS = ["1", "2–3", "4+"] as const;
 
 const stepVariants = {
   enter: (dir: number) => ({
@@ -101,8 +100,6 @@ export default function RegisterPage() {
     setGiroComercial,
     otroGiro,
     setOtroGiro,
-    sucursales,
-    setSucursales,
     ciudad,
     setCiudad,
     turnstileToken,
@@ -586,27 +583,10 @@ export default function RegisterPage() {
               </div>
 
               {/* Número de sucursales: grupo de 3 pills */}
-              <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium text-text-primary">
-                  Número de sucursales
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {SUCURSALES_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setSucursales(opt)}
-                      className={`h-[40px] rounded-md text-[14px] font-medium border transition-all ${
-                        sucursales === opt
-                          ? "bg-grape text-white border-grape shadow-sm"
-                          : "bg-surface border-border text-text-secondary hover:text-text-primary hover:border-text-muted"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <RegisterSucursalesSelector
+                value={form.sucursales}
+                onChange={form.setSucursales}
+              />
 
               {/* Ciudad */}
               <div className="space-y-1.5">
