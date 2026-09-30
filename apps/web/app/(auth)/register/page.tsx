@@ -23,6 +23,7 @@ import TurnstileWidget from "@/components/security/TurnstileWidget";
 import { useAuthBrand } from "@/components/auth/AuthBrandContext";
 import { triggerRegisterConfetti } from "@/lib/utils/confetti";
 import { notify } from "@/lib/utils/toast";
+import { getPasswordStrength } from "@/lib/utils/password-strength";
 
 const STEPS = [
   { number: 1, label: "Cuenta" },
@@ -53,27 +54,6 @@ const GIROS_PREDEFINIDOS = [
 ];
 
 const SUCURSALES_OPTIONS = ["1", "2–3", "4+"] as const;
-
-function getPasswordStrength(pwd: string): { score: number; label: string } {
-  if (!pwd) return { score: 0, label: "" };
-  const hasLength = pwd.length >= 12;
-  const hasUpper = /[A-Z]/.test(pwd);
-  const hasLower = /[a-z]/.test(pwd);
-  const hasNumber = /[0-9]/.test(pwd);
-  const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
-
-  const varieties = [hasUpper, hasLower, hasNumber, hasSpecial].filter(
-    Boolean,
-  ).length;
-
-  if (hasLength && varieties >= 3) {
-    return { score: 3, label: "Fuerte" };
-  }
-  if (pwd.length >= 8 && varieties >= 2) {
-    return { score: 2, label: "Media" };
-  }
-  return { score: 1, label: "Débil" };
-}
 
 const stepVariants = {
   enter: (dir: number) => ({
