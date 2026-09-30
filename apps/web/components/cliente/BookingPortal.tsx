@@ -17,6 +17,7 @@ import {
 import { useCatalogo } from "@/lib/hooks/use-catalogo";
 import { useDisponibilidad } from "@/lib/hooks/use-disponibilidad";
 import { useCrearReserva } from "@/lib/hooks/use-reserva";
+import { useBookingWizard, type StepKey } from "@/lib/hooks/use-booking-wizard";
 import { ApiClientError } from "@/lib/query/api-client";
 import { BookingCalendar } from "./BookingCalendar";
 import { BlurText } from "./BlurText";
@@ -35,8 +36,6 @@ interface BookingPortalProps {
   negocioSlug: string;
 }
 
-type StepKey = "sucursal" | "fecha" | "servicio" | "hora" | "datos";
-
 export function BookingPortal({ negocioSlug }: BookingPortalProps) {
   const catalogo = useCatalogo(negocioSlug);
   const reserva = useCrearReserva();
@@ -47,42 +46,32 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
   const servicios = data?.servicios ?? [];
   const todosProfesionales = data?.profesionales ?? [];
 
-  // B.2: Si sucursales.length > 1 -> 5 pasos; si sucursales.length === 1 -> 4 pasos (omite Sucursal)
   const isMultiBranch = sucursales.length > 1;
 
-  const stepsList: Array<{ key: StepKey; label: string; title: string }> =
-    isMultiBranch
-      ? [
-          { key: "sucursal", label: "Sucursal", title: "¿En qué sucursal?" },
-          { key: "fecha", label: "Fecha", title: "Elige el día" },
-          {
-            key: "servicio",
-            label: "Servicio",
-            title: "¿Qué servicio necesitas?",
-          },
-          { key: "hora", label: "Hora", title: "Elige tu horario" },
-          { key: "datos", label: "Datos", title: "Solo faltan tus datos" },
-        ]
-      : [
-          { key: "fecha", label: "Fecha", title: "Elige el día" },
-          {
-            key: "servicio",
-            label: "Servicio",
-            title: "¿Qué servicio necesitas?",
-          },
-          { key: "hora", label: "Hora", title: "Elige tu horario" },
-          { key: "datos", label: "Datos", title: "Solo faltan tus datos" },
-        ];
-
-  // Estado del Wizard
-  const [currentStepKey, setCurrentStepKey] = useState<StepKey>("sucursal");
-
-  // Estados de selección de cita
-  const [selectedSucursalId, setSelectedSucursalId] = useState<string>("");
-  const [fecha, setFecha] = useState<string>("");
-  const [servicioId, setServicioId] = useState<string>("");
-  const [profesionalId, setProfesionalId] = useState<string>(""); // "" = "Cualquier profesional disponible"
-  const [hora, setHora] = useState<string>("");
+  const {
+    currentStepKey,
+    setCurrentStepKey,
+    selectedSucursalId,
+    fecha,
+    setFecha,
+    servicioId,
+    profesionalId,
+    setProfesionalId,
+    hora,
+    setHora,
+    notice,
+    activeStepKey,
+    canAdvance,
+    currentStepIndex,
+    currentStepTitle,
+    stepsList,
+    handleSelectSucursal,
+    handleSelectFecha,
+    handleSelectServicio,
+    handleNextStep,
+    handlePrevStep,
+    handleGoToStep,
+  } = useBookingWizard({ isMultiBranch });
 
   // Estados del formulario del cliente
   const [nombre, setNombre] = useState<string>("");
@@ -95,13 +84,8 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
 
   // Estados de feedback
   const [error, setError] = useState<string>("");
-  const [notice, setNotice] = useState<string>("");
   const [cita, setCita] = useState<Cita | null>(null);
   const [showCancelInfo, setShowCancelInfo] = useState<boolean>(false);
-
-  // REGLA B.2: Si hay 1 sola sucursal, omitir sucursal y arrancar directamente en fecha
-  const activeStepKey: StepKey =
-    !isMultiBranch && currentStepKey === "sucursal" ? "fecha" : currentStepKey;
 
   // Color de acento de marca (REGLA B.11 & B.13: default #6E49A6)
   const accentColor = "var(--grape)";
@@ -146,36 +130,6 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
     (h) => parseInt(h.split(":")[0], 10) >= 18,
   );
 
-  // REGLA B.5: Invalidaciones en cascada
-  function handleSelectSucursal(id: string) {
-    if (id !== selectedSucursalId) {
-      setSelectedSucursalId(id);
-      setServicioId("");
-      setHora("");
-      if (servicioId || hora) setNotice("Actualizamos los horarios disponibles.");
-      setTimeout(() => setNotice(""), 3500);
-    }
-  }
-
-  function handleSelectFecha(newDate: string) {
-    if (newDate !== fecha) {
-      setFecha(newDate);
-      setServicioId("");
-      setHora("");
-      if (servicioId || hora) setNotice("Actualizamos los horarios disponibles.");
-      setTimeout(() => setNotice(""), 3500);
-    }
-  }
-
-  function handleSelectServicio(id: string) {
-    if (id !== servicioId) {
-      setServicioId(id);
-      setHora("");
-      if (hora) setNotice("Actualizamos los horarios disponibles.");
-      setTimeout(() => setNotice(""), 3500);
-    }
-  }
-
   // Validación de pasos (REGLA B.6)
   const isSucursalValid = Boolean(
     sucursalActiva?.id && sucursalActiva.activa !== false,
@@ -191,46 +145,6 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
     privacidad &&
     (!negocio?.politica_cancelacion?.trim() || cancelacion),
   );
-
-  function isStepValid(key: StepKey): boolean {
-    switch (key) {
-      case "sucursal":
-        return isSucursalValid;
-      case "fecha":
-        return isFechaValid;
-      case "servicio":
-        return isServicioValid;
-      case "hora":
-        return isHoraValid;
-      case "datos":
-        return isDatosValid;
-    }
-  }
-
-  const currentStepIndex = stepsList.findIndex((s) => s.key === activeStepKey);
-  const canAdvance = isStepValid(activeStepKey);
-
-  // Navegación del wizard
-  function handleNextStep() {
-    if (!canAdvance) return;
-    if (currentStepIndex < stepsList.length - 1) {
-      setCurrentStepKey(stepsList[currentStepIndex + 1].key);
-    }
-  }
-
-  function handlePrevStep() {
-    if (currentStepIndex > 0) {
-      setCurrentStepKey(stepsList[currentStepIndex - 1].key);
-    }
-  }
-
-  function handleGoToStep(targetKey: StepKey) {
-    const targetIdx = stepsList.findIndex((s) => s.key === targetKey);
-    // REGLA B.4: Solo se puede regresar a pasos anteriores completados
-    if (targetIdx < currentStepIndex) {
-      setCurrentStepKey(targetKey);
-    }
-  }
 
   // Envío de la reserva
   async function handleBooking(event: FormEvent<HTMLFormElement>) {
@@ -474,7 +388,6 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
   }
 
   // WIZARD DE PASOS PRINCIPAL (B.3)
-  const currentStepTitle = stepsList[currentStepIndex]?.title || "";
 
   return (
     <div className="min-h-screen bg-[var(--paper,#F3EEDF)] text-text-primary flex flex-col lg:flex-row">
