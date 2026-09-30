@@ -9,3 +9,4 @@ export * from "./use-dashboard-actions";
 export * from "./use-register-brand";
 export * from "./use-register-form";
 export * from "./use-booking-wizard";
+export * from "./use-booking-form";

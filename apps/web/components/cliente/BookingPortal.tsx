@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   Calendar as CalendarIcon,
@@ -16,12 +15,10 @@ import {
 } from "lucide-react";
 import { useCatalogo } from "@/lib/hooks/use-catalogo";
 import { useDisponibilidad } from "@/lib/hooks/use-disponibilidad";
-import { useCrearReserva } from "@/lib/hooks/use-reserva";
-import { useBookingWizard, type StepKey } from "@/lib/hooks/use-booking-wizard";
-import { ApiClientError } from "@/lib/query/api-client";
+import { useBookingWizard } from "@/lib/hooks/use-booking-wizard";
+import { useBookingForm } from "@/lib/hooks/use-booking-form";
 import { BookingCalendar } from "./BookingCalendar";
 import { BlurText } from "./BlurText";
-import { triggerBookingConfetti } from "@/lib/utils/confetti";
 import { downloadIcsFile } from "@/lib/utils/calendar-event";
 import {
   formatDateReadable,
@@ -38,7 +35,6 @@ interface BookingPortalProps {
 
 export function BookingPortal({ negocioSlug }: BookingPortalProps) {
   const catalogo = useCatalogo(negocioSlug);
-  const reserva = useCrearReserva();
 
   const data = catalogo.data?.data;
   const negocio = data?.negocio;
@@ -72,20 +68,6 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
     handlePrevStep,
     handleGoToStep,
   } = useBookingWizard({ isMultiBranch });
-
-  // Estados del formulario del cliente
-  const [nombre, setNombre] = useState<string>("");
-  const [apellido, setApellido] = useState<string>("");
-  const [telefono, setTelefono] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [notas, setNotas] = useState<string>("");
-  const [privacidad, setPrivacidad] = useState<boolean>(false);
-  const [cancelacion, setCancelacion] = useState<boolean>(false);
-
-  // Estados de feedback
-  const [error, setError] = useState<string>("");
-  const [cita, setCita] = useState<Cita | null>(null);
-  const [showCancelInfo, setShowCancelInfo] = useState<boolean>(false);
 
   // Color de acento de marca (REGLA B.11 & B.13: default #6E49A6)
   const accentColor = "var(--grape)";
@@ -137,79 +119,42 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
   const isFechaValid = Boolean(fecha);
   const isServicioValid = Boolean(servicioActivo?.id);
   const isHoraValid = Boolean(horaDisponible);
-  const isDatosValid = Boolean(
-    nombre.trim() &&
-    apellido.trim() &&
-    (!negocio?.email_cliente_requerido || email.trim()) &&
-    (!negocio?.telefono_cliente_requerido || telefono.trim()) &&
-    privacidad &&
-    (!negocio?.politica_cancelacion?.trim() || cancelacion),
-  );
-
-  // Envío de la reserva
-  async function handleBooking(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-
-    if (
-      !negocio ||
-      !sucursalActiva ||
-      !servicioActivo ||
-      !fecha ||
-      !horaDisponible
-    ) {
-      setError(
-        "Por favor completa todos los pasos de la cita antes de confirmar.",
-      );
-      return;
-    }
-
-    const profIdFinal =
-      profesionalActivo?.id || profesionalesDisponibles[0]?.id;
-    if (!profIdFinal) {
-      setError("No hay personal disponible para este servicio en esta fecha.");
-      return;
-    }
-
-    try {
-      const result = await reserva.mutateAsync({
-        sucursalId: sucursalActiva.id,
-        servicioId: servicioActivo.id,
-        profesionalId: profIdFinal,
-        fecha,
-        hora: horaDisponible,
-        clienteNombre: nombre.trim(),
-        clienteApellido: apellido.trim(),
-        clientePhone: telefono.trim() || null,
-        clienteEmail: email.trim() || null,
-        notasCliente: negocio.notas_cliente_habilitadas
-          ? notas.trim()
-          : undefined,
-        aceptaPrivacidad: privacidad,
-        aceptaPoliticaCancelacion: cancelacion,
-      });
-
-      setCita(result.cita);
-      triggerBookingConfetti();
-    } catch (cause) {
-      // Caso 7 (B.8): Horario ocupado (409) -> mensaje y retorno automático al Paso 4
-      if (cause instanceof ApiClientError && cause.status === 409) {
-        setHora("");
-        await disponibilidad.refetch();
-        setError(
-          "Ese horario acaba de ocuparse. Elige otro, por favor. ya no está disponible.",
-        );
-        setCurrentStepKey("hora");
-      } else {
-        // Caso 8 (B.8): Error de red conservando datos
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "No se pudo completar la reserva. Intenta de nuevo.",
-        );
-      }
-    }
-  }
+  const {
+    nombre,
+    setNombre,
+    apellido,
+    setApellido,
+    telefono,
+    setTelefono,
+    email,
+    setEmail,
+    notas,
+    setNotas,
+    privacidad,
+    setPrivacidad,
+    cancelacion,
+    setCancelacion,
+    error,
+    cita,
+    showCancelInfo,
+    setShowCancelInfo,
+    isDatosValid,
+    handleBooking,
+    reserva,
+  } = useBookingForm({
+    negocio,
+    sucursalActiva,
+    servicioActivo,
+    profesionalActivo,
+    profesionalesDisponibles,
+    fecha,
+    horaDisponible,
+    onSlotConflict: async () => {
+      setHora("");
+      await disponibilidad.refetch();
+      setCurrentStepKey("hora");
+    },
+  });
 
   // Estado de carga inicial (REGLA 2.2: Skeletons en lugar de spinner redundante)
   if (catalogo.isPending) {
