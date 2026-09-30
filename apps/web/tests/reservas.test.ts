@@ -282,12 +282,23 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       const { getAdminClient } = await import("@/lib/supabase/admin");
       const client = getAdminClient();
       const originalFrom = client.from;
-      let inserting = false;
+      const originalRpc = client.rpc;
       let insertErrorCode = "23P01";
       let politica: string | null = "Cancela con 24 horas de anticipación.";
-      const insertPayloads: Array<Record<string, unknown>> = [];
+      const rpcPayloads: Array<Record<string, unknown>> = [];
       const estadosFiltrados: string[][] = [];
       try {
+        (client as unknown as Record<string, unknown>).rpc = async (
+          name: string,
+          payload: Record<string, unknown>,
+        ) => {
+          expect(name).toBe("create_booking_transactional");
+          rpcPayloads.push(payload);
+          return {
+            data: null,
+            error: { code: insertErrorCode, message: "constraint violation" },
+          };
+        };
         (client as unknown as Record<string, unknown>).from = (table: string) => {
           const query = {
             select: () => query,
@@ -295,7 +306,6 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
             is: () => query,
             in: (column: string, values: string[]) => { if (column === "estado") estadosFiltrados.push(values); return query; },
             then: (resolve: (value: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null }),
-            insert: (payload: Record<string, unknown>) => { inserting = true; insertPayloads.push(payload); return query; },
             maybeSingle: async () => {
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", activa: true },
@@ -308,7 +318,6 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
               return { data: data[table] ?? null, error: null };
             },
             single: async () => {
-              if (table === "citas" && inserting) return { data: null, error: { code: insertErrorCode, message: "constraint violation" } };
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", negocio_id: "neg-1", activa: true, nombre: "Sucursal", zona_horaria: "UTC" },
                 suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
@@ -341,15 +350,15 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         }));
         expect(noPolicyConsent.status).toBe(400);
         expect((await noPolicyConsent.json()).code).toBe("CANCELLATION_CONSENT_REQUIRED");
-        expect(insertPayloads).toHaveLength(0);
+        expect(rpcPayloads).toHaveLength(0);
 
         const res = await reservasHandler(req);
         expect(res.status).toBe(409);
         expect((await res.json()).code).toBe("SLOT_UNAVAILABLE");
-        expect(insertPayloads[0].cliente_telefono).toBeNull();
-        expect(insertPayloads[0].hora_fin).toBe("10:30:00");
-        expect(insertPayloads[0].privacidad_aceptada_en).toMatch(/^20\d\d-/);
-        expect(insertPayloads[0].politica_cancelacion_aceptada_en).toBe(insertPayloads[0].privacidad_aceptada_en);
+        expect(rpcPayloads[0].p_cliente_telefono).toBeNull();
+        expect(rpcPayloads[0].p_hora_inicio).toBe("10:00:00");
+        expect(rpcPayloads[0].p_privacidad_aceptada_en).toMatch(/^20\d\d-/);
+        expect(rpcPayloads[0].p_politica_cancelacion_aceptada_en).toBe(rpcPayloads[0].p_privacidad_aceptada_en);
         expect(estadosFiltrados[0]).toEqual(["pendiente_pago", "confirmada"]);
 
         politica = null;
@@ -362,7 +371,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           }),
         }));
         expect(withoutPolicy.status).toBe(409);
-        expect(insertPayloads[1].politica_cancelacion_aceptada_en).toBeNull();
+        expect(rpcPayloads[1].p_politica_cancelacion_aceptada_en).toBeNull();
 
         const crossesMidnight = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
           method: "POST",
@@ -374,7 +383,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         }));
         expect(crossesMidnight.status).toBe(400);
         expect((await crossesMidnight.json()).code).toBe("INVALID_DATE_TIME");
-        expect(insertPayloads).toHaveLength(2);
+        expect(rpcPayloads).toHaveLength(2);
 
         const outsideHours = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
           method: "POST",
@@ -386,7 +395,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         }));
         expect(outsideHours.status).toBe(409);
         expect((await outsideHours.json()).code).toBe("SLOT_UNAVAILABLE");
-        expect(insertPayloads).toHaveLength(2);
+        expect(rpcPayloads).toHaveLength(2);
         // 23514 (violación de CHECK) es dato inválido del cliente: 400, no 500.
         insertErrorCode = "23514";
         const checkViolation = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
@@ -404,6 +413,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
 
       } finally {
         (client as unknown as Record<string, unknown>).from = originalFrom;
+        (client as unknown as Record<string, unknown>).rpc = originalRpc;
       }
     });
 
