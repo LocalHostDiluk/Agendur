@@ -34,8 +34,8 @@ Un componente por archivo.
 
 ## 2. Preparación (sin editar nada)
 
-1. Lee `docs/REGLAS/`.
-2. Lee el documento de estilo: `docs/DISEÑO`.
+1. Lee `docs/reglas/`.
+2. Lee el documento de estilo: `docs/diseño/`.
 3. Lee `components/negocio/index.ts`, `components/ui/index.ts`, `lib/hooks/index.ts`.
 4. Ejecuta `git status`. Si hay cambios sin commit, detente y avisa al usuario.
 5. Crea rama: `git switch -c refactor/front-dashboard`.

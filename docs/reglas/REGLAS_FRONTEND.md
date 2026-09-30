@@ -5,7 +5,7 @@ Alcance actual: solo frontend. Las reglas de backend se agregarán después.
 
 ## 0. Antes de escribir código
 
-1. Lee `docs/REGLAS/` y `docs/DISEÑO/`.
+1. Lee `docs/reglas/` y `docs/diseño/`.
 2. Apariencia (colores, fuentes, espaciado, patrones visuales): manda el documento de estilo.
 3. Estructura del código (tamaño, reutilización, ubicación): manda este archivo.
 4. Si una regla de este archivo choca con lo que te pidió el usuario, avisa y espera respuesta. No la ignores en silencio.
