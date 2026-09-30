@@ -75,7 +75,9 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       let callbackUrl = "";
       let signUpCalls = 0;
       let subscriptionFails = false;
+      let businessCleanupFails = false;
       let deleteCalls = 0;
+      const cleanupOrder: string[] = [];
       let obfuscated = false;
       let existingUnconfirmed = false;
       const serverSpy = spyOn(supabaseServer, "createClient").mockResolvedValue({
@@ -88,7 +90,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         },
       } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
       const adminSpy = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
-        auth: { admin: { deleteUser: async () => { deleteCalls++; return { error: null }; } } },
+        auth: { admin: { deleteUser: async () => { cleanupOrder.push("auth"); deleteCalls++; return { error: null }; } } },
         from: (table: string) => ({
           select: () => ({
             eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
@@ -102,6 +104,14 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
               ? { select: () => ({ single: async () => ({ data: { id: "negocio-1", nombre_comercial: "Mi Negocio", slug: "mi-negocio", giro_comercial: "Barbería" }, error: null }) }) }
               : Promise.resolve({ error: null });
           },
+          delete: () => ({
+            eq: () => ({
+              eq: async () => {
+                cleanupOrder.push("negocio");
+                return { error: businessCleanupFails ? { message: "cleanup failed" } : null };
+              },
+            }),
+          }),
         }),
       }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
 
@@ -139,7 +149,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
           nombres: "Ana",
           apellidos: "López",
           telefono: "+525512345678",
-          rol: "Dueño",
         });
         expect(inserts[1].rows).toEqual([
           { usuario_id: "user-1", documento: "terminos_servicio", version: "v1" },
@@ -165,6 +174,15 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
           privacyVersionAccepted: "v1",
         }));
         expect(fallbackLegal.status).toBe(201);
+        expect(cleanupOrder).toEqual(["negocio", "auth"]);
+
+        cleanupOrder.length = 0;
+        businessCleanupFails = true;
+        subscriptionFails = true;
+        const failedCleanup = await registerHandler(registrationRequest({ ...validRegistration, privacyVersionAccepted: "v1" }));
+        expect(failedCleanup.status).toBe(500);
+        expect(cleanupOrder).toEqual(["negocio"]);
+        expect(deleteCalls).toBe(1);
       } finally {
         adminSpy.mockRestore();
         serverSpy.mockRestore();

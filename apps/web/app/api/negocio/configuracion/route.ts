@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription } from "@/lib/payments/guards";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import {
+  NegocioAccessError,
+  requireNegocioAccess,
+} from "@/lib/auth/negocio-access";
 
 /**
  * GET /api/negocio/configuracion
@@ -9,20 +13,12 @@ import { apiError, apiSuccess } from "@/lib/utils/api-error";
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
-    }
-
-    const { data: negocio, error: negError } = await supabase
+    const access = await requireNegocioAccess("config:read");
+    const admin = createAdminClient();
+    const { data: negocio, error: negError } = await admin
       .from("negocios")
       .select("*")
-      .eq("owner_id", user.id)
+      .eq("id", access.negocioId)
       .maybeSingle();
 
     if (negError || !negocio) {
@@ -48,6 +44,9 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error interno al consultar configuración.", {
       extra: { route: "GET /api/negocio/configuracion" },
     });
@@ -60,20 +59,12 @@ export async function GET() {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
-    }
-
-    const { data: negocio, error: negError } = await supabase
+    const access = await requireNegocioAccess("config:write");
+    const admin = createAdminClient();
+    const { data: negocio, error: negError } = await admin
       .from("negocios")
       .select("id, telefono_cliente_requerido, email_cliente_requerido")
-      .eq("owner_id", user.id)
+      .eq("id", access.negocioId)
       .maybeSingle();
 
     if (negError || !negocio) {
@@ -175,7 +166,7 @@ export async function PUT(request: NextRequest) {
         : null;
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await admin
       .from("negocios")
       .update(updatePayload)
       .eq("id", negocio.id)
@@ -205,6 +196,9 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error al actualizar configuración.", {
       extra: { route: "PUT /api/negocio/configuracion" },
     });

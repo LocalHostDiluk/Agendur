@@ -112,11 +112,11 @@ export default function DashboardPage() {
     refetch: refetchAuth,
   } = useAuthMe();
   const { data: suscripcionResponse, refetch: refetchSuscripcion } =
-    useSuscripcion();
+    useSuscripcion(Boolean(auth?.access?.capabilities.includes("billing:read")));
   const { data: sucursalesResponse, refetch: refetchSucursales } =
     useSucursales();
   const { data: configResponse, refetch: refetchConfiguracion } =
-    useConfiguracion();
+    useConfiguracion(Boolean(auth?.access?.capabilities.includes("config:read")));
   const {
     data: citasResponse,
     isLoading: citasLoading,

@@ -2,10 +2,12 @@ import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET, POST, PATCH } from "@/app/api/negocio/profesionales/route";
 import * as supabaseServer from "@/lib/supabase/server";
+import * as negocioAccess from "@/lib/auth/negocio-access";
 import * as supabaseAdmin from "@/lib/supabase/admin";
 import * as guards from "@/lib/payments/guards";
 
 describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", () => {
+  let accessSpy: ReturnType<typeof spyOn>;
   let createClientSpy: ReturnType<typeof spyOn>;
   let getAdminClientSpy: ReturnType<typeof spyOn>;
   let assertSubSpy: ReturnType<typeof spyOn>;
@@ -34,6 +36,12 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
   let mockDbError: Error | null = null;
 
   beforeEach(() => {
+    accessSpy = spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => {
+      if (!mockUser || mockAuthError) throw new negocioAccess.NegocioAccessError(401, "AUTH_REQUIRED", "No autorizado.");
+      if (mockNegocioError) throw new negocioAccess.NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "Acceso no disponible.");
+      if (!mockNegocio) throw new negocioAccess.NegocioAccessError(403, "BUSINESS_ACCESS_DENIED", "Esta cuenta no tiene acceso activo al negocio.");
+      return { user: mockUser, negocioId: mockNegocio.id, role: "owner", sucursalId: null, profesionalId: null };
+    });
     mockUser = { id: "user-123", email: "owner@test.com" };
     mockAuthError = null;
     mockNegocio = { id: "neg-456" };
@@ -237,6 +245,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
           update: (payload: any) => {
             return {
               eq: (col: string, val: any) => ({
+                in() { return this; },
                 select: () => ({
                   single: async () => {
                     const idx = mockProfesionalesList.findIndex((p) => p.id === val);
@@ -267,6 +276,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
   });
 
   afterEach(() => {
+    accessSpy.mockRestore();
     createClientSpy.mockRestore();
     getAdminClientSpy.mockRestore();
     assertSubSpy.mockRestore();

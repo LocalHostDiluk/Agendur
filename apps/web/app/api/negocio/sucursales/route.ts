@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createSucursal } from "@/lib/backend/sucursal-service";
 import { adminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription } from "@/lib/payments/guards";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import { NegocioAccessError, requireNegocioAccess } from "@/lib/auth/negocio-access";
 
 /**
  * GET /api/negocio/sucursales
@@ -11,30 +11,14 @@ import { apiError, apiSuccess } from "@/lib/utils/api-error";
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
-    }
-
-    const { data: negocio, error: negError } = await supabase
-      .from("negocios")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (negError || !negocio) {
-      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
-    }
-
-    const { data: sucursales, error: sucError } = await adminClient
+    const access = await requireNegocioAccess("branches:read");
+    let query = adminClient
       .from("sucursales")
       .select("*")
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId);
+    if (access.sucursalIds) query = query.in("id", access.sucursalIds);
+    else if (access.sucursalId) query = query.eq("id", access.sucursalId);
+    const { data: sucursales, error: sucError } = await query
       .order("es_matriz", { ascending: false })
       .order("created_at", { ascending: true });
 
@@ -44,6 +28,9 @@ export async function GET() {
 
     return apiSuccess({ sucursales: sucursales || [] });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error interno al consultar sucursales.", {
       extra: { route: "GET /api/negocio/sucursales" },
     });
@@ -56,25 +43,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
-    }
-
-    const { data: negocio, error: negError } = await supabase
-      .from("negocios")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (negError || !negocio) {
-      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
-    }
+    const access = await requireNegocioAccess("branches:write");
 
     const body: unknown = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -99,7 +68,7 @@ export async function POST(request: NextRequest) {
     const { count, error: countError } = await adminClient
       .from("sucursales")
       .select("id", { count: "exact", head: true })
-      .eq("negocio_id", negocio.id);
+      .eq("negocio_id", access.negocioId);
     if (countError || typeof count !== "number") {
       return apiError(countError || "No se pudo contar sucursales.", "No se pudo validar la sucursal.", { status: 503 });
     }
@@ -127,9 +96,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar que la suscripción no esté vencida (HTTP 402 si expiró)
-    await assertActiveSubscription(negocio.id);
+    await assertActiveSubscription(access.negocioId);
 
-    const nuevaSucursal = await createSucursal(negocio.id, {
+    const nuevaSucursal = await createSucursal(access.negocioId, {
       nombre, direccion, ciudad, telefono,
       estado_provincia: estadoProvincia || undefined,
       codigo_postal: codigoPostal || undefined,
@@ -140,6 +109,9 @@ export async function POST(request: NextRequest) {
 
     return apiSuccess({ sucursal: nuevaSucursal }, 201);
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error al crear sucursal.", {
       extra: { route: "POST /api/negocio/sucursales" },
     });

@@ -272,21 +272,22 @@ describe("Sistema de Diálogos de Confirmación de 2 Niveles", () => {
       expect(html).toContain("Eliminar del equipo");
     });
 
-    it("acción 'eliminar_cuenta': pide nombre del negocio (NUNCA palabra genérica 'ELIMINAR') y consecuencias completas", () => {
+    it("acción 'eliminar_cuenta': pide el email exacto y explica que conserva el historial", () => {
       const html = renderToStaticMarkup(
         <ConfirmDialog
           isOpen={true}
           type="eliminar_cuenta"
-          targetName="Barbería Imperial"
+          targetName="owner@example.com"
           onConfirm={() => {}}
           onCancel={() => {}}
         />
       );
-      expect(html).toContain("Vas a eliminar tu cuenta de Barbería Imperial");
-      expect(html).toContain("Escribe el nombre completo de tu negocio para confirmar");
+      expect(html).toContain("Vas a eliminar tu cuenta");
+      expect(html).toContain("Escribe tu correo electrónico exacto para confirmar");
+      expect(html).toContain("owner@example.com");
       expect(html).not.toContain("Escribe ELIMINAR");
-      expect(html).toContain("Se eliminarán todas tus sucursales, servicios y el historial completo de citas");
-      expect(html).toContain("Tu portal de reservas dejará de funcionar de inmediato");
+      expect(html).toContain("Conservaremos el historial de citas y pagos por integridad y auditoría");
+      expect(html).toContain("Todos tus portales de reservas dejarán de funcionar de inmediato");
       expect(html).toContain("Esta acción no se puede deshacer");
       expect(html).toContain("Eliminar mi cuenta");
     });

@@ -33,6 +33,14 @@ export function getStripeClient(): Stripe {
 export class StripeGatewayAdapter implements PaymentGatewayAdapter {
   readonly name = "stripe" as const;
 
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    try {
+      await getStripeClient().subscriptions.cancel(subscriptionId);
+    } catch (error) {
+      if ((error as { code?: string }).code !== "resource_missing") throw error;
+    }
+  }
+
   /**
    * Crea una sesión de Stripe Checkout para suscripciones recurrentes.
    */

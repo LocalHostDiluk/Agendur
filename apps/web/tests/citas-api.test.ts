@@ -2,10 +2,12 @@ import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET as getCitasHandler, PATCH as patchCitasHandler } from "@/app/api/negocio/citas/route";
 import * as supabaseServer from "@/lib/supabase/server";
+import * as negocioAccess from "@/lib/auth/negocio-access";
 import * as supabaseAdmin from "@/lib/supabase/admin";
 import * as guards from "@/lib/payments/guards";
 
 describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () => {
+  let accessSpy: ReturnType<typeof spyOn>;
   let createClientSpy: ReturnType<typeof spyOn>;
   let createAdminClientSpy: ReturnType<typeof spyOn>;
   let assertSubSpy: ReturnType<typeof spyOn>;
@@ -103,6 +105,12 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
   let lastQueryBuilder: MockQueryBuilder;
 
   beforeEach(() => {
+    accessSpy = spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => {
+      if (!mockUser || mockAuthError) throw new negocioAccess.NegocioAccessError(401, "AUTH_REQUIRED", "No autorizado.");
+      if (mockNegocioError) throw new negocioAccess.NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "Acceso no disponible.");
+      if (!mockNegocio) throw new negocioAccess.NegocioAccessError(403, "BUSINESS_ACCESS_DENIED", "Esta cuenta no tiene acceso activo al negocio.");
+      return { user: mockUser, negocioId: mockNegocio.id, role: "owner", sucursalId: null, profesionalId: null };
+    });
     mockUser = { id: "user-123", email: "owner@test.com" };
     mockAuthError = null;
     mockNegocio = { id: "neg-456" };
@@ -171,6 +179,7 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
   });
 
   afterEach(() => {
+    accessSpy.mockRestore();
     createClientSpy.mockRestore();
     createAdminClientSpy.mockRestore();
     assertSubSpy.mockRestore();
@@ -188,15 +197,15 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
       expect(json.error).toContain("No autorizado");
     });
 
-    it("debería retornar 404 si el usuario autenticado no tiene un negocio registrado", async () => {
+    it("debería retornar 403 si el usuario autenticado no tiene un negocio registrado", async () => {
       mockNegocio = null;
       const req = new NextRequest("http://localhost:3000/api/negocio/citas");
       const res = await getCitasHandler(req);
       const json = await res.json();
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
       expect(json.success).toBe(false);
-      expect(json.error).toContain("No se encontró un negocio");
+      expect(json.error).toContain("no tiene acceso");
     });
 
     it("debería retornar 402 si la suscripción del negocio ha expirado", async () => {
@@ -310,7 +319,7 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
       expect(json.success).toBe(false);
     });
 
-    it("debería retornar 404 si el usuario no tiene negocio", async () => {
+    it("debería retornar 403 si el usuario no tiene negocio", async () => {
       mockNegocio = null;
       const req = new NextRequest("http://localhost:3000/api/negocio/citas", {
         method: "PATCH",
@@ -320,7 +329,7 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
       const res = await patchCitasHandler(req);
       const json = await res.json();
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
       expect(json.success).toBe(false);
     });
 

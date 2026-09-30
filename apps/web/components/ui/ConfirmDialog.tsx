@@ -184,18 +184,18 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
     iconColorClass: "text-danger text-[var(--danger)]",
     title: (target, locale) =>
       locale === "en"
-        ? `You're about to delete your ${target || "business"} account`
-        : `Vas a eliminar tu cuenta de ${target || "tu negocio"}`,
+        ? "You're about to delete your account"
+        : "Vas a eliminar tu cuenta",
     consequences: (_target, locale) =>
       locale === "en"
         ? [
-            "All your branches, services, and complete appointment history will be deleted",
-            "Your booking portal will stop working immediately",
+            "Appointment and payment history will be retained for integrity and auditing",
+            "All your booking portals will stop working immediately",
             "This action cannot be undone",
           ]
         : [
-            "Se eliminarán todas tus sucursales, servicios y el historial completo de citas",
-            "Tu portal de reservas dejará de funcionar de inmediato",
+            "Conservaremos el historial de citas y pagos por integridad y auditoría",
+            "Todos tus portales de reservas dejarán de funcionar de inmediato",
             "Esta acción no se puede deshacer",
           ],
     confirmText: (locale) => (locale === "en" ? "Delete my account" : "Eliminar mi cuenta"),
@@ -204,8 +204,8 @@ export const ACTION_CONFIGS: Record<Exclude<ConfirmActionType, "custom">, Action
     requiresExactMatch: true,
     inputLabel: (_target, locale) =>
       locale === "en"
-        ? "Type the full name of your business to confirm"
-        : "Escribe el nombre completo de tu negocio para confirmar",
+        ? "Type your exact email address to confirm"
+        : "Escribe tu correo electrónico exacto para confirmar",
   },
   cancelar_suscripcion: {
     level: 2,

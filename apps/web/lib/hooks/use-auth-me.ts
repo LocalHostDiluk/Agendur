@@ -14,6 +14,8 @@ export interface AuthMeResponse {
   sucursalesCount?: number;
   sucursalesActivasCount?: number;
   onboardingStatus?: "required" | "complete";
+  access?: { role: "owner" | "manager" | "receptionist" | "professional"; sucursalId: string | null; profesionalId: string | null; capabilities: string[] };
+  availableBusinesses?: { id: string; nombre: string; role: string }[];
 }
 
 export function useAuthMe() {

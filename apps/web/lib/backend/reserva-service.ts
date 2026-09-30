@@ -99,8 +99,9 @@ export async function obtenerDisponibilidad(
     // 1. Validar que la sucursal exista y esté activa
     const { data: sucursal, error: sucError } = await adminClient
       .from("sucursales")
-      .select("id, activa")
+      .select("id, activa, negocios!inner(id)")
       .eq("id", sucursalId)
+      .is("negocios.desactivado_at", null)
       .maybeSingle();
 
     if (sucError || !sucursal || !sucursal.activa) {
@@ -268,7 +269,8 @@ export async function obtenerDisponibilidad(
       for (const ventana of ventanas) {
         for (
           let inicio = ventana.inicio;
-          inicio + ocupacionMin <= ventana.fin;
+          inicio + ocupacionMin <= ventana.fin &&
+          inicio + ocupacionMin < 24 * 60;
           inicio += pasoMin
         ) {
           const fin = inicio + ocupacionMin;
@@ -351,6 +353,7 @@ export async function crearReservaCita(
     .from("negocios")
     .select("telefono_cliente_requerido, email_cliente_requerido, notas_cliente_habilitadas, politica_cancelacion, zona_horaria")
     .eq("id", sucursal.negocio_id)
+    .is("desactivado_at", null)
     .single();
   if (negocioError || !negocio) {
     throw bookingError("No se pudo consultar la configuración de reservas.", 503, "BOOKING_CONFIG_UNAVAILABLE");

@@ -153,6 +153,7 @@ export interface Cita {
   servicioId?: string;
   profesional_id?: string;
   profesionalId?: string;
+  cliente_id?: string | null;
   cliente_nombre?: string;
   clienteNombre?: string;
   cliente_apellido?: string;
@@ -163,9 +164,14 @@ export interface Cita {
   fecha: string; // YYYY-MM-DD
   hora_inicio?: string;
   hora_fin?: string;
+  hora_fin_servicio?: string;
+  hora_fin_buffer?: string;
   hora?: string; // e.g. "16:30"
   estado: EstadoCita;
   precio_total?: number;
+  duracion_minutos_snapshot?: number;
+  precio_servicio_snapshot?: number;
+  buffer_minutos_snapshot?: number;
   monto_anticipo_pagado?: number;
   montoAnticipo?: number;
   metodo_pago_anticipo?: string | null;

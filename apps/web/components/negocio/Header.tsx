@@ -207,7 +207,7 @@ export function Header({
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
+          className="xl:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
           aria-label="Buscar"
           title="Buscar"
         >
@@ -215,7 +215,7 @@ export function Header({
         </button>
 
         {/* Theme Toggle (Desktop only) */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <ThemeToggle />
         </div>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NegocioAccessError, requireNegocioAccess, type NegocioCapability } from "@/lib/auth/negocio-access";
 import { adminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription, SubscriptionExpiredError } from "@/lib/payments/guards";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
@@ -7,41 +7,14 @@ import { apiError, apiSuccess } from "@/lib/utils/api-error";
 /**
  * Autentica al usuario y obtiene el negocio asociado (owner_id = user.id).
  */
-async function getAuthenticatedNegocio(): Promise<
-  | { ok: false; error: NextResponse }
-  | { ok: true; user: { id: string; email?: string }; negocio: { id: string } }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return {
-      ok: false,
-      error: apiError("No autorizado", undefined, { status: 401 }),
-    };
+async function getAuthenticatedNegocio(capability: NegocioCapability) {
+  try {
+    const access = await requireNegocioAccess(capability);
+    return { ok: true as const, user: access.user, negocio: { id: access.negocioId }, access };
+  } catch (error) {
+    if (error instanceof NegocioAccessError) return { ok: false as const, error: apiError(error.message, undefined, { status: error.status, code: error.code }) };
+    throw error;
   }
-
-  const { data: negocio, error: negError } = await supabase
-    .from("negocios")
-    .select("id")
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (negError || !negocio) {
-    return {
-      ok: false,
-      error: apiError(
-        "No se encontró un negocio para esta cuenta.",
-        undefined,
-        { status: 404 },
-      ),
-    };
-  }
-
-  return { ok: true, user, negocio };
 }
 
 /**
@@ -63,11 +36,12 @@ async function getNegocioSucursalesIds(negocioId: string): Promise<string[]> {
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
+    const auth = await getAuthenticatedNegocio("appointments:read");
     if (!auth.ok) return auth.error;
 
     const { negocio } = auth;
-    const sucursalIds = await getNegocioSucursalesIds(negocio.id);
+    const scopes = auth.access.sucursalIds ?? (auth.access.sucursalId ? [auth.access.sucursalId] : null);
+    const sucursalIds = (await getNegocioSucursalesIds(negocio.id)).filter(id => !scopes || scopes.includes(id));
 
     if (sucursalIds.length === 0) {
       return apiSuccess({ profesionales: [] });
@@ -90,6 +64,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .select("*")
       .in("sucursal_id", targetSucursalIds)
       .order("nombre", { ascending: true });
+
+    if (auth.access.profesionalIds) query = query.in("id", auth.access.profesionalIds);
+    else if (auth.access.profesionalId) query = query.eq("id", auth.access.profesionalId);
 
     if (filterActivo !== null && filterActivo !== undefined) {
       query = query.eq("activo", filterActivo === "true");
@@ -142,7 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
+    const auth = await getAuthenticatedNegocio("branches:write");
     if (!auth.ok) return auth.error;
 
     const { negocio } = auth;
@@ -356,7 +333,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
+    const auth = await getAuthenticatedNegocio("branches:write");
     if (!auth.ok) return auth.error;
 
     const { negocio } = auth;
@@ -554,6 +531,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .from("profesionales")
         .update(updates)
         .eq("id", profesionalId)
+        .in("sucursal_id", sucursalIds)
         .select()
         .single();
 

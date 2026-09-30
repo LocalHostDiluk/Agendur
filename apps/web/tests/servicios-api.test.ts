@@ -2,9 +2,11 @@ import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET, POST, PATCH } from "@/app/api/negocio/servicios/route";
 import * as supabaseServer from "@/lib/supabase/server";
+import * as negocioAccess from "@/lib/auth/negocio-access";
 import * as supabaseAdmin from "@/lib/supabase/admin";
 
 describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
+  let accessSpy: ReturnType<typeof spyOn>;
   let createClientSpy: ReturnType<typeof spyOn>;
   let getAdminClientSpy: ReturnType<typeof spyOn>;
 
@@ -100,6 +102,12 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
   let queryBuilders: MockQueryBuilder[] = [];
 
   beforeEach(() => {
+    accessSpy = spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => {
+      if (!mockUser || mockAuthError) throw new negocioAccess.NegocioAccessError(401, "AUTH_REQUIRED", "No autorizado.");
+      if (mockNegocioError) throw new negocioAccess.NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "Acceso no disponible.");
+      if (!mockNegocio) throw new negocioAccess.NegocioAccessError(403, "BUSINESS_ACCESS_DENIED", "Esta cuenta no tiene acceso activo al negocio.");
+      return { user: mockUser, negocioId: mockNegocio.id, role: "owner", sucursalId: null, profesionalId: null };
+    });
     mockUser = { id: "user-123", email: "owner@test.com" };
     mockAuthError = null;
     mockNegocio = { id: "neg-456" };
@@ -173,6 +181,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
   });
 
   afterEach(() => {
+    accessSpy.mockRestore();
     createClientSpy.mockRestore();
     getAdminClientSpy.mockRestore();
   });
@@ -230,14 +239,14 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       expect(json.error).toContain("No autorizado");
     });
 
-    it("GET /api/negocio/servicios debe retornar 404 si el usuario no tiene negocio", async () => {
+    it("GET /api/negocio/servicios debe retornar 403 si el usuario no tiene negocio", async () => {
       mockNegocio = null;
       const res = await GET();
       const json = await res.json();
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
       expect(json.success).toBe(false);
-      expect(json.error).toContain("No se encontró un negocio");
+      expect(json.error).toContain("no tiene acceso");
     });
   });
 

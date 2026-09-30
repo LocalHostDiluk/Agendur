@@ -19,7 +19,6 @@ import {
   Trash2,
   ShieldCheck,
   X,
-  Shield,
   Lock,
 } from "lucide-react";
 import {
@@ -42,13 +41,21 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@/lib/utils/toast";
-import {
-  SkeletonBlock,
-  SkeletonText,
-  SkeletonCircle,
-} from "@/components/ui/Skeleton";
 import type { Profesional } from "@/lib/types";
+
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`bg-surface-alt rounded ${className}`} />;
+}
+
+function SkeletonText({ className = "" }: { className?: string }) {
+  return <SkeletonBlock className={className} />;
+}
+
+function SkeletonCircle({ className = "" }: { className?: string }) {
+  return <SkeletonBlock className={`rounded-full ${className}`} />;
+}
 
 const DIAS_SEMANA_HEADERS = [
   { dia: 1, nombre: "Lunes", corto: "Lun" },
@@ -379,8 +386,8 @@ export default function PersonalPage({
 
     return Array.from(map.values());
   }, [
-    profesionalesData?.profesionales,
-    catalogoData?.data?.profesionales,
+    profesionalesData,
+    catalogoData,
     colaboradoresLocales,
   ]);
 
@@ -522,6 +529,7 @@ export default function PersonalPage({
   };
 
   return (
+    <>
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
@@ -1313,5 +1321,6 @@ export default function PersonalPage({
       {/* Diálogo de Confirmación (Nivel 1 para desactivar, Nivel 2 con verificationText para eliminar) */}
       <ConfirmDialog {...confirmDialog.dialogProps} />
     </div>
+    </>
   );
 }

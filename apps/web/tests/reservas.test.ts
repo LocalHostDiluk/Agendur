@@ -16,6 +16,7 @@ type AvailabilityScenario = {
   excepcionesSucursal?: Array<Record<string, unknown>>;
   excepcionesProfesional?: Array<Record<string, unknown>>;
   citas?: Array<Record<string, unknown>>;
+  negocioDesactivado?: boolean;
 };
 
 async function withAvailabilityScenario(
@@ -31,8 +32,12 @@ async function withAvailabilityScenario(
       const query = {
         select: () => query,
         eq: () => query,
+        is: () => query,
         in: () => query,
         maybeSingle: async () => {
+          if (table === "sucursales" && scenario.negocioDesactivado) {
+            return { data: null, error: null };
+          }
           const rows: Record<string, unknown> = {
             sucursales: { id: "suc-1", activa: true },
             horarios_sucursal: {
@@ -114,6 +119,58 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
     it("un cierre especial total reemplaza el horario semanal", async () => {
       await withAvailabilityScenario(
         { excepcionesSucursal: [{ cerrado: true }] },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual([]);
+        },
+      );
+    });
+
+    it("no ofrece disponibilidad de un negocio desactivado", async () => {
+      await withAvailabilityScenario({ negocioDesactivado: true }, async () => {
+        expect(
+          await obtenerDisponibilidad({
+            sucursalId: "suc-1",
+            servicioId: "serv-1",
+            profesionalId: "prof-1",
+            fecha: "2098-01-01",
+          }),
+        ).toEqual([]);
+      });
+    });
+
+    it("usa el horario semanal cuando no existen excepciones", async () => {
+      await withAvailabilityScenario({}, async () => {
+        const horarios = await obtenerDisponibilidad({
+          sucursalId: "suc-1",
+          servicioId: "serv-1",
+          profesionalId: "prof-1",
+          fecha: "2098-01-01",
+        });
+
+        expect(horarios).toHaveLength(16);
+        expect(horarios[0]).toBe("09:00");
+        expect(horarios.at(-1)).toBe("16:30");
+      });
+    });
+
+    it("no ofrece un slot cuya ocupación termina exactamente a medianoche", async () => {
+      await withAvailabilityScenario(
+        {
+          servicio: { duracion_minutos: 30, buffer_minutos: 30 },
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "23:00", hora_cierre: "24:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "23:00", hora_fin: "24:00" },
+          ],
+        },
         async () => {
           expect(
             await obtenerDisponibilidad({
@@ -235,6 +292,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           const query = {
             select: () => query,
             eq: () => query,
+            is: () => query,
             in: (column: string, values: string[]) => { if (column === "estado") estadosFiltrados.push(values); return query; },
             then: (resolve: (value: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null }),
             insert: (payload: Record<string, unknown>) => { inserting = true; insertPayloads.push(payload); return query; },
