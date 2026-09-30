@@ -1,5 +1,7 @@
 "use client";
 
+import { DashboardBanners } from "@/components/negocio/DashboardBanners";
+
 import { DashboardCitas } from "@/components/negocio/DashboardCitas";
 
 import { useState, useMemo, useSyncExternalStore } from "react";
@@ -13,15 +15,8 @@ import {
   TrendingUp,
   ArrowUpRight,
   Clock,
-  ExternalLink,
-  Copy,
-  Check,
   RefreshCw,
   Users,
-  LogIn,
-  Sparkles,
-  CheckCircle2,
-  CircleDot,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -167,338 +162,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* TOP BANNER: 3 Estados con personalidad de marca (Ticket Resiliente / Onboarding Ticket / Welcome Activo + Ticket Upgrade) */}
-      {isSyncError ? (
-        <motion.div
-          role="alert"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="relative overflow-hidden bg-surface border border-border rounded-2xl shadow-xs"
-        >
-          {/* Barra superior de acento semántico */}
-          <div className="h-1 w-full bg-gradient-to-r from-danger via-warning to-grape" />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-            {/* Cuerpo izquierdo del Ticket */}
-            <div className="lg:col-span-8 p-6 sm:p-7 flex flex-col justify-between gap-5">
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="danger" size="sm" dot={true}>
-                    No pudimos cargar tu negocio.
-                  </Badge>
-                  {sucursalesList.length > 0 && (
-                    <Badge variant="grape" size="sm" dot={false}>
-                      <Store className="w-3.5 h-3.5 mr-1" />
-                      {sucursalesList.length}{" "}
-                      {sucursalesList.length === 1
-                        ? "sede detectada"
-                        : "sedes detectadas"}
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <h1 className="font-bricolage font-bold text-2xl sm:text-[28px] text-text-primary tracking-tight leading-tight">
-                    {nombreNegocioRescatado
-                      ? `Hola, ${nombreNegocioRescatado}`
-                      : "Panel en modo de recuperación"}
-                  </h1>
-                  <p className="text-xs sm:text-sm text-text-secondary max-w-2xl leading-relaxed">
-                    Recarga la página o vuelve a iniciar sesión para sincronizar
-                    tu perfil completo. Mientras se restablece la conexión, tu
-                    estructura operativa y accesos directos siguen disponibles
-                    abajo.
-                  </p>
-                </div>
-              </div>
-
-              {/* Chips de diagnóstico vivo */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-alt border border-border text-[11px] text-text-secondary font-medium">
-                  <CircleDot className="w-3.5 h-3.5 text-warning" />
-                  Sesión de negocio: Pendiente de respuesta
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-alt border border-border text-[11px] text-text-secondary font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                  Sedes en caché:{" "}
-                  <strong className="font-mono text-text-primary">
-                    {sucursalesList.length}
-                  </strong>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-alt border border-border text-[11px] text-text-secondary font-medium">
-                  <Sparkles className="w-3.5 h-3.5 text-grape" />
-                  Navegación local activa
-                </span>
-              </div>
-            </div>
-
-            {/* Talón derecho del Ticket con perforación y sello circular */}
-            <div className="lg:col-span-4 relative border-t-2 lg:border-t-0 lg:border-l-2 border-dashed border-border bg-surface-alt/45 p-6 sm:p-7 flex flex-col justify-between gap-4">
-              {/* Muescas semicirculares del corte de ticket (Desktop) */}
-              <span
-                aria-hidden="true"
-                className="hidden lg:block absolute -top-3 -left-3 w-6 h-6 rounded-full bg-background border border-border"
-              />
-              <span
-                aria-hidden="true"
-                className="hidden lg:block absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-background border border-border"
-              />
-
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-text-muted block">
-                    TICKET DE ESTADO
-                  </span>
-                  <span className="text-xs font-semibold text-text-primary">
-                    Acciones de conexión
-                  </span>
-                </div>
-
-                {/* Sello circular oficial (Design System §0.B Técnica 3) */}
-                <div
-                  aria-hidden="true"
-                  className="sello text-danger/80 border-danger/40 shrink-0 select-none"
-                  style={{ width: "70px", height: "70px", fontSize: "9px" }}
-                >
-                  <span>
-                    SYNC
-                    <br />
-                    RETRY
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5">
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={handleRetryAll}
-                  isLoading={isRetrying}
-                  className="w-full cursor-pointer text-xs"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>
-                    {isRetrying
-                      ? "Sincronizando datos…"
-                      : "Reintentar conexión ahora"}
-                  </span>
-                </Button>
-
-                <Link href="/login" className="w-full">
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    className="w-full text-xs"
-                  >
-                    <LogIn className="w-3.5 h-3.5 text-text-secondary" />
-                    <span>Volver a iniciar sesión</span>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      ) : isOnboardingRequired ? (
-        /* ONBOARDING BANNER: Motivo Ticket + Sello Circular de Progreso (Design System §5.6 #1) */
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-xs"
-        >
-          <div className="h-1 w-full bg-gradient-to-r from-grape via-flame to-mint" />
-          <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-            <div className="lg:col-span-8 p-6 sm:p-8 space-y-4">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-grape-soft text-grape border border-grape/20 text-xs font-medium">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Configuración inicial del negocio</span>
-              </div>
-              <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-text-primary tracking-tight">
-                Hola,{" "}
-                {auth?.perfil?.nombres ?? auth?.user?.email ?? "bienvenido"}
-              </h1>
-              <p className="text-sm text-text-secondary max-w-xl leading-relaxed">
-                Tu negocio aún no tiene una primera sucursal. Completa tus datos
-                y registra una ubicación real antes de publicar tu portal de
-                reservas.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success-soft text-success text-xs font-medium">
-                  <Check className="w-3.5 h-3.5" />
-                  1. Cuenta creada
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-grape-soft text-grape border border-grape/30 text-xs font-semibold">
-                  2. Registrar primera sucursal
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-alt text-text-muted text-xs font-medium">
-                  3. Recibir reservas
-                </span>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 relative border-t-2 lg:border-t-0 lg:border-l-2 border-dashed border-border bg-surface-alt/45 p-6 sm:p-8 flex flex-col justify-between gap-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-text-muted block">
-                    PROGRESO
-                  </span>
-                  <p className="text-sm font-medium text-text-primary mt-0.5">
-                    0 sedes registradas
-                  </p>
-                </div>
-                <div
-                  aria-hidden="true"
-                  className="sello text-grape border-grape/40 shrink-0"
-                  style={{ width: "72px", height: "72px", fontSize: "10px" }}
-                >
-                  <span>
-                    1 / 3
-                    <br />
-                    PASOS
-                  </span>
-                </div>
-              </div>
-
-              <Link href="/onboarding" className="w-full">
-                <Button variant="primary" size="md" className="w-full">
-                  <span>Registrar primera sucursal</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      ) : (
-        /* WELCOME BANNER ACTIVO + TARJETA DE PLAN Y UPGRADE CON MUESCA DE TICKET (§5.6.4) */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Welcome Card (8 cols) */}
-          <div className="lg:col-span-8 bg-surface border border-border rounded-xl p-6 shadow-xs flex flex-col justify-between gap-5">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2">
-                <Badge variant="success" size="sm" dot={true}>
-                  Portal en línea activo
-                </Badge>
-                {sucursalesList.length > 0 && (
-                  <span className="text-xs text-text-secondary font-medium">
-                    {sucursalesList.length}{" "}
-                    {sucursalesList.length === 1
-                      ? "sede operativa"
-                      : "sedes operativas"}
-                  </span>
-                )}
-              </div>
-              <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-text-primary tracking-tight">
-                Hola, {negocio?.nombre_comercial ?? "—"}
-              </h1>
-              <p className="text-xs sm:text-sm text-text-secondary max-w-xl leading-relaxed">
-                Tu portal de reservas está activo y listo para recibir clientes en
-                línea en tus sedes.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={copyBookingUrl}
-                disabled={!negocioSlug}
-                className="cursor-pointer"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-success" />
-                ) : (
-                  <Copy className="w-4 h-4 text-text-secondary" />
-                )}
-                <span>
-                  {copied ? "¡Enlace copiado!" : "Copiar enlace de reserva"}
-                </span>
-              </Button>
-
-              <Link
-                href={negocioSlug ? `/reserva/${negocioSlug}` : "/"}
-                target="_blank"
-              >
-                <Button variant="primary" size="sm">
-                  <span>Ver portal público</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Tarjeta de Plan y Upgrade con Muesca de Ticket (§5.6.4) (4 cols) */}
-          <div className="lg:col-span-4 relative bg-surface border border-border rounded-xl p-5 shadow-xs flex flex-col justify-between gap-4">
-            {/* Muesca semicircular autorizada en esquina superior derecha (§5.6.4 - radio 12px) */}
-            <span
-              aria-hidden="true"
-              className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-background border border-border z-10 select-none pointer-events-none"
-            />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2 pr-4">
-                <span className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
-                  SUSCRIPCIÓN AGENDUR
-                </span>
-                <Badge
-                  variant={
-                    suscripcion?.estado === "active" ||
-                    suscripcion?.estado === "trialing"
-                      ? "success"
-                      : "neutral"
-                  }
-                  size="sm"
-                  dot={true}
-                >
-                  {suscripcion?.estado ?? "Activo"}
-                </Badge>
-              </div>
-
-              <div>
-                <h2 className="font-bricolage font-bold text-xl text-text-primary capitalize">
-                  Plan {planNombre}
-                </h2>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Facturación {suscripcion?.intervalo ?? "mensual"}
-                </p>
-              </div>
-
-              {/* Capacidad de sedes */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">Sedes habilitadas</span>
-                  <span className="font-mono font-semibold text-text-primary">
-                    {sucursalesUsadas} / {sucursalesLimite}
-                  </span>
-                </div>
-                <div className="w-full bg-surface-alt rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-grape h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${Math.min(
-                        Math.round(
-                          (sucursalesUsadas / Math.max(sucursalesLimite, 1)) *
-                            100,
-                        ),
-                        100,
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-1">
-              <Link href="/pagos" className="block w-full">
-                <Button variant="primary" size="sm" className="w-full">
-                  <span>Mejorar plan o gestionar</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <DashboardBanners
+        isSyncError={isSyncError}
+        isOnboardingRequired={isOnboardingRequired}
+        sucursalesCount={sucursalesList.length}
+        nombreNegocioRescatado={nombreNegocioRescatado}
+        nombreUsuario={auth?.perfil?.nombres ?? auth?.user?.email ?? "bienvenido"}
+        nombreNegocio={negocio?.nombre_comercial}
+        negocioSlug={negocioSlug}
+        copyBookingUrl={copyBookingUrl}
+        copied={copied}
+        suscripcion={suscripcion}
+        planNombre={planNombre}
+        sucursalesUsadas={sucursalesUsadas}
+        sucursalesLimite={sucursalesLimite}
+        handleRetryAll={handleRetryAll}
+        isRetrying={isRetrying}
+      />
 
       {/* ATAJOS OPERATIVOS RÁPIDOS (Visibles cuando hay error de sincronización o cuenta en configuración) */}
       {(isSyncError || isOnboardingRequired) && (
