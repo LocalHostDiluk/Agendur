@@ -35,13 +35,13 @@ import {
   CartesianGrid,
   Cell
 } from "recharts";
-import { notify } from "@/lib/utils/toast";
 import { getDashboardIncomeMetrics, getDashboardOccupancy, getDashboardAbsences } from "@/lib/utils/dashboard-metrics";
 import { getBusinessToday } from "@/lib/utils/business-date";
 import { getDashboardAppointmentLabels } from "@/lib/utils/dashboard-appointment";
 import { getDashboardDailySeries, getDashboardMonthlySeries } from "@/lib/utils/dashboard-series";
 import {
   useAuthMe,
+  useDashboardActions,
   useCitasNegocio,
   useConfiguracion,
   useSucursales,
@@ -153,6 +153,17 @@ export default function DashboardPage() {
     [ingresosPorMes],
   );
 
+  const { handleRetryAll, copyBookingUrl } = useDashboardActions({
+    negocioSlug,
+    setCopied,
+    setIsRetrying,
+    refetchAuth,
+    refetchSucursales,
+    refetchSuscripcion,
+    refetchConfiguracion,
+    refetchCitas,
+  });
+
   if (authLoading) {
     return <DashboardLoading />;
   }
@@ -160,31 +171,6 @@ export default function DashboardPage() {
   const isSyncError = Boolean(authError || !auth);
   const isOnboardingRequired =
     !isSyncError && auth?.onboardingStatus === "required";
-
-  const handleRetryAll = async () => {
-    setIsRetrying(true);
-    try {
-      await Promise.allSettled([
-        refetchAuth(),
-        refetchSucursales(),
-        refetchSuscripcion(),
-        refetchConfiguracion(),
-        refetchCitas(),
-      ]);
-    } finally {
-      setTimeout(() => setIsRetrying(false), 350);
-    }
-  };
-
-  const copyBookingUrl = () => {
-    if (!negocioSlug) return;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/reserva/${negocioSlug}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    notify.success("Enlace copiado", "Se copió el enlace al portapapeles.");
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
