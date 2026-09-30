@@ -35,6 +35,7 @@ import {
 import { notify } from "@/lib/utils/toast";
 import { getDashboardIncomeMetrics, getDashboardOccupancy, getDashboardAbsences } from "@/lib/utils/dashboard-metrics";
 import { getBusinessToday } from "@/lib/utils/business-date";
+import { getInitials, getDashboardAppointmentLabels } from "@/lib/utils/dashboard-appointment";
 import { getDashboardDailySeries, getDashboardMonthlySeries } from "@/lib/utils/dashboard-series";
 import {
   useAuthMe,
@@ -84,13 +85,6 @@ function CustomChartTooltip({
     );
   }
   return null;
-}
-
-function getInitials(name: string): string {
-  if (!name || name === "—") return "CL";
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 const emptySubscribe = () => () => {};
@@ -1421,16 +1415,7 @@ export default function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {citas.map((cita) => {
-                    const clienteNombre =
-                      [
-                        cita.cliente_nombre ?? cita.clienteNombre,
-                        cita.cliente_apellido,
-                      ]
-                        .filter(Boolean)
-                        .join(" ") || "—";
-                    const folio = `#AG-${(cita.id ? String(cita.id) : "000000")
-                      .slice(0, 6)
-                      .toUpperCase()}`;
+                    const { clienteNombre, folio } = getDashboardAppointmentLabels(cita);
 
                     return (
                       <TableRow key={cita.id}>
@@ -1502,16 +1487,7 @@ export default function DashboardPage() {
             {/* Mobile Cards view (Section 8) */}
             <div className="sm:hidden space-y-3">
               {citas.map((cita) => {
-                const clienteNombre =
-                  [
-                    cita.cliente_nombre ?? cita.clienteNombre,
-                    cita.cliente_apellido,
-                  ]
-                    .filter(Boolean)
-                    .join(" ") || "—";
-                const folio = `#AG-${(cita.id ? String(cita.id) : "000000")
-                  .slice(0, 6)
-                  .toUpperCase()}`;
+                const { clienteNombre, folio } = getDashboardAppointmentLabels(cita);
 
                 return (
                   <div
