@@ -8,3 +8,4 @@ export * from "./BookingMobileHeader";
 export * from "./BookingSummaryTicket";
 export * from "./BookingSummarySidebar";
 export * from "./BookingStepper";
+export * from "./BookingHiddenInputs";
