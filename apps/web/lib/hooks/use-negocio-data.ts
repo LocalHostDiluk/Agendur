@@ -28,8 +28,9 @@ export function useSucursales() {
   });
 }
 
-export function useSuscripcion() {
+export function useSuscripcion(enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ["negocio", "suscripcion"],
     queryFn: () =>
       apiFetch<{ data: SubscriptionUsageStats }>("/api/negocio/suscripcion"),
@@ -37,8 +38,9 @@ export function useSuscripcion() {
   });
 }
 
-export function useConfiguracion() {
+export function useConfiguracion(enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ["negocio", "configuracion"],
     queryFn: () =>
       apiFetch<{
@@ -254,4 +256,3 @@ export function useUpdateProfesional() {
     },
   });
 }
-

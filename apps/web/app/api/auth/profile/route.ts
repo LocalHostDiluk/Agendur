@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
 
     const { data: perfil, error } = await supabase.from("perfiles_usuario")
       .upsert({ usuario_id: user.id, nombres, apellidos, telefono }, { onConflict: "usuario_id" })
-      .select("usuario_id, nombres, apellidos, telefono, rol, locale")
+      .select("usuario_id, nombres, apellidos, telefono, locale")
       .single();
     if (error || !perfil) {
       return apiError(error || "No se pudo guardar el perfil.", "No se pudo guardar el perfil.", { status: 503 });

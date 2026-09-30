@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -68,6 +69,8 @@ export interface NegocioAccess {
   role: NegocioRole;
   sucursalId: string | null;
   profesionalId: string | null;
+  profesionalIds?: string[];
+  sucursalIds?: string[];
 }
 
 export class NegocioAccessError extends Error {
@@ -100,189 +103,80 @@ function mapCollaboratorRole(value: unknown): NegocioRole | null {
   return null;
 }
 
-export async function resolveNegocioAccess(): Promise<NegocioAccess> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    throw new NegocioAccessError(
-      401,
-      "AUTH_REQUIRED",
-      "No autorizado. Sesión requerida.",
-    );
-  }
-
+export async function listNegocioAccess(user: NegocioAccess["user"]): Promise<(NegocioAccess & { nombre: string })[]> {
   const admin = createAdminClient();
-  const { data: ownedBusinesses, error: ownerError } = await admin
-    .from("negocios")
-    .select("id")
-    .eq("owner_id", user.id)
-    .is("desactivado_at", null)
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(1);
-
-  if (ownerError) {
-    throw new NegocioAccessError(
-      503,
-      "ACCESS_LOOKUP_FAILED",
-      "No se pudo resolver el acceso al negocio.",
-    );
+  const [owned, collaborators, professionals] = await Promise.all([
+    admin.from("negocios").select("id, nombre_comercial")
+    .eq("owner_id", user.id).is("desactivado_at", null)
+    .order("created_at", { ascending: true }).order("id", { ascending: true }),
+    admin.from("colaboradores").select("negocio_id, sucursal_id, rol")
+    .eq("usuario_id", user.id).eq("activo", true).order("created_at", { ascending: true }),
+    admin.from("profesionales").select("id, sucursal_id")
+    .eq("usuario_id", user.id).eq("activo", true).order("created_at", { ascending: true }).order("id", { ascending: true }),
+  ]);
+  if (owned.error || collaborators.error || professionals.error) {
+    throw new NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "No se pudo resolver el acceso al negocio.");
   }
-  const ownedBusiness = ownedBusinesses?.[0];
-  if (ownedBusiness) {
-    return {
-      user,
-      negocioId: ownedBusiness.id,
-      role: "owner",
-      sucursalId: null,
-      profesionalId: null,
-    };
+  const branchIds = (professionals.data ?? []).map(p => p.sucursal_id);
+  const branches = branchIds.length
+    ? await admin.from("sucursales").select("id, negocio_id").in("id", branchIds)
+    : { data: [], error: null };
+  if (branches.error) throw new NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "No se pudo consultar las sucursales.");
+  const businessIds = [...new Set([
+    ...(collaborators.data ?? []).map(c => c.negocio_id),
+    ...(branches.data ?? []).map(s => s.negocio_id),
+  ])];
+  const businesses = businessIds.length
+    ? await admin.from("negocios").select("id, nombre_comercial").in("id", businessIds).is("desactivado_at", null)
+    : { data: [], error: null };
+  if (businesses.error) throw new NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "No se pudo consultar los negocios.");
+  const active = new Map((businesses.data ?? []).map(n => [n.id, n.nombre_comercial]));
+  const accesses = new Map<string, NegocioAccess & { nombre: string }>();
+  for (const n of owned.data ?? []) {
+    accesses.set(n.id, { user, negocioId: n.id, nombre: n.nombre_comercial, role: "owner", sucursalId: null, profesionalId: null });
   }
-
-  const { data: collaborators, error: collaboratorError } = await admin
-    .from("colaboradores")
-    .select("negocio_id, sucursal_id, rol")
-    .eq("usuario_id", user.id)
-    .eq("activo", true)
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(1);
-
-  if (collaboratorError) {
-    throw new NegocioAccessError(
-      503,
-      "ACCESS_LOOKUP_FAILED",
-      "No se pudo resolver el acceso al negocio.",
-    );
+  for (const c of collaborators.data ?? []) {
+    const role = mapCollaboratorRole(c.rol);
+    if (!active.has(c.negocio_id) || !role || (role === "receptionist" && !c.sucursal_id)) continue;
+    if (!accesses.has(c.negocio_id)) accesses.set(c.negocio_id, {
+      user, negocioId: c.negocio_id, nombre: active.get(c.negocio_id)!, role, sucursalId: c.sucursal_id, profesionalId: null,
+    });
   }
-  const collaborator = collaborators?.[0];
-  if (collaborator) {
-    const { data: activeBusiness, error: businessError } = await admin
-      .from("negocios")
-      .select("id")
-      .eq("id", collaborator.negocio_id)
-      .is("desactivado_at", null)
-      .maybeSingle();
-    if (businessError) {
-      throw new NegocioAccessError(
-        503,
-        "ACCESS_LOOKUP_FAILED",
-        "No se pudo resolver el acceso al negocio.",
-      );
-    }
-    if (!activeBusiness) {
-      throw new NegocioAccessError(
-        403,
-        "BUSINESS_ACCESS_DENIED",
-        "Esta cuenta no tiene acceso activo a un negocio.",
-      );
-    }
-    const role = mapCollaboratorRole(collaborator.rol);
-    if (!role) {
-      throw new NegocioAccessError(
-        403,
-        "INVALID_BUSINESS_ROLE",
-        "El rol asignado no es válido.",
-      );
-    }
-    if (role === "receptionist" && !collaborator.sucursal_id) {
-      throw new NegocioAccessError(
-        403,
-        "INVALID_BUSINESS_SCOPE",
-        "El acceso asignado no tiene una sucursal válida.",
-      );
-    }
-    return {
-      user,
-      negocioId: collaborator.negocio_id,
-      role,
-      sucursalId: collaborator.sucursal_id ?? null,
-      profesionalId: null,
-    };
-  }
-
-  const { data: professionals, error: professionalError } = await admin
-    .from("profesionales")
-    .select("id, sucursal_id")
-    .eq("usuario_id", user.id)
-    .eq("activo", true)
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(1);
-
-  if (professionalError) {
-    throw new NegocioAccessError(
-      503,
-      "ACCESS_LOOKUP_FAILED",
-      "No se pudo resolver el acceso al negocio.",
-    );
-  }
-  const professional = professionals?.[0];
-  if (professional) {
-    const { data: branch, error: branchError } = await admin
-      .from("sucursales")
-      .select("negocio_id")
-      .eq("id", professional.sucursal_id)
-      .maybeSingle();
-    if (branchError) {
-      throw new NegocioAccessError(
-        503,
-        "ACCESS_LOOKUP_FAILED",
-        "No se pudo resolver el acceso al negocio.",
-      );
-    }
-    if (branch) {
-      const { data: activeBusiness, error: businessError } = await admin
-        .from("negocios")
-        .select("id")
-        .eq("id", branch.negocio_id)
-        .is("desactivado_at", null)
-        .maybeSingle();
-      if (businessError) {
-        throw new NegocioAccessError(
-          503,
-          "ACCESS_LOOKUP_FAILED",
-          "No se pudo resolver el acceso al negocio.",
-        );
+  for (const p of professionals.data ?? []) {
+    const branch = (branches.data ?? []).find(s => s.id === p.sucursal_id);
+    if (!branch || !active.has(branch.negocio_id)) continue;
+    const existing = accesses.get(branch.negocio_id);
+    if (existing) {
+      if (existing.role === "professional") {
+        existing.profesionalIds!.push(p.id);
+        if (!existing.sucursalIds!.includes(p.sucursal_id)) existing.sucursalIds!.push(p.sucursal_id);
       }
-      if (!activeBusiness) {
-        throw new NegocioAccessError(
-          403,
-          "BUSINESS_ACCESS_DENIED",
-          "Esta cuenta no tiene acceso activo a un negocio.",
-        );
-      }
-      return {
-        user,
-        negocioId: branch.negocio_id,
-        role: "professional",
-        sucursalId: professional.sucursal_id,
-        profesionalId: professional.id,
-      };
+      continue;
     }
+    accesses.set(branch.negocio_id, {
+      user, negocioId: branch.negocio_id, nombre: active.get(branch.negocio_id)!, role: "professional",
+      sucursalId: p.sucursal_id, profesionalId: p.id, sucursalIds: [p.sucursal_id], profesionalIds: [p.id],
+    });
   }
-
-  throw new NegocioAccessError(
-    403,
-    "BUSINESS_ACCESS_DENIED",
-    "Esta cuenta no tiene acceso activo a un negocio.",
-  );
+  return [...accesses.values()];
 }
 
-export async function requireNegocioAccess(
-  capability: NegocioCapability,
-): Promise<NegocioAccess> {
+export async function resolveNegocioAccess(): Promise<NegocioAccess> {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new NegocioAccessError(401, "AUTH_REQUIRED", "No autorizado. Sesión requerida.");
+  const accesses = await listNegocioAccess(user);
+  let selected: string | undefined;
+  try { selected = (await cookies()).get("agendur_business")?.value; } catch { /* Test without request context. */ }
+  const access = selected ? accesses.find(a => a.negocioId === selected) : accesses[0];
+  if (!access) throw new NegocioAccessError(403, "BUSINESS_ACCESS_DENIED", "Esta cuenta no tiene acceso activo al negocio.");
+  return access;
+}
+
+export async function requireNegocioAccess(capability: NegocioCapability): Promise<NegocioAccess> {
   const access = await resolveNegocioAccess();
   if (!hasCapability(access, capability)) {
-    throw new NegocioAccessError(
-      403,
-      "BUSINESS_ACCESS_DENIED",
-      "No tienes permiso para realizar esta operación.",
-    );
+    throw new NegocioAccessError(403, "BUSINESS_ACCESS_DENIED", "No tienes permiso para realizar esta operación.");
   }
   return access;
 }

@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/negocio-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import { assertActiveSubscription, SubscriptionExpiredError } from "@/lib/payments/guards";
 
 type StaffRole = "manager" | "receptionist" | "professional";
 
@@ -33,6 +34,7 @@ async function findAuthUserByEmail(
   admin: ReturnType<typeof createAdminClient>,
   email: string,
 ): Promise<User | null> {
+  // ponytail: scans up to 100k accounts; indexed server lookup when the tenant directory grows.
   for (let page = 1; page <= 100; page += 1) {
     const { data, error } = await admin.auth.admin.listUsers({
       page,
@@ -132,6 +134,10 @@ export async function GET(): Promise<NextResponse> {
     );
 
     const professionalIds = (professionals ?? []).map((item) => item.id);
+    const schedules = professionalIds.length
+      ? await admin.from("horarios_profesional").select("profesional_id, dia_semana, hora_inicio, hora_fin").in("profesional_id", professionalIds)
+      : { data: [], error: null };
+    if (schedules.error) throw schedules.error;
     const { data: assignments, error: assignmentsError } =
       professionalIds.length
         ? await admin
@@ -177,6 +183,7 @@ export async function GET(): Promise<NextResponse> {
         sucursalId: item.sucursal_id,
         activo: item.activo,
         servicioIds: serviceIdsByProfessional.get(item.id) ?? [],
+        horarios: (schedules.data ?? []).filter(h => h.profesional_id === item.id),
       })),
     ];
 
@@ -251,6 +258,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         status: 400,
       });
     }
+    const subscription = await assertActiveSubscription(access.negocioId);
+    const branchIds = await allowedBranchIds(admin, access);
+    const { count, error: countError } = await admin.from("profesionales")
+      .select("id", { count: "exact", head: true }).in("sucursal_id", branchIds).eq("activo", true);
+    if (countError) throw countError;
+    if ((count ?? 0) >= subscription.limite_profesionales) {
+      return apiError("Límite de profesionales alcanzado.", undefined, { status: 409, code: "LIMIT_EXCEEDED" });
+    }
     const servicioIds = Array.isArray(input.servicioIds)
       ? [...new Set(input.servicioIds.filter((id): id is string => typeof id === "string" && Boolean(id.trim())))]
       : [];
@@ -316,6 +331,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     const denied = accessFailure(error);
     if (denied) return denied;
+    if (error instanceof SubscriptionExpiredError) return apiError(error.message, undefined, { status: 402, code: error.code });
     return apiError(error, "No se pudo crear el personal.", {
       extra: { route: "POST /api/negocio/personal" },
     });
@@ -390,7 +406,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const { data: existing, error: existingError } = branchIds.length
       ? await admin
           .from("profesionales")
-          .select("id, sucursal_id")
+          .select("id, sucursal_id, usuario_id, activo")
           .eq("id", id)
           .in("sucursal_id", branchIds)
           .maybeSingle()
@@ -400,11 +416,26 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       return apiError("Profesional no encontrado.", undefined, { status: 404 });
     }
     const updates: Record<string, unknown> = {};
+    if (input.usuarioEmail !== undefined) {
+      const email = cleanEmail(input.usuarioEmail);
+      const user = email ? await findAuthUserByEmail(admin, email) : null;
+      if (!user) return apiError("La persona debe registrarse primero.", undefined, { status: 409, code: "USER_MUST_REGISTER" });
+      updates.usuario_id = user.id;
+    }
     if (input.activo !== undefined) {
       if (typeof input.activo !== "boolean") {
         return apiError("activo debe ser booleano.", undefined, { status: 400 });
       }
       updates.activo = input.activo;
+      if (input.activo && !existing.activo) {
+        const subscription = await assertActiveSubscription(access.negocioId);
+        const { count, error } = await admin.from("profesionales")
+          .select("id", { count: "exact", head: true }).in("sucursal_id", branchIds).eq("activo", true);
+        if (error) throw error;
+        if ((count ?? 0) >= subscription.limite_profesionales) {
+          return apiError("Límite de profesionales alcanzado.", undefined, { status: 409, code: "LIMIT_EXCEEDED" });
+        }
+      }
     }
     if (input.sucursalId !== undefined) {
       const sucursalId = cleanText(input.sucursalId, 64);
@@ -419,11 +450,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     let update = admin.from("profesionales").update(updates).eq("id", id);
     update = update.in("sucursal_id", branchIds);
     const { data, error } = await update.select().single();
+    if (error?.code === "23503") return apiError("El profesional conserva citas en su sede actual.", undefined, { status: 409, code: "STAFF_HISTORY_SCOPE_LOCKED" });
+    if (error?.code === "23505") return apiError("La cuenta ya está vinculada en esa sede.", undefined, { status: 409, code: "STAFF_ALREADY_EXISTS" });
     if (error || !data) throw error || new Error("No se pudo actualizar.");
     return apiSuccess({ personal: data });
   } catch (error) {
     const denied = accessFailure(error);
     if (denied) return denied;
+    if (error instanceof SubscriptionExpiredError) return apiError(error.message, undefined, { status: 402, code: error.code });
     return apiError(error, "No se pudo actualizar el personal.", {
       extra: { route: "PATCH /api/negocio/personal" },
     });

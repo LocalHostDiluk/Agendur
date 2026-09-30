@@ -35,7 +35,7 @@ export async function GET(): Promise<NextResponse> {
       const { data: assignments, error: assignmentError } = await adminClient
         .from("profesional_servicios")
         .select("servicio_id")
-        .eq("profesional_id", access.profesionalId);
+        .in("profesional_id", access.profesionalIds ?? [access.profesionalId]);
       if (assignmentError) throw assignmentError;
       allowedServiceIds = (assignments ?? []).map((item) => item.servicio_id);
       if (allowedServiceIds.length === 0) return apiSuccess({ servicios: [] });

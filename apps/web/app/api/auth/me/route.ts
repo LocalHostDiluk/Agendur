@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import {
   hasCapability,
+  listNegocioAccess,
   NegocioAccessError,
   resolveNegocioAccess,
   ROLE_CAPABILITIES,
@@ -28,7 +29,7 @@ export async function GET() {
 
     const { data: perfil, error: perfilError } = await admin
       .from("perfiles_usuario")
-      .select("nombres, apellidos, telefono, rol, locale")
+      .select("nombres, apellidos, telefono, locale")
       .eq("usuario_id", access.user.id)
       .maybeSingle();
     if (perfilError && !["42P01", "PGRST205"].includes(perfilError.code)) {
@@ -48,7 +49,10 @@ export async function GET() {
       .select("id", { count: "exact", head: true })
       .eq("negocio_id", access.negocioId)
       .eq("activa", true);
-    if (access.sucursalId) {
+    if (access.sucursalIds) {
+      totalQuery = totalQuery.in("id", access.sucursalIds);
+      activasQuery = activasQuery.in("id", access.sucursalIds);
+    } else if (access.sucursalId) {
       totalQuery = totalQuery.eq("id", access.sucursalId);
       activasQuery = activasQuery.eq("id", access.sucursalId);
     }
@@ -109,8 +113,11 @@ export async function GET() {
         role: access.role,
         sucursalId: access.sucursalId,
         profesionalId: access.profesionalId,
+        profesionalIds: access.profesionalIds,
+        sucursalIds: access.sucursalIds,
         capabilities: ROLE_CAPABILITIES[access.role],
       },
+      availableBusinesses: (await listNegocioAccess(access.user)).map(({ negocioId, nombre, role }) => ({ id: negocioId, nombre, role })),
       suscripcion,
       perfil: perfilError ? null : perfil,
       sucursalesCount,

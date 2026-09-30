@@ -1,810 +1,101 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  Users,
-  Calendar,
-  UserPlus,
-  Search,
-  MapPin,
-  Clock,
-  Phone,
-  Mail,
-  AlertCircle,
-  RefreshCw,
-  CalendarDays,
-  Pencil,
-  UserX,
-  UserCheck,
-} from "lucide-react";
-import {
-  useAuthMe,
-  useCatalogo,
-  useSucursales,
-  useServicios,
-  useCitasNegocio,
-  useProfesionales,
-  useUpdateProfesional,
-  useConfirmDialog,
-} from "@/lib/hooks";
-import {
-  ModalNuevoColaborador,
-  ModalEditarColaborador,
-  type ColaboradorCreadoPayload,
-} from "@/components/negocio";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useState, type FormEvent } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthMe } from "@/lib/hooks/use-auth-me";
+import { useSucursales, useServicios } from "@/lib/hooks/use-negocio-data";
+import { apiFetch } from "@/lib/query/api-client";
 import { notify } from "@/lib/utils/toast";
-import {
-  SkeletonBlock,
-  SkeletonText,
-  SkeletonCircle,
-} from "@/components/ui/Skeleton";
 import type { Profesional } from "@/lib/types";
 
-const DIAS_SEMANA_HEADERS = [
-  { dia: 1, nombre: "Lunes", corto: "Lun" },
-  { dia: 2, nombre: "Martes", corto: "Mar" },
-  { dia: 3, nombre: "Miércoles", corto: "Mié" },
-  { dia: 4, nombre: "Jueves", corto: "Jue" },
-  { dia: 5, nombre: "Viernes", corto: "Vie" },
-  { dia: 6, nombre: "Sábado", corto: "Sáb" },
-  { dia: 0, nombre: "Domingo", corto: "Dom" },
-];
+export interface UnifiedColaborador extends Profesional { serviciosIds: string[]; rol?: string; hora_inicio?: string; hora_fin?: string; dias_laborables?: number[] }
+type Member = {
+  id: string; kind: "collaborator" | "professional"; nombre: string; apellido: string;
+  email: string; rol: "manager" | "receptionist" | "professional"; sucursalId: string | null;
+  usuarioId: string | null; activo: boolean; servicioIds: string[];
+  horarios?: { dia_semana: number; hora_inicio: string; hora_fin: string }[];
+};
+const labels = { manager: "Gerente", receptionist: "Recepcionista", professional: "Profesional" };
+const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const control = "max-w-full min-w-0 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-grape";
+const primaryButton = "rounded-md bg-grape px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-grape";
 
-export interface UnifiedColaborador extends Profesional {
-  serviciosIds: string[];
-  rol?: string;
-  hora_inicio?: string;
-  hora_fin?: string;
-  dias_laborables?: number[];
-}
-
-export default function PersonalPage({
-  initialTab = "directorio",
-}: {
-  initialTab?: "directorio" | "horarios";
-} = {}) {
-  const [activeTab, setActiveTab] = useState<"directorio" | "horarios">(
-    initialTab,
-  );
-  const [selectedSucursalId, setSelectedSucursalId] = useState<string>("todas");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [colaboradorAEditar, setColaboradorAEditar] =
-    useState<UnifiedColaborador | null>(null);
-  const [colaboradoresLocales, setColaboradoresLocales] = useState<
-    UnifiedColaborador[]
-  >([]);
-
-  const confirmDialog = useConfirmDialog();
-  const updateProfesional = useUpdateProfesional();
-
-  // Queries
-  const {
-    data: auth,
-    isLoading: authLoading,
-    isError: authError,
-  } = useAuthMe();
-  const negocioSlug = auth?.negocio?.slug;
-
-  const {
-    data: profesionalesData,
-    isLoading: profesionalesLoading,
-    isError: profesionalesError,
-    refetch: refetchProfesionales,
-  } = useProfesionales();
-
-  const {
-    data: catalogoData,
-    isLoading: catalogoLoading,
-    isError: catalogoError,
-    refetch: refetchCatalogo,
-  } = useCatalogo(negocioSlug);
-
-  const {
-    data: sucursalesData,
-    isLoading: sucursalesLoading,
-    isError: sucursalesError,
-    refetch: refetchSucursales,
-  } = useSucursales();
-
-  const { data: serviciosData } = useServicios();
-  const { data: citasData } = useCitasNegocio();
-
-  const sucursales = useMemo(
-    () => sucursalesData?.sucursales ?? [],
-    [sucursalesData?.sucursales],
-  );
-  const servicios = useMemo(
-    () => serviciosData?.servicios ?? [],
-    [serviciosData?.servicios],
-  );
-  const citas = useMemo(() => citasData?.citas ?? [], [citasData?.citas]);
-
-  // Combine remote professionals from direct API (fallback to catalog for backwards compatibility)
-  const todosLosColaboradores = useMemo(() => {
-    let remotos: UnifiedColaborador[] = [];
-
-    if (profesionalesData?.profesionales) {
-      remotos = profesionalesData.profesionales.map((p) => ({
-        ...p,
-        serviciosIds: p.serviciosIds || [],
-        rol: p.cargo || "Especialista",
-        hora_inicio: "09:00",
-        hora_fin: "18:00",
-        dias_laborables: [1, 2, 3, 4, 5, 6],
-      }));
-    } else if (catalogoData?.data?.profesionales) {
-      remotos = (catalogoData.data.profesionales ?? []).map((p) => ({
-        ...p,
-        serviciosIds: (p as unknown as { serviciosIds?: string[] }).serviciosIds || [],
-        rol: p.cargo || "Especialista",
-        hora_inicio: "09:00",
-        hora_fin: "18:00",
-        dias_laborables: [1, 2, 3, 4, 5, 6],
-      }));
-    }
-
-    // Avoid duplicates by ID
-    const map = new Map<string, UnifiedColaborador>();
-    remotos.forEach((c) => map.set(c.id, c));
-    colaboradoresLocales.forEach((c) => map.set(c.id, c));
-
-    return Array.from(map.values());
-  }, [
-    profesionalesData?.profesionales,
-    catalogoData?.data?.profesionales,
-    colaboradoresLocales,
-  ]);
-
-  // Filtered list
-  const colaboradoresFiltrados = useMemo(() => {
-    return todosLosColaboradores.filter((colab) => {
-      const matchSucursal =
-        selectedSucursalId === "todas" ||
-        colab.sucursal_id === selectedSucursalId;
-
-      if (!matchSucursal) return false;
-
-      if (!searchQuery.trim()) return true;
-
-      const q = searchQuery.toLowerCase().trim();
-      const nombreCompleto =
-        `${colab.nombre} ${colab.apellido ?? ""}`.toLowerCase();
-      const matchNombre = nombreCompleto.includes(q);
-      const matchRol = (colab.rol ?? "").toLowerCase().includes(q);
-
-      // Check if services match search
-      const matchServicio = (colab.serviciosIds || []).some((sId) => {
-        const serv = servicios.find((s) => s.id === sId);
-        return serv?.nombre.toLowerCase().includes(q);
-      });
-
-      return matchNombre || matchRol || matchServicio;
-    });
-  }, [todosLosColaboradores, selectedSucursalId, searchQuery, servicios]);
-
-  // Handler when a new professional is created in the modal
-  const handleColaboradorCreado = (payload: ColaboradorCreadoPayload) => {
-    const nuevo: UnifiedColaborador = {
-      id: payload.id,
-      nombre: payload.nombre,
-      apellido: payload.apellido,
-      sucursal_id: payload.sucursal_id,
-      email: payload.email || null,
-      telefono: payload.telefono || null,
-      serviciosIds: payload.serviciosIds,
-      rol: payload.rol,
-      hora_inicio: payload.hora_inicio,
-      hora_fin: payload.hora_fin,
-      dias_laborables: payload.dias_laborables,
-      activo: payload.activo,
-    };
-    setColaboradoresLocales((prev) => [nuevo, ...prev]);
-  };
-
-  // Handler when a professional is updated in the edit modal
-  const handleColaboradorActualizado = (updated: UnifiedColaborador) => {
-    setColaboradoresLocales((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c)),
-    );
-  };
-
-  // Toggle active / inactive with confirmation dialog
-  const handleToggleActivo = async (colab: UnifiedColaborador) => {
-    const nuevoEstado = !colab.activo;
-    if (!nuevoEstado) {
-      const confirmado = await confirmDialog.confirm({
-        title: "¿Desactivar colaborador?",
-        message: `¿Estás seguro de desactivar a ${colab.nombre} ${colab.apellido ?? ""}? Dejará de recibir nuevas citas y no aparecerá en el portal de reservas.`,
-        confirmText: "Desactivar",
-        cancelText: "Cancelar",
-        type: "danger",
-      });
-      if (!confirmado) return;
-    }
-
-    try {
-      await updateProfesional.mutateAsync({
-        id: colab.id,
-        activo: nuevoEstado,
-      });
-      notify.success(
-        nuevoEstado ? "Colaborador activado" : "Colaborador desactivado",
-        `${colab.nombre} ahora está ${nuevoEstado ? "activo" : "inactivo"}.`,
-      );
-      setColaboradoresLocales((prev) =>
-        prev.map((c) =>
-          c.id === colab.id ? { ...c, activo: nuevoEstado } : c,
-        ),
-      );
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Error al actualizar estado.";
-      notify.error("No se pudo actualizar", msg);
-    }
-  };
-
-  const isLoading =
-    (authLoading ||
-      profesionalesLoading ||
-      catalogoLoading ||
-      sucursalesLoading) &&
-    !profesionalesData &&
-    !catalogoData;
-
-  const isError =
-    (authError || profesionalesError || catalogoError || sucursalesError) &&
-    !profesionalesData &&
-    !catalogoData;
-
-  const handleRetryAll = () => {
-    refetchProfesionales();
-    refetchCatalogo();
-    refetchSucursales();
-  };
-
-  return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bricolage font-bold text-text-primary tracking-tight">
-            Equipo &amp; Personal
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Gestiona los especialistas y colaboradores de tu negocio, sus
-            especialidades y horarios de trabajo.
-          </p>
-        </div>
-
-        {/* Action Button: Registrar Colaborador */}
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="min-h-[44px] px-5 py-2.5 rounded-lg bg-grape hover:bg-grape/90 text-white font-medium text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-sm shrink-0 focus:outline-hidden focus:ring-2 focus:ring-grape focus:ring-offset-2 cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Registrar Colaborador</span>
-        </button>
-      </div>
-
-      {/* Control Bar: Tabs Switcher, Branch Filter and Search */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Pills Switcher */}
-        <div
-          className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-fit shrink-0"
-          role="tablist"
-          aria-label="Vistas de personal"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "directorio"}
-            onClick={() => setActiveTab("directorio")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
-              activeTab === "directorio"
-                ? "bg-grape text-white shadow-xs"
-                : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Directorio del Equipo</span>
-            <span
-              className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === "directorio"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-alt text-text-muted"
-              }`}
-            >
-              {todosLosColaboradores.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "horarios"}
-            onClick={() => setActiveTab("horarios")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
-              activeTab === "horarios"
-                ? "bg-grape text-white shadow-xs"
-                : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Matriz de Horarios</span>
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 lg:max-w-md lg:justify-end">
-          {/* Branch Filter */}
-          {sucursales.length > 1 && (
-            <div className="relative shrink-0 sm:w-48">
-              <select
-                value={selectedSucursalId}
-                onChange={(e) => setSelectedSucursalId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-                aria-label="Filtrar por sucursal"
-              >
-                <option value="todas">Todas las sedes</option>
-                {sucursales.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre} {s.es_matriz ? "(Matriz)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar colaborador o servicio..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* STATE 1: LOADING */}
-      {isLoading && (
-        <div className="space-y-4 animate-pulse" data-testid="personal-loading">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="bg-surface border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-xs"
-              >
-                <div className="space-y-3.5">
-                  <div className="flex items-start gap-3.5">
-                    <SkeletonCircle className="w-12 h-12 shrink-0" />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <SkeletonText className="h-4 w-32" />
-                        <SkeletonBlock className="h-4 w-12 rounded-full" />
-                      </div>
-                      <SkeletonText className="h-3 w-20" />
-                      <SkeletonText className="h-3 w-28" />
-                    </div>
-                  </div>
-                  <div className="space-y-2 pt-1">
-                    <SkeletonText className="h-3 w-24" />
-                    <div className="flex flex-wrap gap-1.5">
-                      <SkeletonBlock className="h-6 w-20 rounded-md" />
-                      <SkeletonBlock className="h-6 w-24 rounded-md" />
-                      <SkeletonBlock className="h-6 w-16 rounded-md" />
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-border flex items-center justify-between">
-                  <SkeletonText className="h-3 w-20" />
-                  <SkeletonBlock className="h-4 w-14 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* STATE 2: ERROR */}
-      {!isLoading && isError && (
-        <div
-          role="alert"
-          className="bg-danger/10 border border-danger/20 rounded-2xl p-6 text-center space-y-3"
-        >
-          <div className="size-12 rounded-full bg-danger/15 text-danger flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <h3 className="font-bricolage font-bold text-lg text-text-primary">
-            No se pudo cargar el personal
-          </h3>
-          <p className="text-sm text-text-secondary max-w-md mx-auto">
-            Ocurrió un error al obtener la información de los colaboradores. Por
-            favor intenta de nuevo.
-          </p>
-          <button
-            type="button"
-            onClick={handleRetryAll}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface border border-border text-sm font-medium text-text-primary hover:bg-surface-alt transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Reintentar</span>
-          </button>
-        </div>
-      )}
-
-      {/* STATE 3: VACÍO */}
-      {!isLoading && !isError && colaboradoresFiltrados.length === 0 && (
-        <div className="bg-surface border border-border rounded-2xl p-10 text-center space-y-4 max-w-md mx-auto my-8">
-          <div className="size-14 rounded-2xl bg-grape/10 border border-grape/20 text-grape flex items-center justify-center mx-auto">
-            <Users className="w-7 h-7" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-bricolage font-bold text-lg text-text-primary">
-              {searchQuery
-                ? "No se encontraron colaboradores"
-                : "Aún no tienes personal registrado"}
-            </h3>
-            <p className="text-xs text-text-secondary">
-              {searchQuery
-                ? "Intenta con otro término de búsqueda o limpia los filtros."
-                : "Agrega a tus especialistas y personal para que tus clientes puedan reservar turnos directamente con ellos."}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (searchQuery) setSearchQuery("");
-              else setIsModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-grape hover:bg-grape/90 text-white text-xs font-medium transition-colors cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>
-              {searchQuery
-                ? "Limpiar búsqueda"
-                : "Registrar primer colaborador"}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* STATE 4: CON DATOS */}
-      {!isLoading && !isError && colaboradoresFiltrados.length > 0 && (
-        <>
-          {/* VISTA 1: DIRECTORIO DE COLABORADORES */}
-          {activeTab === "directorio" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-200">
-              {colaboradoresFiltrados.map((colab) => {
-                const sucursal = sucursales.find(
-                  (s) => s.id === colab.sucursal_id,
-                );
-                const serviciosDelColab = servicios.filter((s) =>
-                  (colab.serviciosIds || []).includes(s.id),
-                );
-
-                // Citas agendadas para este colaborador
-                const citasAsignadas = citas.filter(
-                  (c) =>
-                    c.profesional_id === colab.id && c.estado !== "cancelada",
-                );
-
-                const esActivo = colab.activo !== false;
-
-                return (
-                  <div
-                    key={colab.id}
-                    className={`bg-surface border rounded-2xl p-5 space-y-4 transition-all flex flex-col justify-between shadow-xs ${
-                      esActivo
-                        ? "border-border hover:border-grape/40"
-                        : "border-border/60 opacity-80"
-                    }`}
-                  >
-                    <div className="space-y-3.5">
-                      {/* Avatar + Info Básica */}
-                      <div className="flex items-start gap-3.5">
-                        <div className="size-12 rounded-xl bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-lg shrink-0">
-                          {colab.nombre[0]}
-                          {(colab.apellido || "")[0] || ""}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-bricolage font-bold text-base text-text-primary truncate">
-                              {colab.nombre} {colab.apellido ?? ""}
-                            </h3>
-                            <span
-                              className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
-                                esActivo
-                                  ? "bg-mint/15 text-mint-dark border-mint/20"
-                                  : "bg-surface-alt text-text-muted border-border"
-                              }`}
-                            >
-                              {esActivo ? "Activo" : "Inactivo"}
-                            </span>
-                          </div>
-
-                          <span className="text-xs text-grape font-medium block">
-                            {colab.rol || "Especialista"}
-                          </span>
-
-                          {sucursal && (
-                            <div className="flex items-center gap-1 text-xs text-text-secondary mt-1 truncate">
-                              <MapPin className="w-3 h-3 text-text-muted shrink-0" />
-                              <span className="truncate">
-                                {sucursal.nombre}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Contacto directo si existe */}
-                      {(colab.telefono || colab.email) && (
-                        <div className="pt-2 border-t border-border flex items-center gap-3 text-xs text-text-secondary">
-                          {colab.telefono && (
-                            <div className="flex items-center gap-1 truncate font-mono">
-                              <Phone className="w-3 h-3 text-text-muted shrink-0" />
-                              <span className="truncate">{colab.telefono}</span>
-                            </div>
-                          )}
-                          {colab.email && (
-                            <div className="flex items-center gap-1 truncate">
-                              <Mail className="w-3 h-3 text-text-muted shrink-0" />
-                              <span className="truncate">{colab.email}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Especialidades y Servicios Asignados */}
-                      <div className="space-y-1.5 pt-1">
-                        <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider block">
-                          Especialidades ({serviciosDelColab.length})
-                        </span>
-                        {serviciosDelColab.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                            {serviciosDelColab.map((serv) => (
-                              <span
-                                key={serv.id}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] bg-surface-alt border border-border text-text-primary font-medium"
-                              >
-                                <span>{serv.nombre}</span>
-                                <span className="font-mono text-text-muted text-[10px]">
-                                  ({serv.duracion_minutos}m)
-                                </span>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-text-muted italic">
-                            Sin servicios específicos asignados.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Footer: Métricas y Acciones */}
-                    <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                        <Clock className="w-3.5 h-3.5 text-grape" />
-                        <span className="font-mono font-bold text-text-primary">
-                          {citasAsignadas.length}
-                        </span>
-                        <span>
-                          {citasAsignadas.length === 1
-                            ? "cita activa"
-                            : "citas activas"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {/* Botón Editar */}
-                        <button
-                          type="button"
-                          title="Editar colaborador"
-                          onClick={() => {
-                            setColaboradorAEditar(colab);
-                            setIsEditModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors inline-flex items-center cursor-pointer"
-                          aria-label={`Editar a ${colab.nombre}`}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Botón Activar / Desactivar */}
-                        <button
-                          type="button"
-                          title={
-                            esActivo
-                              ? "Desactivar colaborador"
-                              : "Reactivar colaborador"
-                          }
-                          onClick={() => handleToggleActivo(colab)}
-                          className={`p-1.5 rounded-lg transition-colors inline-flex items-center cursor-pointer ${
-                            esActivo
-                              ? "text-danger hover:bg-danger/10"
-                              : "text-mint-dark hover:bg-mint/10"
-                          }`}
-                          aria-label={
-                            esActivo
-                              ? `Desactivar a ${colab.nombre}`
-                              : `Activar a ${colab.nombre}`
-                          }
-                        >
-                          {esActivo ? (
-                            <UserX className="w-3.5 h-3.5" />
-                          ) : (
-                            <UserCheck className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-
-                        {/* Botón Ver Horarios */}
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("horarios")}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-grape/10 hover:bg-grape/20 text-grape transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <CalendarDays className="w-3.5 h-3.5" />
-                          <span>Ver horarios</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* VISTA 2: MATRIZ DE HORARIOS SEMANALES */}
-          {activeTab === "horarios" && (
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xs animate-in fade-in duration-200">
-              <div className="p-4 border-b border-border bg-surface-alt flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <h2 className="font-bricolage font-bold text-base text-text-primary flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-grape" />
-                    <span>Turnos y Jornadas Semanales</span>
-                  </h2>
-                  <p className="text-xs text-text-secondary">
-                    Horarios de disponibilidad habitual de los colaboradores de
-                    lunes a domingo.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-text-secondary">
-                  <span className="size-2.5 rounded-full bg-mint" />
-                  <span>Jornada activa</span>
-                  <span className="size-2.5 rounded-full bg-border ml-2" />
-                  <span>Día de descanso</span>
-                </div>
-              </div>
-
-              {/* Weekly Matrix Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[760px]">
-                  <thead>
-                    <tr className="border-b border-border bg-surface">
-                      <th className="p-3.5 text-xs font-semibold uppercase tracking-wider text-text-secondary w-56 sticky left-0 bg-surface z-10">
-                        Colaborador
-                      </th>
-                      {DIAS_SEMANA_HEADERS.map((d) => (
-                        <th
-                          key={d.dia}
-                          className="p-3 text-center text-xs font-semibold uppercase tracking-wider text-text-secondary"
-                        >
-                          <span className="block font-bricolage font-bold text-text-primary">
-                            {d.corto}
-                          </span>
-                          <span className="text-[10px] text-text-muted font-normal">
-                            {d.nombre}
-                          </span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {colaboradoresFiltrados.map((colab) => {
-                      const sucursal = sucursales.find(
-                        (s) => s.id === colab.sucursal_id,
-                      );
-                      const diasHabiles = colab.dias_laborables ?? [
-                        1, 2, 3, 4, 5, 6,
-                      ];
-
-                      return (
-                        <tr
-                          key={colab.id}
-                          className="hover:bg-surface-alt/50 transition-colors"
-                        >
-                          {/* Colaborador info */}
-                          <td className="p-3.5 sticky left-0 bg-surface z-10">
-                            <div className="flex items-center gap-2.5">
-                              <div className="size-8 rounded-lg bg-grape/15 text-grape font-bold font-bricolage text-xs flex items-center justify-center shrink-0">
-                                {colab.nombre[0]}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-text-primary truncate">
-                                  {colab.nombre} {colab.apellido ?? ""}
-                                </p>
-                                <p className="text-[10px] text-text-muted truncate">
-                                  {sucursal?.nombre ||
-                                    colab.rol ||
-                                    "Especialista"}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* 7 Días */}
-                          {DIAS_SEMANA_HEADERS.map((d) => {
-                            const esLaborable = diasHabiles.includes(d.dia);
-                            return (
-                              <td
-                                key={d.dia}
-                                className="p-2.5 text-center align-middle"
-                              >
-                                {esLaborable ? (
-                                  <div className="inline-flex flex-col items-center justify-center p-1.5 rounded-lg bg-mint/10 border border-mint/20 text-mint-dark min-w-[80px]">
-                                    <span className="font-mono text-xs font-bold">
-                                      {colab.hora_inicio || "09:00"}
-                                    </span>
-                                    <span className="text-[9px] text-text-muted select-none">
-                                      a
-                                    </span>
-                                    <span className="font-mono text-xs font-bold">
-                                      {colab.hora_fin || "18:00"}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="inline-flex items-center justify-center px-2 py-1.5 rounded-lg bg-surface-alt border border-border text-text-muted text-[11px] min-w-[80px]">
-                                    <span>Descanso</span>
-                                  </div>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Modal para Registrar Colaborador */}
-      <ModalNuevoColaborador
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        sucursales={sucursales}
-        servicios={servicios}
-        onColaboradorCreado={handleColaboradorCreado}
-      />
-
-      {/* Modal para Editar Colaborador */}
-      <ModalEditarColaborador
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setColaboradorAEditar(null);
-        }}
-        colaborador={colaboradorAEditar}
-        sucursales={sucursales}
-        servicios={servicios}
-        onColaboradorActualizado={handleColaboradorActualizado}
-      />
-
-      {/* Diálogo de Confirmación para Desactivar */}
-      <ConfirmDialog {...confirmDialog.dialogProps} />
+export default function PersonalPage({ initialTab = "directorio" }: { initialTab?: "directorio" | "horarios" } = {}) {
+  const { data: auth } = useAuthMe();
+  const canRead = auth?.access?.capabilities.includes("staff:read") ?? false;
+  const canWrite = auth?.access?.capabilities.includes("staff:write") ?? false;
+  const [tab, setTab] = useState(initialTab);
+  const [adding, setAdding] = useState(false);
+  const [role, setRole] = useState<Member["rol"]>("professional");
+  const [branch, setBranch] = useState("");
+  const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
+  const { data: branchData } = useSucursales();
+  const { data: serviceData } = useServicios();
+  const personal = useQuery({
+    queryKey: ["negocio", "personal"], enabled: canRead,
+    queryFn: () => apiFetch<{ personal: Member[] }>("/api/negocio/personal"),
+  });
+  const mutation = useMutation({
+    mutationFn: ({ method, payload }: { method: "POST" | "PATCH"; payload: Record<string, unknown> }) =>
+      apiFetch("/api/negocio/personal", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["negocio"] }); setAdding(false); notify.success("Personal actualizado"); },
+    onError: error => notify.error(error, "No se pudo guardar el personal"),
+  });
+  const members = (personal.data?.personal ?? []).filter(p =>
+    (branch === "" || p.sucursalId === branch) && `${p.nombre} ${p.apellido} ${p.email}`.toLowerCase().includes(search.toLowerCase()));
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fields = new FormData(event.currentTarget);
+    await mutation.mutateAsync({ method: "POST", payload: {
+      rol: role, nombre: fields.get("nombre"), apellido: fields.get("apellido"), email: fields.get("email"),
+      telefono: fields.get("telefono"), sucursalId: fields.get("sucursalId"), servicioIds: fields.getAll("servicioIds"),
+    } }).catch(() => {});
+  }
+  if (auth && !canRead) return <p>No tienes permiso para consultar el directorio.</p>;
+  return <div className="space-y-6 max-w-6xl mx-auto">
+    <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><h1 className="font-bricolage text-3xl">Equipo &amp; Personal</h1><p className="text-text-secondary">Gestiona los especialistas y colaboradores de tu negocio</p></div>
+      {canWrite && <button className={`${primaryButton} shrink-0`} onClick={() => setAdding(!adding)}>Registrar Colaborador</button>}</header>
+    <div role="group" aria-label="Vistas de personal" className="flex gap-4">
+      <button className={tab === "directorio" ? "text-grape font-semibold" : "text-text-secondary"} aria-pressed={tab === "directorio"} onClick={() => setTab("directorio")}>Directorio del Equipo</button>
+      <button className={tab === "horarios" ? "text-grape font-semibold" : "text-text-secondary"} aria-pressed={tab === "horarios"} onClick={() => setTab("horarios")}>Horarios</button>
     </div>
-  );
+    <div className="flex flex-col sm:flex-row gap-4"><input aria-label="Buscar personal" placeholder="Buscar personal" value={search} onChange={e => setSearch(e.target.value)} className={`${control} flex-1`} />
+      <select aria-label="Filtrar sucursal" value={branch} onChange={e => setBranch(e.target.value)} className={`${control} flex-1`}><option value="">Todas las sucursales</option>{branchData?.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
+    {personal.isLoading && <p data-testid="personal-loading" className="animate-pulse">Cargando personal…</p>}
+    {personal.isError && <div role="alert">No se pudo consultar el personal. <button onClick={() => personal.refetch()}>Reintentar</button></div>}
+    {personal.data && members.length === 0 && <p>Aún no tienes personal registrado</p>}
+    <div className="grid gap-4">{members.map(p => <article key={p.id} className="rounded-xl border border-border bg-surface p-4 space-y-2 break-words min-w-0">
+      <h2 className="font-semibold">{p.nombre || p.email} {p.apellido}</h2><p>{labels[p.rol]} · {p.activo ? "Activo" : "Inactivo"}</p>
+      <p>{branchData?.sucursales.find(s => s.id === p.sucursalId)?.nombre ?? "Todas las sucursales"}</p>
+      {tab === "horarios" ? <p>{p.horarios?.length ? p.horarios.map(h => `${days[h.dia_semana]} ${h.hora_inicio.slice(0, 5)}–${h.hora_fin.slice(0, 5)}`).join(" · ") : "Sin horarios registrados"}</p> : <>
+        <p>{p.email}</p><p>{p.servicioIds.map(id => serviceData?.servicios.find(s => s.id === id)?.nombre).filter(Boolean).join(", ")}</p>
+        {p.kind === "professional" && <p>{p.usuarioId ? "Acceso vinculado" : "Sin cuenta de acceso vinculada"}</p>}
+      </>}
+      {canWrite && <div className="flex flex-wrap gap-3">
+        <button disabled={mutation.isPending} aria-label={`${p.activo ? "Desactivar" : "Activar"} a ${p.nombre || p.email}`} onClick={() => mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, activo: !p.activo } })}>{p.activo ? "Desactivar" : "Activar"}</button>
+        {p.kind === "collaborator" && <select aria-label={`Rol de ${p.email}`} value={p.rol} disabled={mutation.isPending} onChange={e => {
+          const rol = e.target.value;
+          const sucursalId = p.sucursalId ?? branchData?.sucursales[0]?.id;
+          if (rol === "receptionist" && !sucursalId) return notify.error("Primero registra una sucursal");
+          mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, rol, sucursalId } });
+        }}><option value="manager">Gerente</option><option value="receptionist">Recepcionista</option></select>}
+        {p.rol !== "manager" && <select aria-label={`Sucursal de ${p.email}`} value={p.sucursalId ?? ""} disabled={mutation.isPending} onChange={e => mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, sucursalId: e.target.value } })}>{branchData?.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select>}
+        {p.kind === "professional" && !p.usuarioId && <button onClick={() => mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, usuarioEmail: p.email } })}>Vincular cuenta registrada</button>}
+      </div>}
+    </article>)}</div>
+    {adding && canWrite && <form onSubmit={submit} className="rounded-xl border p-4 space-y-3" aria-label="Registrar colaborador">
+      <p>Gerentes y recepcionistas deben tener una cuenta registrada. Podrán elegir este negocio al iniciar sesión.</p>
+      <label className="block">Rol <select aria-label="Rol del colaborador" value={role} onChange={e => setRole(e.target.value as Member["rol"])} className={`${control} block mt-1 w-full`}>{Object.entries(labels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+      <label className="block">Correo <input name="email" type="email" required maxLength={254} className={`${control} block mt-1 w-full`} /></label>
+      {role !== "manager" && <label className="block">Sucursal <select name="sucursalId" required className={`${control} block mt-1 w-full`}><option value="">Seleccionar</option>{branchData?.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></label>}
+      {role === "professional" && <>
+        <label className="block">Nombre <input name="nombre" required maxLength={120} className={`${control} block mt-1 w-full`} /></label>
+        <label className="block">Apellido <input name="apellido" required maxLength={120} className={`${control} block mt-1 w-full`} /></label>
+        <label className="block">Teléfono <input name="telefono" type="tel" maxLength={20} className={`${control} block mt-1 w-full`} /></label>
+        <fieldset><legend>Servicios</legend>{serviceData?.servicios.map(s => <label key={s.id} className="block"><input name="servicioIds" type="checkbox" value={s.id} /> {s.nombre}</label>)}</fieldset>
+      </>}
+      <div className="flex flex-wrap gap-3"><button className={primaryButton} type="submit" disabled={mutation.isPending}>Guardar colaborador</button><button className="rounded-md border border-border px-4 py-2 text-sm" type="button" onClick={() => setAdding(false)}>Cancelar</button></div>
+    </form>}
+  </div>;
 }

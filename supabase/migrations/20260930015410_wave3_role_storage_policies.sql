@@ -1,3 +1,4 @@
+-- Applied remotely as 20260930015410.
 begin;
 
 set local lock_timeout = '5s';

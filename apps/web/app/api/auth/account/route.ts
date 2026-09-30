@@ -86,6 +86,11 @@ export async function DELETE(request: Request) {
     }
 
     const businessIds = businesses.map((business) => business.id);
+    if (businessIds.length === 0) {
+      return apiError("Esta operación requiere una cuenta propietaria.", undefined, {
+        status: 403, code: "OWNER_REQUIRED", capture: false,
+      });
+    }
     if (businessIds.length > 0) {
       const { data: subscriptions, error: subscriptionsError } = await admin
         .from("suscripciones")
@@ -171,10 +176,11 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { error: deleteError } = await admin.auth.admin.deleteUser(
-      user.id,
-      false,
-    );
+    const { error: deleteError } = await admin.rpc("delete_anonymized_owner", {
+      p_usuario_id: user.id,
+      p_negocio_ids: businessIds,
+      p_desactivado_at: deactivatedAt,
+    });
     if (deleteError) {
       const { data: ownership, error: ownershipError } = await admin
         .from("negocios")

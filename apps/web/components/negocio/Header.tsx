@@ -272,7 +272,7 @@ export function Header({
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="hidden md:flex items-center justify-between gap-3 px-3 py-1.5 w-48 lg:w-60 rounded-lg bg-surface-alt/70 hover:bg-surface-alt border border-border/80 text-xs text-text-muted hover:text-text-secondary transition-all cursor-text focus:outline-hidden focus:border-grape/60"
+          className="hidden xl:flex items-center justify-between gap-3 px-3 py-1.5 w-60 rounded-lg bg-surface-alt/70 hover:bg-surface-alt border border-border/80 text-xs text-text-muted hover:text-text-secondary transition-all cursor-text focus:outline-hidden focus:border-grape/60"
           aria-label="Buscar citas, clientes o servicios (Ctrl+K o ⌘K)"
           title="Buscar (Ctrl+K o ⌘K)"
         >
@@ -292,7 +292,7 @@ export function Header({
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
+          className="xl:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
           aria-label="Buscar"
           title="Buscar"
         >
@@ -300,7 +300,7 @@ export function Header({
         </button>
 
         {/* Branch / Sucursal selector (Desktop only) */}
-        <div data-header-branch className="relative hidden md:block">
+        <div data-header-branch className="relative hidden lg:block">
           <button
             type="button"
             onClick={() => {
@@ -374,7 +374,7 @@ export function Header({
         </div>
 
         {/* Theme Toggle (Desktop only) */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <ThemeToggle />
         </div>
 

@@ -50,6 +50,14 @@ function installScenario(scenario: Scenario = {}) {
   const adminSpy = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(
     () =>
       ({
+        rpc: async (name: string, args: { p_usuario_id: string; p_negocio_ids: string[]; p_desactivado_at: string }) => {
+          expect(name).toBe("delete_anonymized_owner");
+          expect(args.p_usuario_id).toBe(USER.id);
+          expect(args.p_negocio_ids).toEqual(["neg-1", "neg-2"]);
+          expect(args.p_desactivado_at).toBe(deactivatedAt);
+          order.push("delete-auth");
+          return { error: scenario.deleteError ?? null };
+        },
         auth: {
           admin: {
             deleteUser: async (userId: string, softDelete: boolean) => {

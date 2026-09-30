@@ -143,6 +143,9 @@ export function Sidebar({
 
   const pendingOnboarding = profile?.onboardingStatus === "required";
   const nombreNegocio = profile?.negocio?.nombre_comercial || "Mi Negocio";
+  const permittedModules = navModules.filter(item =>
+    (item.href !== "/configuracion" || profile?.access?.capabilities.includes("config:read")) &&
+    (item.href !== "/personal" || profile?.access?.capabilities.includes("staff:read")));
 
   const activeSucursal =
     sucursales.find((s) => s.id === selectedSucursalId) || sucursales[0];
@@ -264,6 +267,19 @@ export function Sidebar({
           </div>
 
           {/* Branch Selector: Sleek workspace/branch switcher */}
+          {(profile?.availableBusinesses?.length ?? 0) > 1 && (
+            <label className="block text-xs">
+              Negocio activo
+              <select aria-label="Negocio activo" value={profile?.negocio?.id ?? ""} className="mt-1 w-full rounded bg-[#17121B] p-2 text-white"
+                onChange={async event => {
+                  const res = await fetch("/api/auth/business", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ negocioId: event.target.value }) });
+                  if (res.ok) { localStorage.removeItem("agendur_selected_sucursal_id"); window.location.assign("/dashboard"); }
+                  else notify.error("No se pudo cambiar el negocio");
+                }}>
+                {profile?.availableBusinesses?.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+              </select>
+            </label>
+          )}
           <div data-branch-selector className="relative">
             {isCollapsed ? (
               <div className="relative group flex justify-center">
@@ -464,7 +480,7 @@ export function Sidebar({
 
           {/* 7 Navigation Modules */}
           <nav className="space-y-1" aria-label="Módulos de navegación">
-            {navModules.map((item) => {
+            {permittedModules.map((item) => {
               if (item.disabled) {
                 return (
                   <div

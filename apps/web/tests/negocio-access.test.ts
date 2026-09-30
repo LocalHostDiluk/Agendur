@@ -1,6 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
+import * as adminModule from "@/lib/supabase/admin";
 import {
   hasCapability,
+  listNegocioAccess,
   ROLE_CAPABILITIES,
   type NegocioAccess,
   type NegocioRole,
@@ -15,6 +17,31 @@ const accessFor = (role: NegocioRole): NegocioAccess => ({
       ? "sucursal-1"
       : null,
   profesionalId: role === "professional" ? "profesional-1" : null,
+});
+
+it("agrupa los profesionales de varias sedes y no expone negocios desactivados", async () => {
+  const responses: Record<string, Record<string, unknown>[]> = {
+    colaboradores: [{ negocio_id: "disabled", usuario_id: "user", rol: "manager", sucursal_id: null }],
+    profesionales: [{ id: "p1", sucursal_id: "s1" }, { id: "p2", sucursal_id: "s2" }],
+    sucursales: [{ id: "s1", negocio_id: "business" }, { id: "s2", negocio_id: "business" }],
+    negocios: [{ id: "business", nombre_comercial: "Negocio" }],
+  };
+  const spy = spyOn(adminModule, "createAdminClient").mockReturnValue({
+    from: (table: string) => {
+      let owned = false;
+      const query = {
+        select() { return query; }, is() { return query; }, order() { return query; }, in() { return query; },
+        eq(column: string) { if (column === "owner_id") owned = true; return query; },
+        then(resolve: (value: unknown) => unknown) { return Promise.resolve({ data: owned ? [] : responses[table], error: null }).then(resolve); },
+      };
+      return query;
+    },
+  } as unknown as ReturnType<typeof adminModule.createAdminClient>);
+  try {
+    const accesses = await listNegocioAccess({ id: "user" });
+    expect(accesses).toHaveLength(1);
+    expect(accesses[0]).toMatchObject({ negocioId: "business", role: "professional", profesionalIds: ["p1", "p2"], sucursalIds: ["s1", "s2"] });
+  } finally { spy.mockRestore(); }
 });
 
 describe("matriz de capacidades del negocio", () => {

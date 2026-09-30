@@ -20,6 +20,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 function renderWithQueryClient(element: React.ReactElement) {
   const queryClient = new QueryClient();
+  queryClient.setQueryData(["auth", "me"], { access: { role: "owner", capabilities: ["staff:read", "config:read", "billing:read"] } });
   const html = renderToStaticMarkup(
     React.createElement(QueryClientProvider, { client: queryClient }, element),
   );

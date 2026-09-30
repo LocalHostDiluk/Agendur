@@ -1,3 +1,4 @@
+-- Applied remotely as 20260930015324.
 begin;
 
 set local lock_timeout = '5s';
@@ -101,7 +102,7 @@ revoke all privileges on table
   public.clientes,
   public.citas,
   public.suscripciones
-from public, anon, authenticated, service_role;
+from public, anon, authenticated;
 
 grant select, insert, update, delete on table
   public.negocios,
@@ -119,7 +120,7 @@ grant select, insert, update, delete on table
   public.suscripciones
 to service_role;
 
-grant select, insert, update on table
+grant select, insert on table
   public.negocios,
   public.colaboradores,
   public.sucursales,
@@ -128,6 +129,25 @@ grant select, insert, update on table
   public.clientes,
   public.citas
 to authenticated;
+
+-- Stable tenant/identity keys and snapshots are not client-editable.
+grant update (nombre_comercial, slug, logo_url, giro_comercial, moneda_principal,
+  porcentaje_anticipo_default, pais, zona_horaria, telefono_cliente_requerido,
+  email_cliente_requerido, notas_cliente_habilitadas, politica_cancelacion)
+  on public.negocios to authenticated;
+grant update (rol, sucursal_id, activo) on public.colaboradores to authenticated;
+grant update (nombre, es_matriz, direccion, ciudad, estado_provincia,
+  codigo_postal, telefono, zona_horaria, activa) on public.sucursales to authenticated;
+grant update (nombre, descripcion, duracion_minutos, precio, buffer_minutos, activo)
+  on public.servicios to authenticated;
+grant update (nombre, apellido, email, telefono, avatar_url, activo, cargo)
+  on public.profesionales to authenticated;
+grant update (nombre, apellido, telefono, email, notas, bloqueado)
+  on public.clientes to authenticated;
+grant update (estado, notas_cliente) on public.citas to authenticated;
+revoke insert on public.profesionales from authenticated;
+grant insert (sucursal_id, nombre, apellido, email, telefono, avatar_url, activo, cargo)
+  on public.profesionales to authenticated;
 
 grant select, insert, update, delete on table
   public.profesional_servicios,
@@ -160,7 +180,7 @@ create policy "Equipo autorizado consulta colaboradores"
   on public.colaboradores for select to authenticated
   using (
     private.is_owner_or_manager(negocio_id)
-    or usuario_id = (select auth.uid())
+    or (usuario_id = (select auth.uid()) and private.has_business_access(negocio_id))
   );
 
 create policy "Dueño crea colaboradores"

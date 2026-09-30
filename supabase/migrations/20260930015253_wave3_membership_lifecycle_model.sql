@@ -1,3 +1,4 @@
+-- Applied remotely as 20260930015253.
 begin;
 
 set local lock_timeout = '5s';
@@ -111,6 +112,7 @@ alter table public.negocios
     check (owner_id is not null or desactivado_at is not null);
 
 alter table public.profesionales
+  add column if not exists cargo text,
   add column usuario_id uuid,
   add constraint profesionales_usuario_id_fkey
     foreign key (usuario_id) references auth.users(id) on delete set null,
@@ -386,7 +388,7 @@ as $$
       and n.desactivado_at is null
       and (
         n.owner_id = (select auth.uid())
-        or p.usuario_id = (select auth.uid())
+        or (p.usuario_id = (select auth.uid()) and p.activo)
         or exists (
           select 1 from public.colaboradores c
           where c.negocio_id = n.id
@@ -489,8 +491,58 @@ grant execute on function private.can_view_professional(uuid) to authenticated;
 grant execute on function private.can_manage_professional(uuid) to authenticated;
 grant execute on function private.can_manage_assignment(uuid, uuid) to authenticated;
 
+-- Only the backend can complete deletion. Ownership, scope and deactivation
+-- are checked again inside the same transaction that removes the Auth user.
+create function public.delete_anonymized_owner(
+  p_usuario_id uuid,
+  p_negocio_ids uuid[],
+  p_desactivado_at timestamptz
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_ids uuid[];
+begin
+  if coalesce(auth.jwt()->>'role', '') <> 'service_role'
+     or p_usuario_id is null or p_desactivado_at is null
+     or coalesce(cardinality(p_negocio_ids), 0) = 0 then
+    raise exception 'Not authorized' using errcode = '42501';
+  end if;
+  perform 1 from auth.users where id = p_usuario_id for update;
+  if not found then raise exception 'Account not found' using errcode = 'P0002'; end if;
+  perform 1 from public.negocios where owner_id = p_usuario_id for update;
+  select array_agg(id order by id) into v_ids from public.negocios
+    where owner_id = p_usuario_id and desactivado_at = p_desactivado_at;
+  if v_ids is distinct from (select array_agg(id order by id) from unnest(p_negocio_ids) id)
+     or exists (select 1 from public.negocios where owner_id = p_usuario_id and desactivado_at is distinct from p_desactivado_at) then
+    raise exception 'Account scope changed; retry' using errcode = '40001';
+  end if;
+  -- Preserve object contents and names; remove personal ownership metadata.
+  update storage.objects set owner = null, owner_id = null
+    where owner = p_usuario_id or owner_id = p_usuario_id::text;
+  update public.profesionales
+    set nombre = 'Profesional', apellido = 'Anonimizado', email = null,
+        telefono = null, avatar_url = null, usuario_id = null, activo = false
+    where usuario_id = p_usuario_id;
+  delete from auth.users where id = p_usuario_id;
+end;
+$$;
+revoke all on function public.delete_anonymized_owner(uuid, uuid[], timestamptz)
+  from public, anon, authenticated, service_role;
+grant execute on function public.delete_anonymized_owner(uuid, uuid[], timestamptz)
+  to service_role;
+
 do $$
 begin
+  if has_function_privilege('anon', 'public.delete_anonymized_owner(uuid,uuid[],timestamptz)', 'EXECUTE')
+     or has_function_privilege('authenticated', 'public.delete_anonymized_owner(uuid,uuid[],timestamptz)', 'EXECUTE')
+     or not has_function_privilege('service_role', 'public.delete_anonymized_owner(uuid,uuid[],timestamptz)', 'EXECUTE') then
+    raise exception 'Postcondition failed: account deletion must be server-only';
+  end if;
+
   if not exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'negocios'

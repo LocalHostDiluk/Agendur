@@ -149,7 +149,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
           nombres: "Ana",
           apellidos: "López",
           telefono: "+525512345678",
-          rol: "Dueño",
         });
         expect(inserts[1].rows).toEqual([
           { usuario_id: "user-1", documento: "terminos_servicio", version: "v1" },
@@ -179,7 +178,8 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
 
         cleanupOrder.length = 0;
         businessCleanupFails = true;
-        const failedCleanup = await registerHandler(registrationRequest(validRegistration));
+        subscriptionFails = true;
+        const failedCleanup = await registerHandler(registrationRequest({ ...validRegistration, privacyVersionAccepted: "v1" }));
         expect(failedCleanup.status).toBe(500);
         expect(cleanupOrder).toEqual(["negocio"]);
         expect(deleteCalls).toBe(1);

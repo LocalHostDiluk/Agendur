@@ -61,7 +61,8 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
     const fechaFin = url.searchParams.get("fechaFin");
     const estado = url.searchParams.get("estado");
 
-    if (access.sucursalId && sucursalId && sucursalId !== access.sucursalId) {
+    const branches = access.sucursalIds ?? (access.sucursalId ? [access.sucursalId] : null);
+    if (branches && sucursalId && !branches.includes(sucursalId)) {
       return apiError("No tienes acceso a esa sucursal.", undefined, {
         status: 403,
         code: "BUSINESS_ACCESS_DENIED",
@@ -94,9 +95,11 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
       .select("*")
       .eq("negocio_id", access.negocioId);
 
-    const scopedBranch = access.sucursalId ?? sucursalId;
+    const scopedBranch = access.profesionalIds ? sucursalId : access.sucursalId ?? sucursalId;
     if (scopedBranch) query = query.eq("sucursal_id", scopedBranch);
-    if (access.profesionalId) {
+    if (access.profesionalIds) {
+      query = query.in("profesional_id", access.profesionalIds);
+    } else if (access.profesionalId) {
       query = query.eq("profesional_id", access.profesionalId);
     }
     if (fechaInicio) {

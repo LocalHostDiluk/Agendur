@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { NextRequest } from "next/server";
 import { GET as getCatalog } from "@/app/api/cliente/catalogo/route";
 import { getSucursalesByNegocio } from "@/lib/backend/sucursal-service";
 import { getAdminClient } from "@/lib/supabase/admin";
@@ -25,7 +26,7 @@ describe("portales públicos de negocios desactivados", () => {
       };
 
       const catalog = await getCatalog(
-        new Request("http://localhost:3000/api/cliente/catalogo?slug=apagado"),
+        new NextRequest("http://localhost:3000/api/cliente/catalogo?slug=apagado"),
       );
       expect(catalog.status).toBe(404);
       expect(await getSucursalesByNegocio("apagado")).toEqual([]);

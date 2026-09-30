@@ -342,7 +342,6 @@ export async function POST(request: Request) {
       nombres: nombres.trim(),
       apellidos: apellidos.trim(),
       telefono: telefonoNormalizado,
-      rol: rolNormalizado,
     });
     const { error: consentError } = profileError
       ? { error: null }

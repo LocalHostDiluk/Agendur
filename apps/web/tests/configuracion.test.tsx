@@ -50,6 +50,10 @@ function renderWithClient(
     },
   });
 
+  client.setQueryData(["auth", "me"], {
+    user: { id: "user-1", email: "owner@example.com" },
+    access: { role: "owner", capabilities: ["config:read", "config:write", "billing:read"] },
+  });
   if (options?.isLoading) {
     // Sin datos en caché -> se evalúa como loading
   } else {
@@ -60,6 +64,7 @@ function renderWithClient(
     client.setQueryData(["negocio", "suscripcion"], mockSuscripcionData);
     client.setQueryData(["auth", "me"], {
       user: { id: "user-1", email: "owner@example.com" },
+      access: { role: "owner", capabilities: ["config:read", "config:write", "billing:read"] },
     });
   }
 

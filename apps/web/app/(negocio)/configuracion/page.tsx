@@ -939,17 +939,21 @@ export default function ConfiguracionPage({
 }: {
   initialTab?: "perfil" | "politicas" | "suscripcion";
 } = {}) {
+  const { data: session, isLoading: sessionLoading } = useAuthMe();
+  const permitted = session?.access?.capabilities.includes("config:read") ?? false;
   const {
     data: configData,
     isLoading: configLoading,
     isError: configError,
     refetch: refetchConfig,
-  } = useConfiguracion();
+  } = useConfiguracion(permitted);
 
   const configuracion = configData?.configuracion;
-  const showLoading = configLoading && !configData && !configError;
+  const showLoading = sessionLoading || (configLoading && !configData && !configError);
   const showError =
     configError || (!configLoading && configData && !configuracion);
+
+  if (session && !permitted) return <p>No tienes permiso para administrar la configuración.</p>;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">

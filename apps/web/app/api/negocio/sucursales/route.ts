@@ -16,7 +16,8 @@ export async function GET() {
       .from("sucursales")
       .select("*")
       .eq("negocio_id", access.negocioId);
-    if (access.sucursalId) query = query.eq("id", access.sucursalId);
+    if (access.sucursalIds) query = query.in("id", access.sucursalIds);
+    else if (access.sucursalId) query = query.eq("id", access.sucursalId);
     const { data: sucursales, error: sucError } = await query
       .order("es_matriz", { ascending: false })
       .order("created_at", { ascending: true });

@@ -1,4 +1,5 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn, beforeEach, afterEach } from "bun:test";
+import * as negocioAccess from "@/lib/auth/negocio-access";
 import { GET as getMe } from "@/app/api/auth/me/route";
 import { PUT as putProfile } from "@/app/api/auth/profile/route";
 import { POST as postSucursal } from "@/app/api/negocio/sucursales/route";
@@ -14,6 +15,17 @@ const profileRequest = (body: unknown) => new Request("http://localhost/api/auth
 });
 
 describe("Oleada 2 B: identidad autenticada", () => {
+  let access: negocioAccess.NegocioAccess;
+  let accessSpies: ReturnType<typeof spyOn>[];
+  beforeEach(() => {
+    access = { user: { id: "owner-1", email: "ana@example.com" }, negocioId: "neg-1", role: "owner", sucursalId: null, profesionalId: null };
+    accessSpies = [
+      spyOn(negocioAccess, "resolveNegocioAccess").mockImplementation(async () => access),
+      spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => access),
+      spyOn(negocioAccess, "listNegocioAccess").mockImplementation(async () => [{ ...access, nombre: "Mi negocio" }]),
+    ];
+  });
+  afterEach(() => accessSpies.forEach(spy => spy.mockRestore()));
   it("rechaza cambios de perfil sin sesión", async () => {
     const server = spyOn(supabaseServer, "createClient").mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null }, error: null }) },
@@ -74,6 +86,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
   });
 
   it("conserva el acceso de un negocio existente aunque aún no exista la tabla de perfiles", async () => {
+    access.negocioId = "legacy-business";
     const server = spyOn(supabaseServer, "createClient").mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: { id: "legacy-owner", email: "legacy@example.com", created_at: "before" } }, error: null }) },
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
@@ -117,6 +130,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       }),
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const client = supabaseAdmin.getAdminClient();
+    const configAdmin = spyOn(supabaseAdmin, "createAdminClient").mockReturnValue(await supabaseServer.createClient() as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
     const originalFrom = client.from;
     (client as unknown as { from: unknown }).from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "starter", current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) });
     const request = (body: unknown) => new NextRequest("http://localhost/api/negocio/configuracion", {
@@ -148,6 +162,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       });
     } finally {
       (client as unknown as { from: unknown }).from = originalFrom;
+      configAdmin.mockRestore();
       server.mockRestore();
     }
   });
