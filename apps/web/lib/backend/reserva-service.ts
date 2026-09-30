@@ -253,7 +253,7 @@ export async function obtenerDisponibilidad(
       // Obtener citas activas de este profesional para la fecha
       const { data: citas, error: citasError } = await adminClient
         .from("citas")
-        .select("hora_inicio, hora_fin, hora_fin_buffer")
+        .select("hora_inicio, hora_fin_buffer")
         .eq("profesional_id", profId)
         .eq("fecha", fecha)
         .in("estado", ["pendiente_pago", "confirmada"]);
@@ -262,7 +262,7 @@ export async function obtenerDisponibilidad(
 
       const citasMin = (citas || []).map((c) => ({
         inicio: timeToMinutes(c.hora_inicio),
-        fin: timeToMinutes(c.hora_fin_buffer ?? c.hora_fin),
+        fin: timeToMinutes(c.hora_fin_buffer),
       }));
 
       // Probar cada franja candidata dentro de cada intersección.
@@ -494,5 +494,13 @@ export async function crearReservaCita(
     });
   }
 
-  return nuevaCita as Cita;
+  return {
+    ...nuevaCita,
+    cliente_nombre: clienteNombre,
+    cliente_apellido: clienteApellido,
+    cliente_telefono: clientePhone,
+    cliente_email: clienteEmail,
+    hora_fin: nuevaCita.hora_fin_servicio,
+    precio_total: nuevaCita.precio_servicio_snapshot,
+  } as Cita;
 }

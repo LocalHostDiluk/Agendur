@@ -184,7 +184,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       );
     });
 
-    it("bloquea citas hasta hora_fin_buffer y usa hora_fin para citas legacy", async () => {
+    it("bloquea citas hasta hora_fin_buffer", async () => {
       await withAvailabilityScenario(
         {
           excepcionesSucursal: [
@@ -196,10 +196,9 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           citas: [
             {
               hora_inicio: "09:00",
-              hora_fin: "09:30",
               hora_fin_buffer: "10:00",
             },
-            { hora_inicio: "10:00", hora_fin: "10:30", hora_fin_buffer: null },
+            { hora_inicio: "10:00", hora_fin_buffer: "10:30" },
           ],
         },
         async () => {
