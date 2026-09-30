@@ -20,7 +20,7 @@ import {
   useServicios,
   useCatalogo,
 } from "@/lib/hooks";
-import { getBusinessToday } from "@/lib/utils/business-date";
+import { getTodayString, parseYMD, formatYMD, addDaysYMD, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agendas-date";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
@@ -36,47 +36,6 @@ import type { Cita, EstadoCita } from "@/lib/types";
 // ==============================================================================
 // Utilidades de Fechas (UTC-safe y limpias)
 // ==============================================================================
-
-function getTodayString(tz?: string | null): string {
-  const bizToday = getBusinessToday(tz);
-  if (bizToday) return bizToday;
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function parseYMD(ymd: string): Date {
-  const [year, month, day] = ymd.split("-").map(Number);
-  return new Date(year, (month || 1) - 1, day || 1);
-}
-
-function formatYMD(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function addDaysYMD(ymd: string, days: number): string {
-  const d = parseYMD(ymd);
-  d.setDate(d.getDate() + days);
-  return formatYMD(d);
-}
-
-function getMondayOfDate(ymd: string): string {
-  const d = parseYMD(ymd);
-  const day = d.getDay(); // 0: Dom, 1: Lun, ...
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return formatYMD(d);
-}
-
-function getSundayOfDate(ymd: string): string {
-  const monday = getMondayOfDate(ymd);
-  return addDaysYMD(monday, 6);
-}
 
 const MESES = [
   "Enero",
