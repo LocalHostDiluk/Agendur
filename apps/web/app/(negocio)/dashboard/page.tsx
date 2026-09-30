@@ -1,26 +1,35 @@
 "use client";
 
-import { DashboardGraficas } from "@/components/negocio/DashboardGraficas";
-import { DashboardKpis } from "@/components/negocio/DashboardKpis";
-
-import { DashboardAtajos } from "@/components/negocio/DashboardAtajos";
-
-import { DashboardBanners } from "@/components/negocio/DashboardBanners";
-
-import { DashboardCitas } from "@/components/negocio/DashboardCitas";
-
 import { useState, useMemo, useSyncExternalStore } from "react";
-import { getDashboardIncomeMetrics, getDashboardOccupancy, getDashboardAbsences } from "@/lib/utils/dashboard-metrics";
-import { getBusinessToday } from "@/lib/utils/business-date";
-import { getDashboardDailySeries, getDashboardMonthlySeries } from "@/lib/utils/dashboard-series";
+import {
+  DashboardBanners,
+  DashboardAtajos,
+  DashboardKpis,
+  DashboardGraficas,
+  DashboardCitas,
+} from "@/components/negocio";
 import {
   useAuthMe,
-  useDashboardActions,
-  useCitasNegocio,
-  useConfiguracion,
-  useSucursales,
   useSuscripcion,
+  useSucursales,
+  useConfiguracion,
+  useCitasNegocio,
+  useDashboardActions,
 } from "@/lib/hooks";
+import {
+  getDashboardIncomeMetrics,
+  getDashboardOccupancy,
+  getDashboardAbsences,
+} from "@/lib/utils/dashboard-metrics";
+import {
+  getDashboardDailySeries,
+  getDashboardMonthlySeries,
+} from "@/lib/utils/dashboard-series";
+import {
+  getDashboardBannerDetails,
+  getDashboardCurrentAppointments,
+} from "@/lib/utils/dashboard-details";
+import { getBusinessToday } from "@/lib/utils/business-date";
 import { DashboardLoading } from "./loading";
 
 const emptySubscribe = () => () => {};
@@ -30,13 +39,11 @@ export default function DashboardPage() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [rangoCitas, setRangoCitas] = useState<"30d" | "mes">("30d");
   const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
-
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
     () => false,
   );
-
   const {
     data: auth,
     isLoading: authLoading,
@@ -44,11 +51,15 @@ export default function DashboardPage() {
     refetch: refetchAuth,
   } = useAuthMe();
   const { data: suscripcionResponse, refetch: refetchSuscripcion } =
-    useSuscripcion(Boolean(auth?.access?.capabilities.includes("billing:read")));
+    useSuscripcion(
+      Boolean(auth?.access?.capabilities.includes("billing:read")),
+    );
   const { data: sucursalesResponse, refetch: refetchSucursales } =
     useSucursales();
   const { data: configResponse, refetch: refetchConfiguracion } =
-    useConfiguracion(Boolean(auth?.access?.capabilities.includes("config:read")));
+    useConfiguracion(
+      Boolean(auth?.access?.capabilities.includes("config:read")),
+    );
   const {
     data: citasResponse,
     isLoading: citasLoading,
@@ -60,7 +71,6 @@ export default function DashboardPage() {
     () => sucursalesResponse?.sucursales ?? [],
     [sucursalesResponse?.sucursales],
   );
-
   const negocio = auth?.negocio;
   const suscripcion =
     suscripcionResponse?.data.suscripcion ?? auth?.suscripcion;
@@ -69,43 +79,34 @@ export default function DashboardPage() {
     [citasResponse?.citas],
   );
   const hoy = getBusinessToday(negocio?.zona_horaria);
-  const citasHoy = hoy ? citas.filter((cita) => cita.fecha === hoy) : [];
-  const citasPendientes = citasHoy.filter(
-    (cita) => cita.estado === "pendiente_pago",
-  );
-  const ingresosConfirmados = citas
-    .filter((cita) => cita.estado === "confirmada" || cita.estado === "completada")
-    .reduce((total, cita) => total + (cita.precio_total ?? 0), 0);
+  const { citasHoy, citasPendientes, ingresosConfirmados } =
+    getDashboardCurrentAppointments(citas, hoy);
   const negocioSlug = negocio?.slug;
-  const nombreNegocioRescatado =
-    negocio?.nombre_comercial ??
-    configResponse?.configuracion?.nombreNegocio ??
-    (sucursalesList[0]?.nombre ? sucursalesList[0].nombre : null);
-  const planNombre = suscripcion?.plan_nombre ?? "Estándar";
-  const sucursalesUsadas =
-    suscripcionResponse?.data.sucursales_usadas ??
-    auth?.sucursalesCount ??
-    (sucursalesList.length > 0 ? sucursalesList.length : 0);
-  const sucursalesLimite =
-    suscripcionResponse?.data.sucursales_limite ??
-    suscripcion?.limite_sucursales ??
-    (sucursalesList.length > 0 ? Math.max(sucursalesList.length, 2) : 2);
-
-  // Métrica canónica 2: Ingresos del Mes & Comparativa vs Mes Anterior
-  const { ingresosMesActual, tendenciaIngresos } = useMemo(() => getDashboardIncomeMetrics(citas, ingresosConfirmados), [citas, ingresosConfirmados]);
-
-  // Métrica canónica 3: Tasa de Ocupación estimada
+  const bannerDetails = getDashboardBannerDetails({
+    auth,
+    suscripcion,
+    sucursalesList,
+    configNombre: configResponse?.configuracion?.nombreNegocio,
+    sucursalesUsadas: suscripcionResponse?.data.sucursales_usadas,
+    sucursalesLimite: suscripcionResponse?.data.sucursales_limite,
+  });
+  const { ingresosMesActual, tendenciaIngresos } = useMemo(
+    () => getDashboardIncomeMetrics(citas, ingresosConfirmados),
+    [citas, ingresosConfirmados],
+  );
   const tasaOcupacion = useMemo(() => getDashboardOccupancy(citas), [citas]);
-
-  // Métrica canónica 4: Tasa de Inasistencias (No-shows / canceladas)
-  const { tasaInasistencias, totalCanceladas, inasistenciasElevadas } = useMemo(() => getDashboardAbsences(citas), [citas]);
-
-  // Chart 1: Serie diaria según rango
-  const citasPorDia = useMemo(() => getDashboardDailySeries(citas, rangoCitas), [citas, rangoCitas]);
-
-  // Chart 2: 6 months income series
-  const ingresosPorMes = useMemo(() => getDashboardMonthlySeries(citas), [citas]);
-
+  const { tasaInasistencias, totalCanceladas, inasistenciasElevadas } = useMemo(
+    () => getDashboardAbsences(citas),
+    [citas],
+  );
+  const citasPorDia = useMemo(
+    () => getDashboardDailySeries(citas, rangoCitas),
+    [citas, rangoCitas],
+  );
+  const ingresosPorMes = useMemo(
+    () => getDashboardMonthlySeries(citas),
+    [citas],
+  );
   const totalCitasMostradas = useMemo(
     () => citasPorDia.reduce((acc, curr) => acc + curr.citas, 0),
     [citasPorDia],
@@ -114,7 +115,6 @@ export default function DashboardPage() {
     () => ingresosPorMes.reduce((acc, curr) => acc + curr.ingresos, 0),
     [ingresosPorMes],
   );
-
   const { handleRetryAll, copyBookingUrl } = useDashboardActions({
     negocioSlug,
     setCopied,
@@ -126,44 +126,30 @@ export default function DashboardPage() {
     refetchCitas,
   });
 
-  if (authLoading) {
-    return <DashboardLoading />;
-  }
-
+  if (authLoading) return <DashboardLoading />;
   const isSyncError = Boolean(authError || !auth);
   const isOnboardingRequired =
     !isSyncError && auth?.onboardingStatus === "required";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* TOP BANNER: 3 Estados con personalidad de marca (Ticket Resiliente / Onboarding Ticket / Welcome Activo + Ticket Upgrade) */}
       <DashboardBanners
+        {...bannerDetails}
         isSyncError={isSyncError}
         isOnboardingRequired={isOnboardingRequired}
-        sucursalesCount={sucursalesList.length}
-        nombreNegocioRescatado={nombreNegocioRescatado}
-        nombreUsuario={auth?.perfil?.nombres ?? auth?.user?.email ?? "bienvenido"}
-        nombreNegocio={negocio?.nombre_comercial}
         negocioSlug={negocioSlug}
-        copyBookingUrl={copyBookingUrl}
         copied={copied}
-        suscripcion={suscripcion}
-        planNombre={planNombre}
-        sucursalesUsadas={sucursalesUsadas}
-        sucursalesLimite={sucursalesLimite}
+        copyBookingUrl={copyBookingUrl}
         handleRetryAll={handleRetryAll}
         isRetrying={isRetrying}
       />
-
-      {/* ATAJOS OPERATIVOS RÁPIDOS (Visibles cuando hay error de sincronización o cuenta en configuración) */}
       {(isSyncError || isOnboardingRequired) && (
         <DashboardAtajos sucursalesCount={sucursalesList.length} />
       )}
-
-      {/* 4 KPI CARDS CON JERARQUÍA CANÓNICA (§5.3 & §7.2) */}
       <DashboardKpis
         isSyncError={isSyncError}
         citasError={citasError}
+        citasCount={citas.length}
         citasHoyCount={citasHoy.length}
         citasPendientesCount={citasPendientes.length}
         ingresosMesActual={ingresosMesActual}
@@ -172,20 +158,22 @@ export default function DashboardPage() {
         tasaInasistencias={tasaInasistencias}
         totalCanceladas={totalCanceladas}
         inasistenciasElevadas={inasistenciasElevadas}
-        citasCount={citas.length}
       />
-
-      {/* GRÁFICAS RECHARTS ESTILIZADAS CON TOKENS DE AGENDUR (§6) */}
       <DashboardGraficas
-        rangoCitas={rangoCitas} setRangoCitas={setRangoCitas}
-        citasPorDia={citasPorDia} totalCitasMostradas={totalCitasMostradas}
-        ingresosPorMes={ingresosPorMes} totalIngresos6Meses={totalIngresos6Meses}
-        activeBarIndex={activeBarIndex} setActiveBarIndex={setActiveBarIndex}
-        mounted={mounted} isSyncError={isSyncError} citasError={citasError}
-        handleRetryAll={handleRetryAll} isRetrying={isRetrying}
+        rangoCitas={rangoCitas}
+        setRangoCitas={setRangoCitas}
+        citasPorDia={citasPorDia}
+        totalCitasMostradas={totalCitasMostradas}
+        ingresosPorMes={ingresosPorMes}
+        totalIngresos6Meses={totalIngresos6Meses}
+        activeBarIndex={activeBarIndex}
+        setActiveBarIndex={setActiveBarIndex}
+        mounted={mounted}
+        isSyncError={isSyncError}
+        citasError={citasError}
+        handleRetryAll={handleRetryAll}
+        isRetrying={isRetrying}
       />
-
-      {/* LISTA DE PRÓXIMAS CITAS / CITAS RECIENTES (§5.5) */}
       <DashboardCitas
         citasLoading={citasLoading}
         citasError={citasError}

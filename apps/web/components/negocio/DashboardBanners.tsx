@@ -40,7 +40,7 @@ export function DashboardBanners({
   isRetrying,
 }: DashboardBannersProps) {
   return (
-    <>  
+    <>
       {isSyncError ? (
         <DashboardRecoveryBanner
           sucursalesCount={sucursalesCount}

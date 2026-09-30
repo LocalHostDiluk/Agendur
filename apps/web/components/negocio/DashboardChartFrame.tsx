@@ -51,6 +51,6 @@ export function getDashboardChartGrid() {
                     vertical={false}
                     stroke="var(--border)"
                     opacity={0.6}
-                  />
+                  />
   );
 }
