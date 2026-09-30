@@ -5,3 +5,4 @@ export * from "./PortalSkeletons";
 export * from "./BookingConfirmationTicket";
 export * from "./BookingConfirmation";
 export * from "./BookingMobileHeader";
+export * from "./BookingSummaryTicket";
