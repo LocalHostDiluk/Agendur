@@ -3,6 +3,7 @@
 import { useState, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { DashboardChartTooltip } from "@/components/negocio/DashboardChartTooltip";
 import {
   Calendar,
   Store,
@@ -57,35 +58,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui";
-
-interface ChartTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number; name?: string }>;
-  label?: string;
-  unit?: string;
-}
-
-function CustomChartTooltip({
-  active,
-  payload,
-  label,
-  unit,
-}: ChartTooltipProps) {
-  if (active && payload && payload.length) {
-    const val = payload[0].value;
-    return (
-      <div className="bg-surface border border-border rounded-md shadow-xs p-2.5 text-xs font-sans min-w-[120px]">
-        <p className="text-text-secondary font-medium">{label}</p>
-        <p className="font-mono font-bold text-text-primary mt-1 text-sm tabular-nums">
-          {unit === "MXN"
-            ? `$${Number(val).toLocaleString("es-MX")} MXN`
-            : `${val} ${val === 1 ? "cita" : "citas"}`}
-        </p>
-      </div>
-    );
-  }
-  return null;
-}
 
 const emptySubscribe = () => () => {};
 
@@ -913,7 +885,7 @@ export default function DashboardPage() {
                     axisLine={false}
                     allowDecimals={false}
                   />
-                  <Tooltip content={<CustomChartTooltip unit="citas" />} />
+                  <Tooltip content={<DashboardChartTooltip unit="citas" />} />
                   <Line
                     type="monotone"
                     dataKey="citas"
@@ -1061,7 +1033,7 @@ export default function DashboardPage() {
                     }
                   />
                   <Tooltip
-                    content={<CustomChartTooltip unit="MXN" />}
+                    content={<DashboardChartTooltip unit="MXN" />}
                     cursor={{ fill: "var(--surface-alt)", opacity: 0.5 }}
                   />
                   <Bar
