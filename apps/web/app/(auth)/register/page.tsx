@@ -24,6 +24,11 @@ import { useAuthBrand } from "@/components/auth/AuthBrandContext";
 import { triggerRegisterConfetti } from "@/lib/utils/confetti";
 import { notify } from "@/lib/utils/toast";
 import { getPasswordStrength } from "@/lib/utils/password-strength";
+import {
+  validateRegisterStep1,
+  validateRegisterStep2,
+  validateRegisterStep3,
+} from "@/lib/utils/register-validation";
 
 const STEPS = [
   { number: 1, label: "Cuenta" },
@@ -150,39 +155,16 @@ export default function RegisterPage() {
 
   // Step 1 Validation & Next
   const handleStep1Next = () => {
-    let valid = true;
-    const trimmedEmail = email.trim();
+    const { isValid, errors } = validateRegisterStep1({
+      email,
+      password,
+      aceptaTerminosYPrivacidad,
+    });
+    setEmailError(errors.email);
+    setPasswordError(errors.password);
+    setLegalError(errors.legal);
 
-    if (!trimmedEmail) {
-      setEmailError("Ingresa tu correo electrónico.");
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setEmailError("Ingresa un correo electrónico válido.");
-      valid = false;
-    } else {
-      setEmailError("");
-    }
-
-    if (!password) {
-      setPasswordError("Ingresa una contraseña.");
-      valid = false;
-    } else if (password.length < 12) {
-      setPasswordError("La contraseña debe tener al menos 12 caracteres.");
-      valid = false;
-    } else {
-      setPasswordError("");
-    }
-
-    if (!aceptaTerminosYPrivacidad) {
-      setLegalError(
-        "Debes aceptar los Términos de Servicio y el Aviso de Privacidad.",
-      );
-      valid = false;
-    } else {
-      setLegalError("");
-    }
-
-    if (valid) {
+    if (isValid) {
       setFormError("");
       setDirection(1);
       setStep(2);
@@ -191,40 +173,16 @@ export default function RegisterPage() {
 
   // Step 2 Validation & Next
   const handleStep2Next = () => {
-    let valid = true;
+    const { isValid, errors } = validateRegisterStep2({
+      nombres,
+      apellidos,
+      telefono,
+    });
+    setNombresError(errors.nombres);
+    setApellidosError(errors.apellidos);
+    setPhoneError(errors.phone);
 
-    if (!nombres.trim()) {
-      setNombresError("Ingresa tus nombres.");
-      valid = false;
-    } else if (nombres.trim().length > 100) {
-      setNombresError("Máximo 100 caracteres.");
-      valid = false;
-    } else {
-      setNombresError("");
-    }
-
-    if (!apellidos.trim()) {
-      setApellidosError("Ingresa tus apellidos.");
-      valid = false;
-    } else if (apellidos.trim().length > 100) {
-      setApellidosError("Máximo 100 caracteres.");
-      valid = false;
-    } else {
-      setApellidosError("");
-    }
-
-    const digitsOnly = telefono.replace(/\D/g, "");
-    if (!digitsOnly) {
-      setPhoneError("Ingresa tu número de teléfono.");
-      valid = false;
-    } else if (digitsOnly.length < 7) {
-      setPhoneError("Ingresa un número de teléfono válido (mínimo 7 dígitos).");
-      valid = false;
-    } else {
-      setPhoneError("");
-    }
-
-    if (valid) {
+    if (isValid) {
       setFormError("");
       setDirection(1);
       setStep(3);
@@ -251,41 +209,22 @@ export default function RegisterPage() {
       return;
     }
 
-    let valid = true;
+    const { isValid, errors } = validateRegisterStep3({
+      nombreComercial,
+      giroComercial,
+      otroGiro,
+      ciudad,
+      turnstileToken,
+    });
+    setNombreComercialError(errors.nombreComercial);
+    setOtroGiroError(errors.otroGiro);
+    setCiudadError(errors.ciudad);
+    setTurnstileError(errors.turnstile);
 
-    if (!nombreComercial.trim()) {
-      setNombreComercialError("Ingresa el nombre comercial de tu negocio.");
-      valid = false;
-    } else {
-      setNombreComercialError("");
-    }
+    if (!isValid) return;
 
     const giroFinal =
       giroComercial === "Otro" ? otroGiro.trim() : giroComercial;
-    if (giroComercial === "Otro" && !giroFinal) {
-      setOtroGiroError("Especifica el giro de tu negocio.");
-      valid = false;
-    } else {
-      setOtroGiroError("");
-    }
-
-    if (!ciudad.trim()) {
-      setCiudadError("Ingresa la ciudad de tu negocio.");
-      valid = false;
-    } else {
-      setCiudadError("");
-    }
-
-    if (!turnstileToken && process.env.NODE_ENV !== "test") {
-      setTurnstileError(
-        "Por favor completa la verificación de seguridad anti-spam.",
-      );
-      valid = false;
-    } else {
-      setTurnstileError("");
-    }
-
-    if (!valid) return;
 
     setLoading(true);
     setFormError("");
