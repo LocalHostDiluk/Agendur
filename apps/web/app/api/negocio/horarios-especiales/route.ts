@@ -97,7 +97,11 @@ async function resolveResource(
   return { branchId };
 }
 
-function queryInput(request: NextRequest) {
+function queryInput(request: NextRequest): {
+  tipo: ResourceType;
+  recursoId: string;
+  fecha: string | null;
+} | null {
   const tipo = request.nextUrl.searchParams.get("tipo");
   const recursoId = request.nextUrl.searchParams.get("recursoId");
   const fecha = request.nextUrl.searchParams.get("fecha");

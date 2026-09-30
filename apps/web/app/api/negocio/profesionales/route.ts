@@ -84,14 +84,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const profIds = profsList.map((p) => p.id);
-    const { data: relaciones, error: relError } = await adminClient
-      .from("profesional_servicios")
-      .select("profesional_id, servicio_id")
-      .in("profesional_id", profIds);
+    const [{ data: relaciones, error: relError }, { data: horarios, error: horariosError }] = await Promise.all([
+      adminClient.from("profesional_servicios").select("profesional_id, servicio_id").in("profesional_id", profIds),
+      adminClient.from("horarios_profesional").select("profesional_id, dia_semana, hora_inicio, hora_fin").in("profesional_id", profIds),
+    ]);
 
-    if (relError) {
-      throw relError;
-    }
+    if (relError || horariosError) throw relError || horariosError;
 
     const serviciosMap = new Map<string, string[]>();
     (relaciones || []).forEach((rel) => {
@@ -103,6 +101,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const resultado = profsList.map((p) => ({
       ...p,
       serviciosIds: serviciosMap.get(p.id) || [],
+      horarios: (horarios || []).filter((horario) => horario.profesional_id === p.id),
     }));
 
     return apiSuccess({ profesionales: resultado });
@@ -609,7 +608,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
+    const auth = await getAuthenticatedNegocio("branches:write");
     if (!auth.ok) return auth.error;
 
     const { negocio } = auth;
@@ -671,4 +670,3 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     });
   }
 }
-

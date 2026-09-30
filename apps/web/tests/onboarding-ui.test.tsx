@@ -55,14 +55,15 @@ describe("Oleada 2 B: interfaz de inicio", () => {
     expect(html).not.toContain("Tu portal de reservas está activo");
   });
 
-  it("header usa nombre de persona y muestra cero sedes", () => {
+  it("header muestra el título de la sección sin duplicar identidad o sedes", () => {
     const html = render(React.createElement(ThemeProvider, null, React.createElement(Header)), newOwner);
-    expect(html).toContain("Ana López");
-    expect(html).toContain("0 Sedes");
+    expect(html).toContain("Inicio");
+    expect(html).not.toContain("Ana López");
+    expect(html).not.toContain("0 Sedes");
   });
 
   it("no anuncia el portal como activo antes de la primera sucursal", () => {
-    const html = render(React.createElement(Sidebar), newOwner);
+    const html = render(React.createElement(ThemeProvider, null, React.createElement(Sidebar)), newOwner);
     expect(html).toContain('href="/onboarding"');
     expect(html).toContain("Completar negocio");
     expect(html).not.toContain("En vivo");

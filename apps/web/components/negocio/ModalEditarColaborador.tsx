@@ -12,7 +12,7 @@ import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
 export interface ModalEditarColaboradorProps {
   isOpen: boolean;
   onClose: () => void;
-  colaborador: UnifiedColaborador | null;
+  colaborador: UnifiedColaborador;
   sucursales: Sucursal[];
   servicios: Servicio[];
   onColaboradorActualizado?: (colaborador: UnifiedColaborador) => void;
@@ -33,34 +33,25 @@ export function ModalEditarColaborador({
   servicios,
   onColaboradorActualizado,
 }: ModalEditarColaboradorProps) {
-  const [nombre, setNombre] = useState("");
-  const [apellido, setApellido] = useState("");
-  const [sucursalId, setSucursalId] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [rol, setRol] = useState("Especialista");
-  const [selectedServicios, setSelectedServicios] = useState<string[]>([]);
-  const [activo, setActivo] = useState(true);
+  const [nombre, setNombre] = useState(colaborador.nombre || "");
+  const [apellido, setApellido] = useState(colaborador.apellido || "");
+  const [sucursalId, setSucursalId] = useState(
+    colaborador.sucursal_id || sucursales[0]?.id || "",
+  );
+  const [email, setEmail] = useState(colaborador.email || "");
+  const [telefono, setTelefono] = useState(colaborador.telefono || "");
+  const [avatarUrl, setAvatarUrl] = useState(
+    colaborador.avatar_url || colaborador.avatarUrl || "",
+  );
+  const [rol, setRol] = useState(
+    colaborador.cargo || colaborador.rol || "Especialista",
+  );
+  const [selectedServicios, setSelectedServicios] = useState<string[]>(
+    colaborador.serviciosIds || [],
+  );
+  const [activo, setActivo] = useState(colaborador.activo !== false);
 
   const updateProfesional = useUpdateProfesional();
-
-  // Populate form with existing collaborator data
-  useEffect(() => {
-    if (colaborador) {
-      setNombre(colaborador.nombre || "");
-      setApellido(colaborador.apellido || "");
-      setSucursalId(
-        colaborador.sucursal_id || sucursales[0]?.id || "",
-      );
-      setEmail(colaborador.email || "");
-      setTelefono(colaborador.telefono || "");
-      setAvatarUrl(colaborador.avatar_url || colaborador.avatarUrl || "");
-      setRol(colaborador.cargo || colaborador.rol || "Especialista");
-      setSelectedServicios(colaborador.serviciosIds || []);
-      setActivo(colaborador.activo !== false);
-    }
-  }, [colaborador, sucursales]);
 
   // Accessibility: escape key and body scroll lock
   useEffect(() => {
@@ -82,7 +73,7 @@ export function ModalEditarColaborador({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !colaborador) return null;
+  if (!isOpen) return null;
 
   const toggleServicio = (id: string) => {
     setSelectedServicios((prev) =>

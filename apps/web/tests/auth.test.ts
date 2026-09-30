@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase fluent-client test doubles intentionally mirror dynamic SDK chains. */
 import { describe, it, expect, spyOn } from "bun:test";
 import { POST as registerHandler } from "@/app/api/auth/register/route";
 import { POST as loginHandler } from "@/app/api/auth/login/route";
