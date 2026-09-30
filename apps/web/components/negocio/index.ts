@@ -8,3 +8,4 @@ export * from "./ModalEditarColaborador";
 export * from "./CitaDetailDrawer";
 export * from "./MobileNavigation";
 export * from "./DashboardChartTooltip";
+export * from "./DashboardStatusBadge";

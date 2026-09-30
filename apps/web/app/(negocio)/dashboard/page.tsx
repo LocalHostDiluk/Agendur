@@ -4,6 +4,7 @@ import { useState, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { DashboardChartTooltip } from "@/components/negocio/DashboardChartTooltip";
+import { DashboardStatusBadge } from "@/components/negocio/DashboardStatusBadge";
 import {
   Calendar,
   Store,
@@ -182,41 +183,6 @@ export default function DashboardPage() {
     setCopied(true);
     notify.success("Enlace copiado", "Se copió el enlace al portapapeles.");
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const getStatusBadge = (estado: string) => {
-    switch (estado) {
-      case "confirmada":
-        return (
-          <Badge variant="success" size="sm" dot={true}>
-            Confirmada
-          </Badge>
-        );
-      case "pendiente_pago":
-        return (
-          <Badge variant="warning" size="sm" dot={true}>
-            Pendiente pago
-          </Badge>
-        );
-      case "completada":
-        return (
-          <Badge variant="grape" size="sm" dot={true}>
-            Completada
-          </Badge>
-        );
-      case "cancelada":
-        return (
-          <Badge variant="danger" size="sm" dot={true}>
-            Cancelada
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="neutral" size="sm" dot={true}>
-            {estado}
-          </Badge>
-        );
-    }
   };
 
   return (
@@ -1447,7 +1413,7 @@ export default function DashboardPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          {getStatusBadge(cita.estado)}
+                          <DashboardStatusBadge estado={cita.estado} />
                         </TableCell>
                       </TableRow>
                     );
@@ -1491,7 +1457,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="shrink-0">{getStatusBadge(cita.estado)}</div>
+                      <div className="shrink-0"><DashboardStatusBadge estado={cita.estado} /></div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-text-secondary">
