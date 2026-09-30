@@ -32,6 +32,7 @@ import {
   SkeletonCircle,
 } from "@/components/ui";
 import type { Cita, EstadoCita } from "@/lib/types";
+import { getMonthStart, getMonthEnd, getAgendaQueryFilters, getSortedCitas, getWeekDays, groupCitasByDay } from "@/lib/utils/agendas-data";
 import { getEstadoBadgeProps } from "@/lib/utils/agendas-status";
 import { getMonthDaysGrid } from "@/lib/utils/agendas-month-grid";
 import { formatDisplayDate, formatDisplayWeek, formatDisplayMonth } from "@/lib/utils/agendas-date-labels";
@@ -86,42 +87,11 @@ export default function AgendasPage() {
     [selectedDate],
   );
 
-  const startOfMonthYMD = useMemo(() => {
-    const m = String(selMonth).padStart(2, "0");
-    return `${selYear}-${m}-01`;
-  }, [selYear, selMonth]);
+  const startOfMonthYMD = useMemo(() => getMonthStart(selYear, selMonth), [selYear, selMonth]);
 
-  const endOfMonthYMD = useMemo(() => {
-    const lastDay = new Date(selYear, selMonth, 0).getDate();
-    const m = String(selMonth).padStart(2, "0");
-    const d = String(lastDay).padStart(2, "0");
-    return `${selYear}-${m}-${d}`;
-  }, [selYear, selMonth]);
+  const endOfMonthYMD = useMemo(() => getMonthEnd(selYear, selMonth), [selYear, selMonth]);
 
-  const filtrosQuery = useMemo(() => {
-    const res: {
-      sucursalId?: string;
-      fechaInicio?: string;
-      fechaFin?: string;
-      estado?: EstadoCita;
-    } = {};
-
-    if (filterSucursal) res.sucursalId = filterSucursal;
-    if (filterEstado) res.estado = filterEstado;
-
-    if (viewMode === "cronograma") {
-      res.fechaInicio = selectedDate;
-      res.fechaFin = selectedDate;
-    } else if (viewMode === "semanal") {
-      res.fechaInicio = mondayYMD;
-      res.fechaFin = sundayYMD;
-    } else {
-      res.fechaInicio = startOfMonthYMD;
-      res.fechaFin = endOfMonthYMD;
-    }
-
-    return res;
-  }, [
+  const filtrosQuery = useMemo(() => getAgendaQueryFilters(filterSucursal, filterEstado, viewMode, selectedDate, mondayYMD, sundayYMD, startOfMonthYMD, endOfMonthYMD), [
     filterSucursal,
     filterEstado,
     viewMode,
@@ -141,18 +111,7 @@ export default function AgendasPage() {
   } = useCitasNegocio(filtrosQuery);
 
   // Ordenar citas cronológicamente por hora_inicio y filtrar por profesional si aplica
-  const citas = useMemo(() => {
-    const list = citasData?.citas ?? [];
-    let filtered = list;
-    if (filterProfesional) {
-      filtered = filtered.filter((c) => c.profesional_id === filterProfesional);
-    }
-    return [...filtered].sort((a, b) => {
-      const hA = a.hora_inicio ?? a.hora ?? "00:00";
-      const hB = b.hora_inicio ?? b.hora ?? "00:00";
-      return hA.localeCompare(hB);
-    });
-  }, [citasData?.citas, filterProfesional]);
+  const citas = useMemo(() => getSortedCitas(citasData?.citas, filterProfesional), [citasData?.citas, filterProfesional]);
 
   // Navegación temporal adaptativa
   const handlePrev = () => {
@@ -184,19 +143,7 @@ export default function AgendasPage() {
   };
 
   // 7 días de la semana para la vista semanal
-  const weekDays = useMemo(() => {
-    return [0, 1, 2, 3, 4, 5, 6].map((i) => {
-      const dayYMD = addDaysYMD(mondayYMD, i);
-      const d = parseYMD(dayYMD);
-      return {
-        ymd: dayYMD,
-        dayName: ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"][i],
-        dayNumber: d.getDate(),
-        isToday: dayYMD === todayStr,
-        isSelected: dayYMD === selectedDate,
-      };
-    });
-  }, [mondayYMD, todayStr, selectedDate]);
+  const weekDays = useMemo(() => getWeekDays(mondayYMD, todayStr, selectedDate), [mondayYMD, todayStr, selectedDate]);
 
   // Días para la cuadrícula mensual
   const monthDays = useMemo(
@@ -205,14 +152,7 @@ export default function AgendasPage() {
   );
 
   // Resumen de citas agrupadas por fecha
-  const citasByDay = useMemo(() => {
-    const map: Record<string, Cita[]> = {};
-    for (const c of citas) {
-      if (!map[c.fecha]) map[c.fecha] = [];
-      map[c.fecha].push(c);
-    }
-    return map;
-  }, [citas]);
+  const citasByDay = useMemo(() => groupCitasByDay(citas), [citas]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
