@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Check,
   Mail,
   Lock,
   Eye,
@@ -18,14 +17,9 @@ import {
 } from "lucide-react";
 import TurnstileWidget from "@/components/security/TurnstileWidget";
 import { RegisterConfirmation } from "@/components/auth/RegisterConfirmation";
+import { RegisterStepper } from "@/components/auth/RegisterStepper";
 import { useRegisterForm } from "@/lib/hooks";
 import { getPasswordStrength } from "@/lib/utils/password-strength";
-
-const STEPS = [
-  { number: 1, label: "Cuenta" },
-  { number: 2, label: "Perfil" },
-  { number: 3, label: "Negocio" },
-];
 
 const COUNTRY_CODES = [
   { code: "+52", label: "🇲🇽 +52", name: "México" },
@@ -144,56 +138,7 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col w-full space-y-6">
       {/* 12.3 Stepper horizontal con 3 segmentos */}
-      <div className="w-full">
-        <div className="flex items-start w-full">
-          {STEPS.map((s, idx) => {
-            const isCompleted = step > s.number;
-            const isActive = step === s.number;
-            return (
-              <div
-                key={s.number}
-                className="flex items-start flex-1 last:flex-none"
-              >
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] transition-colors ${
-                      isActive
-                        ? "bg-grape text-white font-medium shadow-sm"
-                        : isCompleted
-                          ? "bg-grape text-white"
-                          : "border border-border text-text-muted bg-transparent font-medium"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <Check className="w-4 h-4 stroke-[2.5]" />
-                    ) : (
-                      s.number
-                    )}
-                  </div>
-                  <span
-                    className={`text-[12px] mt-1.5 transition-colors ${
-                      isActive
-                        ? "text-text-primary font-semibold"
-                        : isCompleted
-                          ? "text-text-primary font-medium"
-                          : "text-text-muted"
-                    }`}
-                  >
-                    {s.label}
-                  </span>
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <div
-                    className={`h-[2px] flex-1 mx-2 sm:mx-3 mt-[15px] transition-colors ${
-                      step > s.number ? "bg-grape" : "bg-border"
-                    }`}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <RegisterStepper currentStep={form.step} />
 
       {formError && (
         <div
