@@ -155,8 +155,8 @@ try {
   await api(2, "/api/negocio/citas", 403);
   await api(0, "/api/negocio/personal", 200, "PATCH", { id: staff.personal.id, kind: "collaborator", activo: true });
   const clients = await insert("clientes", branches.map((_, n) => ({ negocio_id: business.id, nombre: tag, apellido: "Fixture", email: `${tag}-client${n}@example.com` })));
-  const appointments = await insert("citas", branches.map((branch, n) => ({ negocio_id: business.id, sucursal_id: branch.id, profesional_id: professionals[n].id, servicio_id: service.id, cliente_id: clients[n].id, cliente_nombre: tag, cliente_apellido: "Fixture", cliente_email: clients[n].email, fecha: "2030-01-15", hora_inicio: "10:00", hora_fin: "10:30", precio_total: 100 })));
-  await insert("citas", { negocio_id: business.id, sucursal_id: branches[1].id, profesional_id: secondProfessional.id, servicio_id: service.id, cliente_id: clients[1].id, cliente_nombre: tag, cliente_apellido: "Fixture", cliente_email: clients[1].email, fecha: "2030-01-15", hora_inicio: "10:00", hora_fin: "10:30", precio_total: 100 });
+  const appointments = await insert("citas", branches.map((branch, n) => ({ negocio_id: business.id, sucursal_id: branch.id, profesional_id: professionals[n].id, servicio_id: service.id, cliente_id: clients[n].id, fecha: "2030-01-15", hora_inicio: "10:00" })));
+  await insert("citas", { negocio_id: business.id, sucursal_id: branches[1].id, profesional_id: secondProfessional.id, servicio_id: service.id, cliente_id: clients[1].id, fecha: "2030-01-15", hora_inicio: "10:00" });
 
   for (const [index, role, count] of [[0, "owner", 3], [1, "manager", 3], [2, "receptionist", 1], [3, "professional", 2]] as const) {
     const me = await api(index, "/api/auth/me", 200);

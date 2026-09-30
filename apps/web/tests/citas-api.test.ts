@@ -26,9 +26,10 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
       sucursal_id: "suc-1",
       fecha: "2026-09-15",
       hora_inicio: "10:00:00",
-      hora_fin: "10:30:00",
+      hora_fin_servicio: "10:30:00",
+      precio_servicio_snapshot: 250,
       estado: "confirmada",
-      cliente_nombre: "María López",
+      cliente: { nombre: "María", apellido: "López", telefono: null, email: null },
     },
     {
       id: "cita-2",
@@ -36,9 +37,10 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
       sucursal_id: "suc-2",
       fecha: "2026-09-14",
       hora_inicio: "11:00:00",
-      hora_fin: "11:30:00",
+      hora_fin_servicio: "11:30:00",
+      precio_servicio_snapshot: 300,
       estado: "pendiente_pago",
-      cliente_nombre: "Carlos Gómez",
+      cliente: { nombre: "Carlos", apellido: "Gómez", telefono: null, email: null },
     },
   ];
   let mockCitasError: Error | null = null;
@@ -122,8 +124,10 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
         sucursal_id: "suc-1",
         fecha: "2026-09-15",
         hora_inicio: "10:00:00",
-        hora_fin: "10:30:00",
+        hora_fin_servicio: "10:30:00",
+        precio_servicio_snapshot: 250,
         estado: "confirmada",
+        cliente: { nombre: "María", apellido: "López", telefono: null, email: null },
       },
     ];
     mockCitasError = null;
@@ -251,6 +255,13 @@ describe("Endpoints de Citas de Negocio - GET y PATCH /api/negocio/citas", () =>
       expect(Array.isArray(json.citas)).toBe(true);
       expect(json.citas.length).toBe(1);
       expect(json.citas[0].id).toBe("cita-1");
+      expect(json.citas[0]).toMatchObject({
+        cliente_nombre: "María",
+        cliente_apellido: "López",
+        hora_fin: "10:30:00",
+        precio_total: 250,
+      });
+      expect(json.citas[0].cliente).toBeUndefined();
 
       // Validar que se filtró por negocio_id
       const negocioFilter = lastQueryBuilder.filters.find(
