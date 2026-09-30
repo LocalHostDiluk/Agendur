@@ -32,42 +32,13 @@ import {
   SkeletonCircle,
 } from "@/components/ui";
 import type { Cita, EstadoCita } from "@/lib/types";
+import { getEstadoBadgeProps } from "@/lib/utils/agendas-status";
 import { getMonthDaysGrid } from "@/lib/utils/agendas-month-grid";
 import { formatDisplayDate, formatDisplayWeek, formatDisplayMonth } from "@/lib/utils/agendas-date-labels";
 
 // ==============================================================================
 // Utilidades de Fechas (UTC-safe y limpias)
 // ==============================================================================
-
-// Mapeo seguro a tokens de Badge según §5.12
-function getEstadoBadgeProps(estado: EstadoCita): {
-  variant: "success" | "warning" | "grape" | "danger";
-  label: string;
-  shortLabel: string;
-} {
-  switch (estado) {
-    case "confirmada":
-      return { variant: "success", label: "CONFIRMADA", shortLabel: "CONF" };
-    case "pendiente_pago":
-      return {
-        variant: "warning",
-        label: "PENDIENTE PAGO",
-        shortLabel: "PEND",
-      };
-    case "completada":
-      return { variant: "grape", label: "COMPLETADA", shortLabel: "COMP" };
-    case "cancelada":
-      return { variant: "danger", label: "CANCELADA", shortLabel: "CANC" };
-    case "no_asistio":
-      return { variant: "danger", label: "NO ASISTIÓ", shortLabel: "NO ASIS" };
-    default:
-      return {
-        variant: "warning",
-        label: String(estado).toUpperCase(),
-        shortLabel: String(estado).slice(0, 4).toUpperCase(),
-      };
-  }
-}
 
 // ==============================================================================
 // Componente Principal
