@@ -16,3 +16,4 @@ export * from "./BookingStepSucursal";
 export * from "./BookingStepFecha";
 export * from "./BookingStepServicio";
 export * from "./BookingStepHora";
+export * from "./BookingStepDatos";
