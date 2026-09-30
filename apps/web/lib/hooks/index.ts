@@ -5,3 +5,4 @@ export * from "./use-negocio-data";
 export * from "./use-reserva";
 export * from "./use-delayed-skeleton";
 export * from "./use-confirm-dialog";
+export * from "./use-dashboard-actions";
