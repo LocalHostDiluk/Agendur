@@ -10,3 +10,4 @@ export * from "./BookingSummarySidebar";
 export * from "./BookingStepper";
 export * from "./BookingHiddenInputs";
 export * from "./BookingTimeSlotGroup";
+export * from "./BookingConsentFields";
