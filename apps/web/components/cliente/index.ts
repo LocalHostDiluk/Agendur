@@ -13,3 +13,4 @@ export * from "./BookingTimeSlotGroup";
 export * from "./BookingConsentFields";
 export * from "./BookingMobileBar";
 export * from "./BookingStepSucursal";
+export * from "./BookingStepFecha";
