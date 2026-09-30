@@ -21,6 +21,7 @@ import { BookingMobileHeader } from "./BookingMobileHeader";
 import { BookingSummarySidebar } from "./BookingSummarySidebar";
 import { BookingStepper } from "./BookingStepper";
 import { BookingHiddenInputs } from "./BookingHiddenInputs";
+import { BookingTimeSlotGroup } from "./BookingTimeSlotGroup";
 import {
   formatDateReadable,
   formatDateShort,
@@ -591,91 +592,29 @@ export function BookingPortal({ negocioSlug }: BookingPortalProps) {
               {/* Grid de Chips de Horarios agrupados por 3 franjas (REGLA B.19) */}
               {!disponibilidad.isFetching && horarios.length > 0 && (
                 <div className="space-y-5">
-                  {/* Franja Mañana (< 12:00) */}
-                  {slotsManana.length > 0 && (
-                    <div>
-                      <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-2 font-sans">
-                        🌅 Mañana (antes de 12:00)
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {slotsManana.map((slot) => {
-                          const isSelected = slot === horaDisponible;
-                          return (
-                            <button
-                              key={slot}
-                              type="button"
-                              onClick={() => setHora(slot)}
-                              className={`min-h-[44px] py-2.5 px-3 rounded-xl font-mono text-[15px] font-semibold border transition-all cursor-pointer flex items-center justify-center ${
-                                isSelected
-                                  ? "bg-grape text-white border-grape shadow-md"
-                                  : "bg-surface hover:bg-surface-alt text-text-primary border-border"
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  <BookingTimeSlotGroup
+                    title="🌅 Mañana (antes de 12:00)"
+                    slots={slotsManana}
+                    selectedSlot={horaDisponible}
+                    onSelectSlot={setHora}
+                  />
 
-                  {/* Franja Tarde (12:00 a 18:00) */}
-                  {slotsTarde.length > 0 && (
-                    <div>
-                      <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-2 font-sans">
-                        ☀️ Tarde (12:00 a 18:00)
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {slotsTarde.map((slot) => {
-                          const isSelected = slot === horaDisponible;
-                          return (
-                            <button
-                              key={slot}
-                              type="button"
-                              onClick={() => setHora(slot)}
-                              className={`min-h-[44px] py-2.5 px-3 rounded-xl font-mono text-[15px] font-semibold border transition-all cursor-pointer flex items-center justify-center ${
-                                isSelected
-                                  ? "bg-grape text-white border-grape shadow-md"
-                                  : "bg-surface hover:bg-surface-alt text-text-primary border-border"
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  <BookingTimeSlotGroup
+                    title="☀️ Tarde (12:00 a 18:00)"
+                    slots={slotsTarde}
+                    selectedSlot={horaDisponible}
+                    onSelectSlot={setHora}
+                  />
 
-                  {/* Franja Noche (>= 18:00) */}
-                  {slotsNoche.length > 0 && (
-                    <div>
-                      <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-2 font-sans">
-                        🌙 Noche (18:00 en adelante)
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {slotsNoche.map((slot) => {
-                          const isSelected = slot === horaDisponible;
-                          return (
-                            <button
-                              key={slot}
-                              type="button"
-                              onClick={() => setHora(slot)}
-                              className={`min-h-[44px] py-2.5 px-3 rounded-xl font-mono text-[15px] font-semibold border transition-all cursor-pointer flex items-center justify-center ${
-                                isSelected
-                                  ? "bg-grape text-white border-grape shadow-md"
-                                  : "bg-surface hover:bg-surface-alt text-text-primary border-border"
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  <BookingTimeSlotGroup
+                    title="🌙 Noche (18:00 en adelante)"
+                    slots={slotsNoche}
+                    selectedSlot={horaDisponible}
+                    onSelectSlot={setHora}
+                  />
                 </div>
               )}
+
 
               {/* Estado sin horarios */}
               {!disponibilidad.isFetching && horarios.length === 0 && (
