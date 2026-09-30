@@ -20,7 +20,7 @@ import {
   UserRound,
 } from "lucide-react";
 import TurnstileWidget from "@/components/security/TurnstileWidget";
-import { useAuthBrand } from "@/components/auth/AuthBrandContext";
+import { useRegisterBrand } from "@/lib/hooks";
 import { triggerRegisterConfetti } from "@/lib/utils/confetti";
 import { notify } from "@/lib/utils/toast";
 import { getPasswordStrength } from "@/lib/utils/password-strength";
@@ -77,7 +77,6 @@ const stepVariants = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setCopy } = useAuthBrand();
 
   // Wizard step state
   const [step, setStep] = useState(1);
@@ -126,27 +125,7 @@ export default function RegisterPage() {
   const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || "/legal/privacidad";
 
   // Brand copy synchronization based on active step
-  useEffect(() => {
-    if (step === 1) {
-      setCopy({
-        headline: "Únete a +500 negocios que ya organizan su agenda.",
-        subheadline:
-          "Crea tu cuenta en menos de 2 minutos y empieza hoy mismo.",
-      });
-    } else if (step === 2) {
-      setCopy({
-        headline: "Cuéntanos quién va a estar del otro lado.",
-        subheadline:
-          "Personaliza tu perfil de administrador para tu equipo.",
-      });
-    } else if (step === 3) {
-      setCopy({
-        headline: "Personaliza tu negocio en menos de 2 minutos.",
-        subheadline:
-          "Configura tu giro y sucursales para comenzar a recibir citas.",
-      });
-    }
-  }, [step, setCopy]);
+  useRegisterBrand(step);
 
   const showError = (message: string) => {
     setFormError(message);

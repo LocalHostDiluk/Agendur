@@ -6,3 +6,4 @@ export * from "./use-reserva";
 export * from "./use-delayed-skeleton";
 export * from "./use-confirm-dialog";
 export * from "./use-dashboard-actions";
+export * from "./use-register-brand";
