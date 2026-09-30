@@ -15,3 +15,4 @@ export * from "./BookingMobileBar";
 export * from "./BookingStepSucursal";
 export * from "./BookingStepFecha";
 export * from "./BookingStepServicio";
+export * from "./BookingStepHora";
