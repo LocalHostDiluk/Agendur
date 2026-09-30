@@ -35,13 +35,13 @@ import {
 import {
   ModalNuevoColaborador,
   ModalEditarColaborador,
+  HorariosEspecialesPanel,
   type ColaboradorCreadoPayload,
 } from "@/components/negocio";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@/lib/utils/toast";
 import type { Profesional } from "@/lib/types";
 
@@ -73,6 +73,7 @@ export interface UnifiedColaborador extends Profesional {
   hora_inicio?: string;
   hora_fin?: string;
   dias_laborables?: number[];
+  horarios?: Array<{ dia_semana: number; hora_inicio: string; hora_fin: string }>;
 }
 
 export function getRoleBadgeVariant(rol?: string): BadgeVariant {
@@ -319,6 +320,8 @@ export default function PersonalPage({
     isError: authError,
   } = useAuthMe();
   const negocioSlug = auth?.negocio?.slug;
+  const canReadStaff = auth?.access?.capabilities.includes("staff:read") ?? false;
+  const canWriteStaff = auth?.access?.capabilities.includes("staff:write") ?? false;
 
   const {
     data: profesionalesData,
@@ -363,9 +366,7 @@ export default function PersonalPage({
         ...p,
         serviciosIds: p.serviciosIds || [],
         rol: p.cargo || "Especialista",
-        hora_inicio: "09:00",
-        hora_fin: "18:00",
-        dias_laborables: [1, 2, 3, 4, 5, 6],
+        horarios: p.horarios || [],
       }));
     } else if (catalogoData?.data?.profesionales) {
       remotos = (catalogoData.data.profesionales ?? []).map((p) => ({
@@ -373,9 +374,7 @@ export default function PersonalPage({
         serviciosIds:
           (p as unknown as { serviciosIds?: string[] }).serviciosIds || [],
         rol: p.cargo || "Especialista",
-        hora_inicio: "09:00",
-        hora_fin: "18:00",
-        dias_laborables: [1, 2, 3, 4, 5, 6],
+        horarios: p.horarios || [],
       }));
     }
 
@@ -530,6 +529,9 @@ export default function PersonalPage({
 
   return (
     <>
+    {!authLoading && auth && !canReadStaff ? (
+      <p>No tienes permiso para consultar el directorio del personal.</p>
+    ) : (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
@@ -544,7 +546,7 @@ export default function PersonalPage({
         </div>
 
         {/* Action Buttons: Roles y Permisos + Registrar Colaborador */}
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+        {canWriteStaff && <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           <Button
             type="button"
             variant="secondary"
@@ -564,7 +566,7 @@ export default function PersonalPage({
             <UserPlus className="w-4 h-4" />
             <span>Registrar Colaborador</span>
           </Button>
-        </div>
+        </div>}
       </div>
 
       {/* Control Bar: Tabs Switcher, Branch Filter and Search */}
@@ -879,6 +881,7 @@ export default function PersonalPage({
                         </div>
 
                         <div className="flex items-center gap-1">
+                          {canWriteStaff && <>
                           <Button
                             type="button"
                             variant="secondary"
@@ -944,6 +947,7 @@ export default function PersonalPage({
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
+                          </>}
                         </div>
                       </div>
                     </div>
@@ -1096,6 +1100,7 @@ export default function PersonalPage({
                             {/* Acciones */}
                             <td className="p-3.5 text-right">
                               <div className="flex items-center justify-end gap-1.5">
+                                {canWriteStaff && <>
                                 <Button
                                   type="button"
                                   variant="secondary"
@@ -1161,6 +1166,7 @@ export default function PersonalPage({
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
+                                </>}
                               </div>
                             </td>
                           </tr>
@@ -1223,9 +1229,6 @@ export default function PersonalPage({
                       const sucursal = sucursales.find(
                         (s) => s.id === colab.sucursal_id,
                       );
-                      const diasHabiles = colab.dias_laborables ?? [
-                        1, 2, 3, 4, 5, 6,
-                      ];
 
                       return (
                         <tr
@@ -1253,22 +1256,24 @@ export default function PersonalPage({
 
                           {/* 7 Días */}
                           {DIAS_SEMANA_HEADERS.map((d) => {
-                            const esLaborable = diasHabiles.includes(d.dia);
+                            const horario = colab.horarios?.find(
+                              (item) => item.dia_semana === d.dia,
+                            );
                             return (
                               <td
                                 key={d.dia}
                                 className="p-2.5 text-center align-middle"
                               >
-                                {esLaborable ? (
+                                {horario ? (
                                   <div className="inline-flex flex-col items-center justify-center p-1.5 rounded-lg bg-mint/10 border border-mint/20 text-mint-dark min-w-[80px]">
                                     <span className="font-mono tabular-nums text-xs font-bold">
-                                      {colab.hora_inicio || "09:00"}
+                                      {horario.hora_inicio.slice(0, 5)}
                                     </span>
                                     <span className="text-[9px] text-text-muted select-none">
                                       a
                                     </span>
                                     <span className="font-mono tabular-nums text-xs font-bold">
-                                      {colab.hora_fin || "18:00"}
+                                      {horario.hora_fin.slice(0, 5)}
                                     </span>
                                   </div>
                                 ) : (
@@ -1285,6 +1290,11 @@ export default function PersonalPage({
                   </tbody>
                 </table>
               </div>
+              <HorariosEspecialesPanel
+                sucursales={sucursales}
+                profesionales={todosLosColaboradores}
+                canWrite={auth?.access?.capabilities.includes("branches:write") ?? false}
+              />
             </div>
           )}
         </>
@@ -1306,7 +1316,8 @@ export default function PersonalPage({
       />
 
       {/* Modal para Editar Colaborador */}
-      <ModalEditarColaborador
+      {colaboradorAEditar && <ModalEditarColaborador
+        key={colaboradorAEditar.id}
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
@@ -1316,11 +1327,12 @@ export default function PersonalPage({
         sucursales={sucursales}
         servicios={servicios}
         onColaboradorActualizado={handleColaboradorActualizado}
-      />
+      />}
 
       {/* Diálogo de Confirmación (Nivel 1 para desactivar, Nivel 2 con verificationText para eliminar) */}
       <ConfirmDialog {...confirmDialog.dialogProps} />
     </div>
+    )}
     </>
   );
 }

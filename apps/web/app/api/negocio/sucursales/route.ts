@@ -124,25 +124,7 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
-    }
-
-    const { data: negocio, error: negError } = await supabase
-      .from("negocios")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (negError || !negocio) {
-      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
-    }
+    const access = await requireNegocioAccess("branches:write");
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -155,7 +137,7 @@ export async function DELETE(request: NextRequest) {
       .from("sucursales")
       .select("id, es_matriz")
       .eq("id", id)
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .maybeSingle();
 
     if (findError || !sucursal) {
@@ -166,7 +148,7 @@ export async function DELETE(request: NextRequest) {
       .from("sucursales")
       .delete()
       .eq("id", id)
-      .eq("negocio_id", negocio.id);
+      .eq("negocio_id", access.negocioId);
 
     if (delError) {
       throw delError;
@@ -174,9 +156,11 @@ export async function DELETE(request: NextRequest) {
 
     return apiSuccess({ deleted: true });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error al eliminar sucursal.", {
       extra: { route: "DELETE /api/negocio/sucursales" },
     });
   }
 }
-

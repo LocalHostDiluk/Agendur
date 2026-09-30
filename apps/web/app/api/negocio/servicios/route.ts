@@ -352,12 +352,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
-    }
-
-    const { negocio } = auth;
+    const access = await getAuthenticatedNegocio("services:write");
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -371,7 +366,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       .from("servicios")
       .select("id")
       .eq("id", servicioId)
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .maybeSingle();
 
     if (findError || !servicioExistente) {
@@ -386,7 +381,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       .from("servicios")
       .delete()
       .eq("id", servicioId)
-      .eq("negocio_id", negocio.id);
+      .eq("negocio_id", access.negocioId);
 
     if (delError) {
       throw delError;
@@ -394,9 +389,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     return apiSuccess({ deleted: true });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al eliminar el servicio.", {
       extra: { route: "DELETE /api/negocio/servicios" },
     });
   }
 }
-

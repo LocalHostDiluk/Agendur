@@ -79,6 +79,11 @@ export interface Profesional {
   avatarUrl?: string;
   activo?: boolean;
   serviciosIds?: string[];
+  horarios?: Array<{
+    dia_semana: number;
+    hora_inicio: string;
+    hora_fin: string;
+  }>;
   created_at?: string;
   updated_at?: string;
 }

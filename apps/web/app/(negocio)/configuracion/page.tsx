@@ -47,6 +47,7 @@ import {
 import type { NegocioConfig } from "@/lib/types";
 import { ConfiguracionLoading } from "./loading";
 import { Button, Badge, PendingBadge } from "@/components/ui";
+import { ImageUploadButton } from "@/components/negocio/ImageUploadButton";
 
 interface SwitchToggleProps {
   id: string;
@@ -610,8 +611,16 @@ function ConfiguracionForm({
                     maxLength={500}
                     className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
                   />
+                  {authData?.negocio?.id && (
+                    <ImageUploadButton
+                      bucket="logos-negocios"
+                      path={`${authData.negocio.id}/logo`}
+                      label="Subir logotipo"
+                      onUploaded={setLogoUrl}
+                    />
+                  )}
                   <p className="text-[11px] text-text-muted">
-                    Proporciona un enlace directo a tu imagen (PNG, JPG o WebP con fondo transparente o sólido).
+                    Sube una imagen PNG, JPG o WebP de hasta 5 MB, o proporciona un enlace directo.
                   </p>
                 </div>
               </div>
