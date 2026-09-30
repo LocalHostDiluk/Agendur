@@ -6,6 +6,7 @@ import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
 import { useUpdateProfesional } from "@/lib/hooks";
 import { PendingBadge } from "@/components/ui/PendingBadge";
+import { ImageUploadButton } from "@/components/negocio/ImageUploadButton";
 import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
 
 export interface ModalEditarColaboradorProps {
@@ -37,6 +38,7 @@ export function ModalEditarColaborador({
   const [sucursalId, setSucursalId] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [rol, setRol] = useState("Especialista");
   const [selectedServicios, setSelectedServicios] = useState<string[]>([]);
   const [activo, setActivo] = useState(true);
@@ -53,6 +55,7 @@ export function ModalEditarColaborador({
       );
       setEmail(colaborador.email || "");
       setTelefono(colaborador.telefono || "");
+      setAvatarUrl(colaborador.avatar_url || colaborador.avatarUrl || "");
       setRol(colaborador.cargo || colaborador.rol || "Especialista");
       setSelectedServicios(colaborador.serviciosIds || []);
       setActivo(colaborador.activo !== false);
@@ -122,6 +125,7 @@ export function ModalEditarColaborador({
         cargo: rol,
         email: email.trim() || null,
         telefono: telefono.trim() || null,
+        avatar_url: avatarUrl || null,
         serviciosIds: selectedServicios,
         activo,
       });
@@ -139,6 +143,7 @@ export function ModalEditarColaborador({
         sucursal_id: updated.sucursal_id ?? sucursalId,
         email: updated.email || null,
         telefono: updated.telefono || null,
+        avatar_url: updated.avatar_url || null,
         cargo: updated.cargo || rol,
         rol: updated.cargo || rol,
         serviciosIds: updated.serviciosIds ?? selectedServicios,
@@ -229,6 +234,31 @@ export function ModalEditarColaborador({
                 onChange={(e) => setApellido(e.target.value)}
                 placeholder="Ej. Mendoza"
                 className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-xl border border-border bg-surface-alt p-3.5">
+            <div className="size-12 shrink-0 overflow-hidden rounded-full border border-border bg-surface">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt={`Avatar de ${nombre || "colaborador"}`}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <UserCheck className="m-3 size-6 text-text-muted" aria-hidden="true" />
+              )}
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-text-primary">Avatar</p>
+              <ImageUploadButton
+                bucket="avatars-profesionales"
+                path={`${sucursalId}/${colaborador.id}`}
+                label="Subir avatar"
+                disabled={!sucursalId}
+                onUploaded={setAvatarUrl}
               />
             </div>
           </div>
