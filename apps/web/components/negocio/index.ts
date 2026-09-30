@@ -27,3 +27,6 @@ export * from "./DashboardSubscriptionCard";
 export * from "./DashboardBanners";
 export * from "./DashboardAtajo";
 export * from "./DashboardAtajos";
+export * from "./DashboardKpiCard";
+export * from "./DashboardCitasTodayKpi";
+export * from "./DashboardKpis";

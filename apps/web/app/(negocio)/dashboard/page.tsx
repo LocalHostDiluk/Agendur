@@ -1,5 +1,7 @@
 "use client";
 
+import { DashboardKpis } from "@/components/negocio/DashboardKpis";
+
 import { DashboardAtajos } from "@/components/negocio/DashboardAtajos";
 
 import { DashboardBanners } from "@/components/negocio/DashboardBanners";
@@ -8,16 +10,12 @@ import { DashboardCitas } from "@/components/negocio/DashboardCitas";
 
 import { useState, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { motion } from "motion/react";
 import { DashboardChartTooltip } from "@/components/negocio/DashboardChartTooltip";
 import {
-  Calendar,
-  DollarSign,
   TrendingUp,
   ArrowUpRight,
   Clock,
   RefreshCw,
-  Users,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -45,7 +43,6 @@ import {
 import { DashboardLoading } from "./loading";
 import {
   Button,
-  Badge,
   PendingBadge,
 } from "@/components/ui";
 
@@ -187,177 +184,19 @@ export default function DashboardPage() {
       )}
 
       {/* 4 KPI CARDS CON JERARQUÍA CANÓNICA (§5.3 & §7.2) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 (DESTACADA): Citas para Hoy */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-grape-soft/60 border border-grape/30 rounded-xl p-5 shadow-xs space-y-3 transition-colors relative"
-        >
-          <div className="flex items-center justify-between text-text-secondary">
-            <span className="text-[13px] font-medium tracking-normal text-text-secondary">
-              Citas para hoy
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-grape/10 text-grape flex items-center justify-center shrink-0">
-              <Calendar className="w-4 h-4 text-grape" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-[32px] font-bold tabular-nums text-text-primary leading-none">
-              {citasHoy.length}
-            </span>
-            {isSyncError || citasError ? (
-              <Badge variant="warning" size="sm" dot={true}>
-                Sin sincronizar
-              </Badge>
-            ) : citasPendientes.length > 0 ? (
-              <Badge variant="warning" size="sm" dot={true}>
-                {citasPendientes.length} pendiente
-                {citasPendientes.length === 1 ? "" : "s"}
-              </Badge>
-            ) : (
-              <Badge variant="success" size="sm" dot={true}>
-                Al día
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-text-secondary">
-            <span className="truncate">
-              {isSyncError || citasError
-                ? "Revisa o agenda manualmente"
-                : `${citasHoy.length} ${citasHoy.length === 1 ? "cita programada" : "citas programadas"}`}
-            </span>
-            <Link
-              href="/agendas"
-              className="text-grape font-medium hover:underline inline-flex items-center gap-0.5 shrink-0"
-            >
-              <span>Ver agenda</span>
-              <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Card 2: Ingresos del Mes */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-surface border border-border rounded-xl p-5 shadow-xs space-y-3 transition-colors"
-        >
-          <div className="flex items-center justify-between text-text-secondary">
-            <span className="text-[13px] font-medium tracking-normal text-text-secondary">
-              Ingresos del mes
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-surface-alt text-text-secondary flex items-center justify-center shrink-0">
-              <DollarSign className="w-4 h-4 text-grape" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-[32px] font-bold tabular-nums text-text-primary leading-none truncate">
-              ${ingresosMesActual.toLocaleString("es-MX")}
-              <span className="text-xs font-normal text-text-muted ml-1">
-                MXN
-              </span>
-            </span>
-            <Badge
-              variant={tendenciaIngresos.positivo ? "success" : "danger"}
-              size="sm"
-              dot={true}
-            >
-              {tendenciaIngresos.texto}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-text-secondary">
-            <span>vs. mes anterior</span>
-            <Link
-              href="/pagos"
-              className="text-grape font-medium hover:underline inline-flex items-center gap-0.5 shrink-0"
-            >
-              <span>Ver ingresos</span>
-              <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Card 3: Tasa de Ocupación */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-surface border border-border rounded-xl p-5 shadow-xs space-y-3 transition-colors"
-        >
-          <div className="flex items-center justify-between text-text-secondary">
-            <span className="text-[13px] font-medium tracking-normal text-text-secondary">
-              Tasa de ocupación
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-surface-alt text-text-secondary flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4 text-grape" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-[32px] font-bold tabular-nums text-text-primary leading-none">
-              {tasaOcupacion}%
-            </span>
-            <Badge
-              variant={tasaOcupacion >= 70 ? "success" : "warning"}
-              size="sm"
-              dot={true}
-            >
-              {tasaOcupacion >= 70 ? "Ocupación óptima" : "Moderada"}
-            </Badge>
-          </div>
-          <div className="space-y-1.5 pt-0.5">
-            <div className="w-full bg-surface-alt rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-grape h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(tasaOcupacion, 100)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-text-secondary">
-              <span>Capacidad estimada</span>
-              <span className="font-mono text-text-primary">
-                {tasaOcupacion}% de cupo
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Card 4: Tasa de Inasistencias (No-shows) */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-surface border border-border rounded-xl p-5 shadow-xs space-y-3 transition-colors"
-        >
-          <div className="flex items-center justify-between text-text-secondary">
-            <span className="text-[13px] font-medium tracking-normal text-text-secondary">
-              Tasa de inasistencias
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-surface-alt text-text-secondary flex items-center justify-center shrink-0">
-              <Clock className="w-4 h-4 text-grape" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-[32px] font-bold tabular-nums text-text-primary leading-none">
-              {tasaInasistencias}%
-            </span>
-            <Badge
-              variant={inasistenciasElevadas ? "danger" : "neutral"}
-              size="sm"
-              dot={true}
-            >
-              {inasistenciasElevadas ? "Atención" : "Bajo control"}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-text-secondary">
-            <span>Citas canceladas</span>
-            <span className="font-mono text-text-secondary">
-              {totalCanceladas} de {citas.length || "0"}
-            </span>
-          </div>
-        </motion.div>
-      </div>
+      <DashboardKpis
+        isSyncError={isSyncError}
+        citasError={citasError}
+        citasHoyCount={citasHoy.length}
+        citasPendientesCount={citasPendientes.length}
+        ingresosMesActual={ingresosMesActual}
+        tendenciaIngresos={tendenciaIngresos}
+        tasaOcupacion={tasaOcupacion}
+        tasaInasistencias={tasaInasistencias}
+        totalCanceladas={totalCanceladas}
+        inasistenciasElevadas={inasistenciasElevadas}
+        citasCount={citas.length}
+      />
 
       {/* GRÁFICAS RECHARTS ESTILIZADAS CON TOKENS DE AGENDUR (§6) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
