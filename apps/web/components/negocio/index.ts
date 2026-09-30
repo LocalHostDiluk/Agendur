@@ -25,3 +25,5 @@ export * from "./DashboardOnboardingBanner";
 export * from "./DashboardWelcomeCard";
 export * from "./DashboardSubscriptionCard";
 export * from "./DashboardBanners";
+export * from "./DashboardAtajo";
+export * from "./DashboardAtajos";

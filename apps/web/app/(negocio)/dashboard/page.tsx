@@ -1,5 +1,7 @@
 "use client";
 
+import { DashboardAtajos } from "@/components/negocio/DashboardAtajos";
+
 import { DashboardBanners } from "@/components/negocio/DashboardBanners";
 
 import { DashboardCitas } from "@/components/negocio/DashboardCitas";
@@ -10,7 +12,6 @@ import { motion } from "motion/react";
 import { DashboardChartTooltip } from "@/components/negocio/DashboardChartTooltip";
 import {
   Calendar,
-  Store,
   DollarSign,
   TrendingUp,
   ArrowUpRight,
@@ -182,69 +183,7 @@ export default function DashboardPage() {
 
       {/* ATAJOS OPERATIVOS RÁPIDOS (Visibles cuando hay error de sincronización o cuenta en configuración) */}
       {(isSyncError || isOnboardingRequired) && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link
-            href="/agendas"
-            className="group bg-surface hover:bg-surface-alt/60 border border-border hover:border-grape/40 rounded-xl p-4 flex items-start justify-between gap-3 transition-all shadow-2xs"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-grape-soft text-grape flex items-center justify-center shrink-0 mt-0.5">
-                <Calendar className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-xs font-semibold text-text-primary group-hover:text-grape transition-colors">
-                  Ir al Calendario y Agenda
-                </h2>
-                <p className="text-[11px] text-text-secondary mt-0.5">
-                  Revisa disponibilidad por día o registra una cita manual.
-                </p>
-              </div>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-text-muted group-hover:text-grape group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
-          </Link>
-
-          <Link
-            href="/sucursales"
-            className="group bg-surface hover:bg-surface-alt/60 border border-border hover:border-grape/40 rounded-xl p-4 flex items-start justify-between gap-3 transition-all shadow-2xs"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-surface-alt text-text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Store className="w-4 h-4 text-grape" />
-              </div>
-              <div>
-                <h2 className="text-xs font-semibold text-text-primary group-hover:text-grape transition-colors">
-                  Servicios y Sucursales
-                </h2>
-                <p className="text-[11px] text-text-secondary mt-0.5">
-                  {sucursalesList.length > 0
-                    ? `${sucursalesList.length} ${sucursalesList.length === 1 ? "sede activa lista" : "sedes activas listas"} para administrar.`
-                    : "Administra tus ubicaciones, horarios y catálogo."}
-                </p>
-              </div>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-text-muted group-hover:text-grape group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
-          </Link>
-
-          <Link
-            href="/personal"
-            className="group bg-surface hover:bg-surface-alt/60 border border-border hover:border-grape/40 rounded-xl p-4 flex items-start justify-between gap-3 transition-all shadow-2xs"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-surface-alt text-text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Users className="w-4 h-4 text-grape" />
-              </div>
-              <div>
-                <h2 className="text-xs font-semibold text-text-primary group-hover:text-grape transition-colors">
-                  Equipo y Personal
-                </h2>
-                <p className="text-[11px] text-text-secondary mt-0.5">
-                  Gestiona profesionales, permisos y turnos semanales.
-                </p>
-              </div>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-text-muted group-hover:text-grape group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
-          </Link>
-        </div>
+        <DashboardAtajos sucursalesCount={sucursalesList.length} />
       )}
 
       {/* 4 KPI CARDS CON JERARQUÍA CANÓNICA (§5.3 & §7.2) */}
