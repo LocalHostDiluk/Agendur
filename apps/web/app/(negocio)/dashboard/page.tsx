@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { DashboardChartTooltip } from "@/components/negocio/DashboardChartTooltip";
 import { DashboardStatusBadge } from "@/components/negocio/DashboardStatusBadge";
+import { DashboardClienteAvatar } from "@/components/negocio/DashboardClienteAvatar";
 import {
   Calendar,
   Store,
@@ -37,7 +38,7 @@ import {
 import { notify } from "@/lib/utils/toast";
 import { getDashboardIncomeMetrics, getDashboardOccupancy, getDashboardAbsences } from "@/lib/utils/dashboard-metrics";
 import { getBusinessToday } from "@/lib/utils/business-date";
-import { getInitials, getDashboardAppointmentLabels } from "@/lib/utils/dashboard-appointment";
+import { getDashboardAppointmentLabels } from "@/lib/utils/dashboard-appointment";
 import { getDashboardDailySeries, getDashboardMonthlySeries } from "@/lib/utils/dashboard-series";
 import {
   useAuthMe,
@@ -1364,12 +1365,7 @@ export default function DashboardPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-full bg-grape-soft text-grape font-bold flex items-center justify-center text-xs shrink-0 select-none border border-grape/20"
-                              aria-hidden="true"
-                            >
-                              {getInitials(clienteNombre)}
-                            </div>
+                            <DashboardClienteAvatar clienteNombre={clienteNombre} />
                             <div className="min-w-0">
                               <p className="font-medium text-text-primary truncate">
                                 {clienteNombre}
@@ -1434,12 +1430,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className="w-8 h-8 rounded-full bg-grape-soft text-grape font-bold flex items-center justify-center text-xs shrink-0 select-none border border-grape/20"
-                          aria-hidden="true"
-                        >
-                          {getInitials(clienteNombre)}
-                        </div>
+                        <DashboardClienteAvatar clienteNombre={clienteNombre} />
                         <div className="min-w-0">
                           <p className="font-semibold text-text-primary text-sm truncate">
                             {clienteNombre}

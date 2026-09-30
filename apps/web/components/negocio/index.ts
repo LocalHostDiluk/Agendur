@@ -9,3 +9,4 @@ export * from "./CitaDetailDrawer";
 export * from "./MobileNavigation";
 export * from "./DashboardChartTooltip";
 export * from "./DashboardStatusBadge";
+export * from "./DashboardClienteAvatar";
