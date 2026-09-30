@@ -15,6 +15,7 @@ mock.module("next/navigation", () => ({
 
 import { Sidebar } from "@/components/negocio/Sidebar";
 import { Header } from "@/components/negocio/Header";
+import { MobileNavigation } from "@/components/negocio/MobileNavigation";
 import NegocioLayout from "@/app/(negocio)/layout";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
@@ -22,7 +23,11 @@ function renderWithQueryClient(element: React.ReactElement) {
   const queryClient = new QueryClient();
   queryClient.setQueryData(["auth", "me"], { access: { role: "owner", capabilities: ["staff:read", "config:read", "billing:read"] } });
   const html = renderToStaticMarkup(
-    React.createElement(QueryClientProvider, { client: queryClient }, element),
+    React.createElement(
+      ThemeProvider,
+      null,
+      React.createElement(QueryClientProvider, { client: queryClient }, element),
+    ),
   );
   queryClient.clear();
   return html;
@@ -37,7 +42,7 @@ describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", ()
       );
 
       // Fondo fijo y texto según tokens de diseño
-      expect(html).toContain("bg-[#110D15]");
+      expect(html).toContain("bg-sidebar-bg");
       expect(html).toContain("text-[#A79FAE]");
 
       // Brand Logo "Agendur"
@@ -54,12 +59,13 @@ describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", ()
       expect(html).toContain("Reportes");
       expect(html).toContain("Configuración");
 
-      // Badges "Pronto" en módulos desactivados
-      expect(html).toContain("Pronto");
+      // Badges "Nuevo" en módulos habilitados
+      expect(html).toContain("Nuevo");
 
       // Estado activo en /dashboard con barra izquierda sólida de 3px y fondo grape-soft
-      expect(html).toContain("bg-[rgba(110,73,166,0.12)]");
-      expect(html).toContain("bg-[#6E49A6]");
+      expect(html).toContain("bg-grape-soft");
+      expect(html).toContain('aria-current="page"');
+      expect(html).not.toContain("absolute left-0 top-0 bottom-0 w-[3px]");
 
       // Botón de cerrar sesión y colapsar
       expect(html).toContain("Cerrar Sesión");
@@ -94,7 +100,8 @@ describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", ()
       );
 
       expect(html).toContain('href="/sucursales"');
-      expect(html).toContain("bg-[rgba(110,73,166,0.12)]");
+      expect(html).toContain('aria-current="page"');
+      expect(html).toContain("bg-grape-soft");
       expect(html).toContain("hover:bg-white/[0.04]");
     });
   });
@@ -128,7 +135,7 @@ describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", ()
       expect(html).toContain('aria-label="Abrir menú de navegación"');
     });
 
-    it("renderiza elementos de la derecha en orden exacto: buscador, sucursal, tema, notificaciones y avatar", () => {
+    it("mantiene buscador, tema y notificaciones sin duplicar sucursal ni perfil", () => {
       const html = renderWithQueryClient(
         React.createElement(
           ThemeProvider,
@@ -139,15 +146,42 @@ describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", ()
 
       // 1. Buscador
       expect(html).toContain('aria-label="Buscar"');
-      // 2. Indicador de sucursal
-      expect(html).toContain("Sede");
-      // 3. ThemeToggle
+      expect(html).not.toContain("data-header-branch");
+      expect(html).not.toContain("data-header-user");
+      expect(html).not.toContain('aria-label="Menú de usuario"');
+      // El tema y las notificaciones siguen en el navbar de escritorio.
       expect(html).toContain("Alternar tema");
-      // 4. Campana de notificaciones con badge flame
       expect(html).toContain('aria-label="Notificaciones"');
       expect(html).toContain("bg-flame");
-      // 5. Menú de usuario
-      expect(html).toContain('aria-label="Menú de usuario"');
+    });
+  });
+
+  describe("MobileNavigation Component (§8 Responsive)", () => {
+    it("renderiza navegación móvil únicamente en sm:hidden con 5 pestañas y FAB flotante", () => {
+      const html = renderWithQueryClient(
+        React.createElement(MobileNavigation, {
+          onMenuToggle: () => {},
+          onNewAppointment: () => {},
+        }),
+      );
+
+      // Visibilidad exclusiva mobile y fijación
+      expect(html).toContain("block sm:hidden");
+      expect(html).toContain("fixed bottom-0");
+      expect(html).toContain("bg-surface");
+      expect(html).toContain("border-border");
+
+      // 5 Accesos
+      expect(html).toContain("Inicio");
+      expect(html).toContain("Calendario");
+      expect(html).toContain("Pagos");
+      expect(html).toContain("Reportes");
+      expect(html).toContain("Más");
+
+      // FAB flotante Nueva cita
+      expect(html).toContain("fixed bottom-20 right-4");
+      expect(html).toContain("bg-grape text-white rounded-full");
+      expect(html).toContain('aria-label="Nueva cita"');
     });
   });
 
@@ -175,13 +209,22 @@ describe("Administrative Shell - Agendur Design System (Sections 5.1 & 5.2)", ()
       expect(html).toContain("text-text-primary");
       expect(html).toContain("transition-colors");
 
-      // Contenido principal
+      // Contenido principal con padding inferior mobile pb-24
       expect(html).toContain("Contenido del Dashboard");
       expect(html).toContain('id="test-content"');
+      expect(html).toContain("pb-24 sm:pb-6");
 
       // Presencia de Sidebar y Header dentro del shell
       expect(html).toContain("Agendur");
       expect(html).toContain("Alternar tema");
+      expect((html.match(/data-branch-selector/g) ?? []).length).toBe(1);
+      expect(html).not.toContain("data-header-branch");
+      expect(html).toContain("Cerrar Sesión");
+      expect(html).not.toContain('aria-label="Menú de usuario"');
+
+      // Presencia de MobileNavigation en el layout
+      expect(html).toContain("Navegación móvil inferior");
+      expect(html).toContain('aria-label="Nueva cita"');
     });
   });
 });

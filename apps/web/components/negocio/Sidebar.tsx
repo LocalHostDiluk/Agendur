@@ -20,9 +20,11 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { Blobatar } from "@blobatar/react";
 import { notify } from "@/lib/utils/toast";
 import { useAuthMe, useSucursales, useConfirmDialog } from "@/lib/hooks";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export interface SidebarProps {
   isOpen?: boolean;
@@ -58,17 +60,17 @@ const navModules = [
   },
   {
     name: "Pagos y facturación",
-    href: "#",
+    href: "/pagos",
     icon: CreditCard,
-    disabled: true,
-    badge: "Pronto",
+    disabled: false,
+    badge: "Nuevo",
   },
   {
     name: "Reportes",
-    href: "#",
+    href: "/reportes",
     icon: BarChart3,
-    disabled: true,
-    badge: "Pronto",
+    disabled: false,
+    badge: "Nuevo",
   },
   {
     name: "Configuración",
@@ -143,9 +145,13 @@ export function Sidebar({
 
   const pendingOnboarding = profile?.onboardingStatus === "required";
   const nombreNegocio = profile?.negocio?.nombre_comercial || "Mi Negocio";
-  const permittedModules = navModules.filter(item =>
-    (item.href !== "/configuracion" || profile?.access?.capabilities.includes("config:read")) &&
-    (item.href !== "/personal" || profile?.access?.capabilities.includes("staff:read")));
+  const email = profile?.user?.email ?? "";
+  const nombrePersona =
+    [profile?.perfil?.nombres, profile?.perfil?.apellidos]
+      .filter(Boolean)
+      .join(" ") ||
+    email ||
+    "Usuario";
 
   const activeSucursal =
     sucursales.find((s) => s.id === selectedSucursalId) || sucursales[0];
@@ -224,7 +230,7 @@ export function Sidebar({
 
       {/* Sidebar Container: 60fps GPU accelerated, smooth 320ms ease-out on mobile drawer, 200ms ease-in-out on desktop collapse */}
       <aside
-        className={`fixed inset-y-0 start-0 z-50 bg-[#110D15] text-[#A79FAE] flex flex-col justify-between p-3.5 shrink-0 transform-gpu will-change-transform transition-[transform,width] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:duration-200 md:ease-in-out md:static md:sticky md:top-0 md:h-screen md:translate-x-0 ${
+        className={`fixed inset-y-0 start-0 z-50 bg-sidebar-bg text-[#A79FAE] flex flex-col justify-between p-3.5 shrink-0 transform-gpu will-change-transform transition-[transform,width] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:duration-200 md:ease-in-out md:static md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } ${isCollapsed ? "w-[264px] md:w-[72px]" : "w-[264px]"}`}
         aria-label="Navegación del panel"
@@ -235,12 +241,12 @@ export function Sidebar({
             <Link
               href="/dashboard"
               onClick={onClose}
-              className="brand-mark group relative px-1.5 py-0.5 text-[22px] text-white leading-none tracking-tight focus:outline-hidden"
+              className="brand-mark font-bricolage text-[#F1ECE2] group relative px-1.5 py-0.5 text-[22px] leading-none tracking-tight focus:outline-hidden"
               aria-label="Agendur Inicio"
             >
               <span className="transition-transform duration-150 group-hover:scale-[1.03]">A</span>
               <span
-                className={`text-white overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
+                className={`text-[#F1ECE2] overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
                   isCollapsed
                     ? "max-w-[120px] md:max-w-0 md:opacity-0 md:-translate-x-1"
                     : "max-w-[120px] opacity-100 translate-x-0"
@@ -281,12 +287,46 @@ export function Sidebar({
             </label>
           )}
           <div data-branch-selector className="relative">
-            {isCollapsed ? (
+            {sucursales.length <= 1 ? (
+              <div
+                className={`group relative flex items-center gap-2.5 p-2 rounded-xl border border-white/10 bg-white/[0.03] ${
+                  isCollapsed ? "justify-center" : ""
+                }`}
+              >
+                <div className="relative size-8 rounded-lg bg-gradient-to-br from-[#6E49A6]/25 to-[#6E49A6]/10 border border-[#6E49A6]/30 flex items-center justify-center text-[#D1BEE8] shrink-0 shadow-inner">
+                  <Store className="w-4 h-4" strokeWidth={1.75} />
+                </div>
+                <div
+                  className={`min-w-0 flex-1 ${
+                    isCollapsed ? "max-w-0 overflow-hidden md:max-w-0" : ""
+                  }`}
+                >
+                  {activeSucursal && (
+                    <span className="block text-[10px] font-semibold text-[#A79FAE]/80 uppercase tracking-wider truncate">
+                      {nombreNegocio}
+                    </span>
+                  )}
+                  <span className="block font-semibold text-xs text-[#F1ECE2] truncate leading-tight">
+                    {activeSucursalName}
+                  </span>
+                </div>
+                {isCollapsed && (
+                  <>
+                    <span className="sr-only">Sucursal: {activeSucursalName}</span>
+                    <div className="hidden md:block absolute left-full ml-3 top-0 px-3 py-2 bg-[#17121B] border border-white/15 text-xs text-[#F1ECE2] rounded-xl shadow-2xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans min-w-[140px]">
+                      <p className="font-semibold text-xs text-[#F1ECE2] truncate">
+                        {activeSucursalName}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : isCollapsed ? (
               <div className="relative group flex justify-center">
                 <button
                   type="button"
                   onClick={handleToggleCollapse}
-                  className="size-10 flex items-center justify-center rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-[#6E49A6]/40 text-[#D1BEE8] transition-all focus:outline-hidden relative group/btn"
+                  className="size-10 flex items-center justify-center rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-[#6E49A6]/40 text-[#D1BEE8] transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#B99CE8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#110D15] relative group/btn"
                   aria-label={activeSucursalName}
                 >
                   <div className="size-7 rounded-lg bg-[#6E49A6]/20 flex items-center justify-center text-[#D1BEE8]">
@@ -314,7 +354,7 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => setBranchDropdownOpen((prev) => !prev)}
-                  className={`group w-full flex items-center justify-between gap-2.5 p-2 rounded-xl border text-left transition-all duration-150 focus:outline-hidden ${
+                  className={`group w-full flex items-center justify-between gap-2.5 p-2 rounded-xl border text-left transition-all duration-150 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#B99CE8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#110D15] ${
                     branchDropdownOpen
                       ? "bg-white/[0.06] border-[#6E49A6]/50 ring-1 ring-[#6E49A6]/30 shadow-md"
                       : "bg-white/[0.03] hover:bg-white/[0.06] border-white/10 hover:border-white/20"
@@ -388,7 +428,7 @@ export function Sidebar({
                               key={sucursal.id}
                               type="button"
                               onClick={() => handleSelectSucursal(sucursal.id)}
-                              className={`w-full text-left p-2 rounded-lg flex items-center justify-between gap-2.5 transition-colors ${
+                              className={`w-full text-left p-2 rounded-lg flex items-center justify-between gap-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B99CE8] ${
                                 isSelected
                                   ? "bg-[#6E49A6]/15 text-[#F1ECE2]"
                                   : "text-[#A79FAE] hover:bg-white/[0.06] hover:text-[#F1ECE2]"
@@ -462,7 +502,7 @@ export function Sidebar({
                         setBranchDropdownOpen(false);
                         if (onClose) onClose();
                       }}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#A79FAE] hover:text-[#F1ECE2] hover:bg-white/[0.06] transition-colors group"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#A79FAE] hover:text-[#F1ECE2] hover:bg-white/[0.06] transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B99CE8]"
                     >
                       <div className="size-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#A79FAE] group-hover:text-[#6E49A6] group-hover:bg-[#6E49A6]/10 transition-colors shrink-0">
                         <Store className="size-3.5" strokeWidth={1.75} />
@@ -529,35 +569,42 @@ export function Sidebar({
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
-                  className={`group relative flex items-center gap-x-3 rounded-lg text-sm font-medium transition-colors focus:outline-hidden px-3 py-2.5 h-10 w-full ${
+                  className={`group relative flex items-center gap-x-3 rounded-lg text-sm font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#B99CE8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#110D15] px-3 py-2.5 h-10 w-full ${
                     isActive
-                      ? "bg-[rgba(110,73,166,0.12)] text-[#A79FAE]"
-                      : "text-[#A79FAE] hover:bg-white/[0.04]"
+                      ? "border-l-[3px] border-grape bg-grape-soft text-sidebar-text font-semibold"
+                      : "border-l-[3px] border-transparent text-[#A79FAE] hover:bg-white/[0.04] hover:text-sidebar-text"
                   }`}
                   aria-label={item.name}
+                  aria-current={isActive ? "page" : undefined}
                 >
-                  {isActive && (
-                    <span
-                      className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#6E49A6] rounded-r"
-                      aria-hidden="true"
-                    />
-                  )}
                   <item.icon
-                    className="w-5 h-5 shrink-0 text-[#A79FAE]"
-                    strokeWidth={1.75}
+                    className={`w-5 h-5 shrink-0 transition-colors ${
+                      isActive ? "text-sidebar-text" : "text-[#A79FAE] group-hover:text-sidebar-text"
+                    }`}
+                    strokeWidth={isActive ? 2 : 1.75}
                   />
                   <span
-                    className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out ${
+                    className={`overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out flex items-center justify-between gap-2 flex-1 ${
                       isCollapsed
                         ? "max-w-[160px] md:max-w-0 md:opacity-0 md:-translate-x-1 md:pointer-events-none"
                         : "max-w-[160px] opacity-100 translate-x-0"
                     }`}
                   >
-                    {item.name}
+                    <span className="truncate">{item.name}</span>
+                    {item.badge && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-grape/25 text-[#D1BEE8] border border-grape/30 leading-none">
+                        {item.badge}
+                      </span>
+                    )}
                   </span>
                   {isCollapsed && (
                     <div className="hidden md:flex absolute left-full ml-3 px-2.5 py-1.5 bg-[#17121B] border border-white/10 text-xs text-[#F1ECE2] rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 items-center gap-1.5 font-sans font-normal">
                       <span>{item.name}</span>
+                      {item.badge && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-grape/25 text-[#D1BEE8] border border-grape/30 leading-none">
+                          {item.badge}
+                        </span>
+                      )}
                     </div>
                   )}
                 </Link>
@@ -567,7 +614,11 @@ export function Sidebar({
         </div>
 
         {/* Footer: Onboarding status + User + Logout + Collapse Toggle */}
-        <div className="pt-3 border-t border-white/10 space-y-2">
+        <div className="pt-3 border-t border-border-ink border-white/10 space-y-2">
+          <div className="flex md:hidden items-center justify-between gap-3 px-3 py-2 text-xs font-medium text-[#A79FAE]">
+            <span>Cambiar tema</span>
+            <ThemeToggle />
+          </div>
           {pendingOnboarding && (
             <Link
               href="/onboarding"
@@ -599,12 +650,43 @@ export function Sidebar({
             </Link>
           )}
 
+          {/* User Profile Info (Avatar + Name) */}
+          <div
+            className={`group relative flex items-center gap-2.5 px-2 py-1.5 rounded-lg ${
+              isCollapsed ? "justify-center" : ""
+            }`}
+          >
+            <div className="size-8 rounded-full overflow-hidden bg-grape-soft border border-grape/30 flex items-center justify-center shrink-0 shadow-2xs">
+              <Blobatar name={email || nombrePersona || "Agendur"} size={32} />
+            </div>
+            <div
+              className={`min-w-0 flex-1 overflow-hidden transition-all duration-200 ease-in-out ${
+                isCollapsed
+                  ? "max-w-[160px] md:max-w-0 md:opacity-0 md:-translate-x-1 md:pointer-events-none"
+                  : "max-w-[160px] opacity-100 translate-x-0"
+              }`}
+            >
+              <p className="text-xs font-semibold text-sidebar-text truncate leading-tight">
+                {nombrePersona}
+              </p>
+              <p className="text-[10px] text-sidebar-text-muted truncate leading-tight mt-0.5">
+                {email || nombreNegocio}
+              </p>
+            </div>
+            {isCollapsed && (
+              <div className="hidden md:block absolute left-full ml-3 px-2.5 py-1.5 bg-[#17121B] border border-white/10 text-xs text-sidebar-text rounded-md shadow-xl whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 font-sans">
+                <p className="font-semibold text-xs text-[#F1ECE2]">{nombrePersona}</p>
+                {email && <p className="text-[10px] text-sidebar-text-muted">{email}</p>}
+              </div>
+            )}
+          </div>
+
           {/* Logout Button */}
           <button
             type="button"
             onClick={handleLogoutClick}
             disabled={loggingOut}
-            className="w-full group relative flex items-center gap-x-3 px-3 py-2 text-xs font-medium text-[#A79FAE] hover:text-[#D14343] hover:bg-white/[0.04] rounded-lg transition-colors disabled:opacity-50 focus:outline-hidden"
+            className="w-full group relative flex items-center gap-x-3 px-3 py-2 text-xs font-medium text-sidebar-text-muted hover:text-[#D14343] hover:bg-white/[0.04] rounded-lg transition-colors disabled:opacity-50 focus:outline-hidden cursor-pointer"
             aria-label="Cerrar Sesión"
           >
             <LogOut className="w-5 h-5 shrink-0" strokeWidth={1.75} />
@@ -625,7 +707,7 @@ export function Sidebar({
           </button>
 
           {/* Collapse / Expand Toggle Button (Desktop only) */}
-          <div className="hidden md:flex pt-1 border-t border-white/5">
+          <div className="hidden md:flex pt-1 border-t border-border-ink border-white/10">
             <button
               type="button"
               onClick={handleToggleCollapse}

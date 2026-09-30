@@ -345,3 +345,58 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     });
   }
 }
+
+/**
+ * DELETE /api/negocio/servicios
+ * Elimina un servicio perteneciente al negocio del usuario autenticado.
+ */
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const auth = await getAuthenticatedNegocio();
+    if (!auth.ok) {
+      return auth.error;
+    }
+
+    const { negocio } = auth;
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id || typeof id !== "string" || !id.trim()) {
+      return apiError("ID de servicio requerido.", undefined, { status: 400 });
+    }
+
+    const servicioId = id.trim();
+
+    const { data: servicioExistente, error: findError } = await adminClient
+      .from("servicios")
+      .select("id")
+      .eq("id", servicioId)
+      .eq("negocio_id", negocio.id)
+      .maybeSingle();
+
+    if (findError || !servicioExistente) {
+      return apiError(
+        "Servicio no encontrado o no pertenece a este negocio.",
+        undefined,
+        { status: 404 },
+      );
+    }
+
+    const { error: delError } = await adminClient
+      .from("servicios")
+      .delete()
+      .eq("id", servicioId)
+      .eq("negocio_id", negocio.id);
+
+    if (delError) {
+      throw delError;
+    }
+
+    return apiSuccess({ deleted: true });
+  } catch (error: unknown) {
+    return apiError(error, "Error interno al eliminar el servicio.", {
+      extra: { route: "DELETE /api/negocio/servicios" },
+    });
+  }
+}
+

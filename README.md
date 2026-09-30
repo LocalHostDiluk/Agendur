@@ -476,7 +476,6 @@ Consulta el [baseline remoto](supabase/migrations/00000000000000_remote_baseline
 - Validar dos reservas HTTP simultáneas contra una base controlada: la exclusión SQL y el manejo de `409` están implementados, pero la auditoría del repositorio deja pendiente esa prueba real.
 - Completar los documentos legales y su configuración de versiones.
 - Añadir `.env.example` y un flujo reproducible de preparación de datos y migraciones por entorno.
-- Unificar `Design-system.md` y `docs/diseño/Design-system.md`, que hoy son copias idénticas en dos ubicaciones.
 
 ## Contribución y documentación
 
@@ -486,9 +485,7 @@ Documentación complementaria:
 
 - [Baseline y migraciones Supabase](supabase/migrations/).
 - [Baseline remoto verificado](supabase/migrations/00000000000000_remote_baseline.sql).
-- [Sistema de diseño](docs/diseño/Design-system.md).
-- [Errores y portal de reservas](docs/diseño/errores-y-portal-reservas-agendur.md).
-- [Skeletons, carga y confirmaciones](docs/diseño/skeletons-carga-confirmaciones-agendur.md).
+- [Sistema de diseño unificado: dashboard, autenticación, reservas, errores, carga y confirmaciones](docs/diseño/Design-system.md).
 - [Plan de ejecución](docs/PLAN.md) y [plan de soluciones backend](docs/PLAN_SOLUCIONES_BACKEND.md).
 - [Manifiesto de la aplicación](apps/web/package.json).
 

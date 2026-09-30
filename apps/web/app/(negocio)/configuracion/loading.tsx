@@ -7,7 +7,7 @@ import {
 export function ConfiguracionLoading() {
   return (
     <div
-      className="space-y-6 max-w-7xl mx-auto"
+      className="space-y-6 max-w-5xl mx-auto"
       aria-busy="true"
       aria-label="Cargando configuración"
     >
@@ -18,27 +18,35 @@ export function ConfiguracionLoading() {
             Configuración
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Administra los parámetros comerciales, políticas de reserva y
+            Administra los parámetros comerciales, políticas de reserva, usuarios y
             suscripción de tu negocio.
           </p>
         </div>
 
-        <SkeletonBlock className="h-[44px] w-36 rounded-lg shrink-0" />
+        <SkeletonBlock className="h-[40px] w-36 rounded-[var(--radius-md)] shrink-0" />
       </div>
 
-      {/* 3 Pestañas Superiores */}
-      <div className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-fit">
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-alt min-h-[38px]">
+      {/* 5 Pestañas Superiores (§10) */}
+      <div className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-full overflow-x-auto">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-alt min-h-[38px] shrink-0">
           <SkeletonBlock className="w-4 h-4 rounded" />
           <SkeletonText className="w-24 h-3.5" />
         </div>
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg min-h-[38px]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
           <SkeletonBlock className="w-4 h-4 rounded" />
           <SkeletonText className="w-28 h-3.5" />
         </div>
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg min-h-[38px]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
+          <SkeletonBlock className="w-4 h-4 rounded" />
+          <SkeletonText className="w-24 h-3.5" />
+        </div>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
           <SkeletonBlock className="w-4 h-4 rounded" />
           <SkeletonText className="w-28 h-3.5" />
+        </div>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
+          <SkeletonBlock className="w-4 h-4 rounded" />
+          <SkeletonText className="w-24 h-3.5" />
         </div>
       </div>
 
@@ -68,7 +76,7 @@ export function ConfiguracionLoading() {
             {[1, 2, 3, 4].map((field) => (
               <div key={field} className="space-y-2">
                 <SkeletonText className="w-28 h-3.5" />
-                <SkeletonBlock className="h-10 w-full rounded-lg" />
+                <SkeletonBlock className="h-10 w-full rounded-[var(--radius-sm)]" />
               </div>
             ))}
           </div>

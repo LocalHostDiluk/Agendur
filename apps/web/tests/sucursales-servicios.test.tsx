@@ -142,4 +142,57 @@ describe("Página de Sucursales y Servicios (apps/web/app/(negocio)/sucursales/p
     expect(html).toContain("Aún no tienes sucursales registradas");
     expect(html).toContain("Crear primera sucursal");
   });
+
+  it("cumple tokens de pestañas canónicas y botón de acción contextual con Button primitivo", () => {
+    const html = renderComponent(<SucursalesPage />);
+
+    // Tokens canónicos de pestañas (§5.4, §5.5)
+    expect(html).toContain(
+      "bg-surface-alt/70 border border-border rounded-xl text-xs sm:text-sm font-medium",
+    );
+
+    // Botón primario oficial Button
+    expect(html).toContain("bg-grape text-white");
+    expect(html).toContain("Agregar Sucursal");
+  });
+
+  it("implementa transformación responsive (§8): tabla desktop (hidden sm:table) y lista de cards (block sm:hidden)", () => {
+    const html = renderComponent(<SucursalesPage />);
+
+    // Tabla desktop
+    expect(html).toContain("hidden sm:table");
+
+    // Cards mobile apiladas
+    expect(html).toContain("block sm:hidden");
+
+    // Tipografía Bricolage Grotesque y Space Mono en cards
+    expect(html).toContain("font-bricolage");
+    expect(html).toContain("font-mono");
+
+    // Pares clave:valor en vista móvil
+    expect(html).toContain("Dirección:");
+    expect(html).toContain("Teléfono:");
+    expect(html).toContain("Equipo:");
+  });
+
+  it("utiliza primitivas oficiales Badge y Button con acciones accesibles", () => {
+    const html = renderComponent(<SucursalesPage />);
+
+    // Badge oficial
+    expect(html).toContain("inline-flex items-center gap-x-1.5 font-medium rounded-full");
+    expect(html).toContain("text-success bg-success-soft");
+
+    // Botones con variante danger para eliminación
+    expect(html).toContain("bg-danger text-white");
+    expect(html).toContain("aria-label=\"Eliminar sucursal Sucursal Central Polanco\"");
+  });
+
+  it("muestra marcas de funcionalidad pendiente con PendingBadge", () => {
+    const html = renderComponent(<SucursalesPage />);
+
+    // PendingBadge visible
+    expect(html).toContain("Pendiente");
+    expect(html).toContain("Sincronización automática de sucursales con Google Business");
+  });
 });
+

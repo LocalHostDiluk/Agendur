@@ -117,3 +117,66 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
+/**
+ * DELETE /api/negocio/sucursales
+ * Elimina una sucursal del negocio del usuario autenticado.
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return apiError("No autorizado. Sesión requerida.", undefined, { status: 401 });
+    }
+
+    const { data: negocio, error: negError } = await supabase
+      .from("negocios")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+    if (negError || !negocio) {
+      return apiError("No se encontró un negocio para esta cuenta.", undefined, { status: 404 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return apiError("ID de sucursal requerido.", undefined, { status: 400 });
+    }
+
+    const { data: sucursal, error: findError } = await adminClient
+      .from("sucursales")
+      .select("id, es_matriz")
+      .eq("id", id)
+      .eq("negocio_id", negocio.id)
+      .maybeSingle();
+
+    if (findError || !sucursal) {
+      return apiError("Sucursal no encontrada o no pertenece a este negocio.", undefined, { status: 404 });
+    }
+
+    const { error: delError } = await adminClient
+      .from("sucursales")
+      .delete()
+      .eq("id", id)
+      .eq("negocio_id", negocio.id);
+
+    if (delError) {
+      throw delError;
+    }
+
+    return apiSuccess({ deleted: true });
+  } catch (error: unknown) {
+    return apiError(error, "Error al eliminar sucursal.", {
+      extra: { route: "DELETE /api/negocio/sucursales" },
+    });
+  }
+}
+

@@ -13,19 +13,25 @@ import {
   ExternalLink,
   AlertCircle,
   RefreshCw,
-  CheckCircle2,
-  XCircle,
   Scissors,
   Building2,
+  Trash2,
+  Download,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   useAuthMe,
   useSucursales,
   useServicios,
   useUpdateServicio,
+  useConfirmDialog,
 } from "@/lib/hooks";
 import { ModalNuevaSucursal } from "@/components/negocio/ModalNuevaSucursal";
 import { ModalNuevoServicio } from "@/components/negocio/ModalNuevoServicio";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PendingBadge } from "@/components/ui/PendingBadge";
 import { SkeletonBlock, SkeletonText } from "@/components/ui/Skeleton";
 import { notify } from "@/lib/utils/toast";
 import type { Sucursal, Servicio } from "@/lib/types";
@@ -39,6 +45,8 @@ export default function SucursalesPage() {
   const [updatingServiceId, setUpdatingServiceId] = useState<string | null>(
     null,
   );
+
+  const confirmDialog = useConfirmDialog();
 
   const { data: auth } = useAuthMe();
   const {
@@ -85,8 +93,63 @@ export default function SucursalesPage() {
     }
   };
 
+  const handleDeleteSucursal = async (suc: Sucursal) => {
+    const confirmado = await confirmDialog.confirm({
+      type: "eliminar_sucursal",
+      level: 2,
+      targetName: suc.nombre,
+      verificationText: suc.nombre,
+    });
+    if (!confirmado) return;
+
+    try {
+      const res = await fetch(`/api/negocio/sucursales?id=${encodeURIComponent(suc.id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || "Error al eliminar la sucursal.");
+      }
+      notify.success(
+        "Sucursal eliminada",
+        `La sucursal "${suc.nombre}" ha sido eliminada.`,
+      );
+      refetchSucursales();
+    } catch (err: unknown) {
+      notify.error(err, "No se pudo eliminar la sucursal.");
+    }
+  };
+
+  const handleDeleteServicio = async (serv: Servicio) => {
+    const confirmado = await confirmDialog.confirm({
+      type: "eliminar_servicio",
+      level: 2,
+      targetName: serv.nombre,
+      verificationText: serv.nombre,
+    });
+    if (!confirmado) return;
+
+    try {
+      const res = await fetch(`/api/negocio/servicios?id=${encodeURIComponent(serv.id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || "Error al eliminar el servicio.");
+      }
+      notify.success(
+        "Servicio eliminado",
+        `El servicio "${serv.nombre}" ha sido eliminado.`,
+      );
+      refetchServicios();
+    } catch (err: unknown) {
+      notify.error(err, "No se pudo eliminar el servicio.");
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* 1. Header con acción contextual según pestaña activa */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bricolage font-bold text-text-primary tracking-tight">
@@ -100,28 +163,29 @@ export default function SucursalesPage() {
 
         <div className="flex items-center gap-3">
           {activeTab === "sucursales" ? (
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={() => setModalSucursalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-grape hover:bg-grape/90 text-white font-medium text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer min-h-[44px]"
+              className="min-h-[44px]"
             >
               <Plus className="w-4 h-4" strokeWidth={2} />
               <span>Agregar Sucursal</span>
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={() => setModalServicioOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-grape hover:bg-grape/90 text-white font-medium text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer min-h-[44px]"
+              className="min-h-[44px]"
             >
               <Plus className="w-4 h-4" strokeWidth={2} />
               <span>Agregar Servicio</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-border pb-3">
+      {/* 1. Selector canónico de pestañas & pendientes */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
         <div
           role="tablist"
           aria-label="Pestañas de sedes y servicios"
@@ -179,8 +243,59 @@ export default function SucursalesPage() {
             </span>
           </button>
         </div>
+
+        {/* 5. Opciones avanzadas con marcas de pendientes */}
+        <div className="flex items-center gap-2">
+          {activeTab === "servicios" ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs text-text-secondary"
+                disabled
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                <span>Reordenar</span>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Ordenamiento drag & drop de catálogo en desarrollo"
+                />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs text-text-secondary"
+                disabled
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Exportar</span>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Exportación en formato CSV/Excel en desarrollo"
+                />
+              </Button>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs text-text-secondary"
+                disabled
+              >
+                <Sparkles className="w-3.5 h-3.5 text-grape" />
+                <span>Sincronizar Google Business</span>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Sincronización automática de sucursales con Google Business"
+                />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* PESTAÑA: SUCURSALES */}
       {activeTab === "sucursales" && (
         <section
           id="panel-sucursales"
@@ -230,14 +345,15 @@ export default function SucursalesPage() {
                   recargar la información.
                 </p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => refetchSucursales()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-alt hover:bg-surface border border-border text-text-primary text-xs font-semibold cursor-pointer min-h-[44px]"
+                className="min-h-[44px]"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Reintentar</span>
-              </button>
+              </Button>
             </div>
           )}
 
@@ -257,106 +373,243 @@ export default function SucursalesPage() {
                     para comenzar a recibir reservas.
                   </p>
                 </div>
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
                   onClick={() => setModalSucursalOpen(true)}
-                  className="inline-flex items-center gap-2 bg-grape hover:bg-grape/90 text-white font-medium text-xs sm:text-sm px-4 py-2.5 rounded-xl cursor-pointer min-h-[44px]"
+                  className="min-h-[44px]"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Crear primera sucursal</span>
-                </button>
+                </Button>
               </div>
             )}
 
           {!loadingSucursales && !errorSucursales && sucursales.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {sucursales.map((suc) => (
-                <div
-                  key={suc.id}
-                  className="p-5 sm:p-6 rounded-2xl bg-surface border border-border hover:border-grape/30 transition-all flex flex-col justify-between space-y-4 shadow-xs"
-                >
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="w-10 h-10 rounded-xl bg-grape-soft text-grape flex items-center justify-center shrink-0">
-                        <Store className="w-5 h-5" strokeWidth={1.75} />
+            <div className="space-y-4">
+              {/* 2. Tabla Desktop (hidden sm:table) */}
+              <div className="hidden sm:block rounded-2xl bg-surface border border-border overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="hidden sm:table w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface-alt border-b border-border text-[11px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                        <th scope="col" className="py-3.5 px-4 sm:px-6">
+                          Sucursal
+                        </th>
+                        <th scope="col" className="py-3.5 px-4">
+                          Dirección
+                        </th>
+                        <th scope="col" className="py-3.5 px-4">
+                          Teléfono
+                        </th>
+                        <th scope="col" className="py-3.5 px-4 text-center">
+                          Equipo
+                        </th>
+                        <th scope="col" className="py-3.5 px-4 text-center">
+                          Estado
+                        </th>
+                        <th
+                          scope="col"
+                          className="py-3.5 px-4 sm:px-6 text-right"
+                        >
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border text-xs sm:text-sm">
+                      {sucursales.map((suc) => (
+                        <tr
+                          key={suc.id}
+                          className="hover:bg-surface-alt/50 transition-colors"
+                        >
+                          <td className="py-3.5 px-4 sm:px-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-grape-soft text-grape flex items-center justify-center shrink-0">
+                                <Store className="w-4 h-4" strokeWidth={1.75} />
+                              </div>
+                              <div className="space-y-0.5">
+                                <span className="font-semibold text-text-primary block">
+                                  {suc.nombre}
+                                </span>
+                                {suc.es_matriz && (
+                                  <Badge variant="neutral" size="sm" dot={false}>
+                                    MATRIZ
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <span className="font-mono text-xs text-text-secondary flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-grape shrink-0" />
+                              <span>
+                                {suc.direccion}
+                                {suc.ciudad ? ` · ${suc.ciudad}` : ""}
+                                {suc.estado_provincia
+                                  ? `, ${suc.estado_provincia}`
+                                  : ""}
+                              </span>
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="font-mono text-xs text-text-primary flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                              <span>{suc.telefono}</span>
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 text-xs text-text-secondary font-medium">
+                              <Users className="w-3.5 h-3.5 text-text-muted" />
+                              <span>
+                                {suc.personalCount ?? suc.personal ?? 0}{" "}
+                                Profesionales
+                              </span>
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <Badge
+                              variant={suc.activa ? "success" : "neutral"}
+                              size="sm"
+                              dot
+                            >
+                              {suc.activa ? "ACTIVA" : "INACTIVA"}
+                            </Badge>
+                          </td>
+
+                          <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              {negocioSlug && (
+                                <Link
+                                  href={`/reserva/${negocioSlug}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-grape hover:underline font-semibold text-xs p-1"
+                                  aria-label={`Ver portal público de reservas para ${suc.nombre}`}
+                                >
+                                  <span>Portal público</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </Link>
+                              )}
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleDeleteSucursal(suc)}
+                                aria-label={`Eliminar sucursal ${suc.nombre}`}
+                                className="h-8 px-2.5 text-xs"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden lg:inline">Eliminar</span>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 2. Transformación Responsive Mobile (block sm:hidden) con pares clave:valor */}
+              <div className="block sm:hidden space-y-4">
+                {sucursales.map((suc) => (
+                  <div
+                    key={suc.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-3.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-grape-soft text-grape flex items-center justify-center shrink-0">
+                          <Store className="w-4 h-4" strokeWidth={1.75} />
+                        </div>
+                        <h3 className="font-bricolage font-bold text-base text-text-primary leading-tight">
+                          {suc.nombre}
+                        </h3>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap justify-end">
                         {suc.es_matriz && (
-                          <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-grape-soft text-grape border border-grape/20">
+                          <Badge variant="neutral" size="sm" dot={false}>
                             MATRIZ
-                          </span>
+                          </Badge>
                         )}
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
-                            suc.activa
-                              ? "bg-mint-soft text-mint-dark border-mint/20"
-                              : "bg-surface-alt text-text-muted border-border"
-                          }`}
+                        <Badge
+                          variant={suc.activa ? "success" : "neutral"}
+                          size="sm"
+                          dot
                         >
-                          {suc.activa ? (
-                            <>
-                              <CheckCircle2 className="w-3 h-3 text-mint" />
-                              <span>ACTIVA</span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3 h-3 text-text-muted" />
-                              <span>INACTIVA</span>
-                            </>
-                          )}
-                        </span>
+                          {suc.activa ? "ACTIVA" : "INACTIVA"}
+                        </Badge>
                       </div>
                     </div>
 
-                    <div>
-                      <h3 className="font-bricolage font-bold text-text-primary text-base sm:text-lg leading-snug">
-                        {suc.nombre}
-                      </h3>
-                      <p className="text-xs text-text-secondary mt-1.5 flex items-start gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-grape shrink-0 mt-0.5" />
-                        <span>
+                    <div className="space-y-2 pt-1 border-t border-border/60 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-text-muted font-medium">
+                          Dirección:
+                        </span>
+                        <span className="font-mono text-text-secondary text-right">
                           {suc.direccion}
                           {suc.ciudad ? ` · ${suc.ciudad}` : ""}
                           {suc.estado_provincia
                             ? `, ${suc.estado_provincia}`
                             : ""}
                         </span>
-                      </p>
-                      <p className="text-xs text-text-secondary mt-1 flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                        <span className="font-mono">{suc.telefono}</span>
-                      </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-text-muted font-medium">
+                          Teléfono:
+                        </span>
+                        <span className="font-mono text-text-primary font-semibold">
+                          {suc.telefono}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-text-muted font-medium">
+                          Equipo:
+                        </span>
+                        <span className="text-text-secondary">
+                          {suc.personalCount ?? suc.personal ?? 0} Profesionales
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                      {negocioSlug && (
+                        <Link
+                          href={`/reserva/${negocioSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-grape hover:underline font-semibold text-xs"
+                          aria-label={`Ver portal público de reservas para ${suc.nombre}`}
+                        >
+                          <span>Portal público</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteSucursal(suc)}
+                        aria-label={`Eliminar sucursal ${suc.nombre}`}
+                        className="h-8 px-2.5 text-xs"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Eliminar</span>
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1 text-text-secondary font-medium">
-                      <Users className="w-3.5 h-3.5 text-text-muted" />
-                      <span>
-                        {suc.personalCount ?? suc.personal ?? 0} Profesionales
-                      </span>
-                    </span>
-
-                    {negocioSlug && (
-                      <Link
-                        href={`/reserva/${negocioSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-grape hover:underline font-semibold text-[11px] p-1"
-                        aria-label={`Ver portal público de reservas para ${suc.nombre}`}
-                      >
-                        <span>Portal público</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </section>
       )}
 
+      {/* PESTAÑA: SERVICIOS */}
       {activeTab === "servicios" && (
         <section
           id="panel-servicios"
@@ -400,14 +653,15 @@ export default function SucursalesPage() {
                   recargar la información.
                 </p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => refetchServicios()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-alt hover:bg-surface border border-border text-text-primary text-xs font-semibold cursor-pointer min-h-[44px]"
+                className="min-h-[44px]"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Reintentar</span>
-              </button>
+              </Button>
             </div>
           )}
 
@@ -425,136 +679,245 @@ export default function SucursalesPage() {
                   consultas) con su duración estimada y precio.
                 </p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 onClick={() => setModalServicioOpen(true)}
-                className="inline-flex items-center gap-2 bg-grape hover:bg-grape/90 text-white font-medium text-xs sm:text-sm px-4 py-2.5 rounded-xl cursor-pointer min-h-[44px]"
+                className="min-h-[44px]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Crear primer servicio</span>
-              </button>
+              </Button>
             </div>
           )}
 
           {!loadingServicios && !errorServicios && servicios.length > 0 && (
-            <div className="rounded-2xl bg-surface border border-border overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface-alt border-b border-border text-[11px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                      <th scope="col" className="py-3.5 px-4 sm:px-6">
-                        Servicio
-                      </th>
-                      <th scope="col" className="py-3.5 px-4 text-center">
-                        Duración
-                      </th>
-                      <th scope="col" className="py-3.5 px-4 text-right">
-                        Precio
-                      </th>
-                      <th scope="col" className="py-3.5 px-4 text-center">
-                        Estado
-                      </th>
-                      <th
-                        scope="col"
-                        className="py-3.5 px-4 sm:px-6 text-right"
-                      >
-                        Acción
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border text-xs sm:text-sm">
-                    {servicios.map((s) => {
-                      const duracion =
-                        s.duracion_minutos ?? s.duracionMinutos ?? 30;
-                      const isActivo = s.activo !== false;
-                      const isUpdating = updatingServiceId === s.id;
-
-                      return (
-                        <tr
-                          key={s.id}
-                          className="hover:bg-surface-alt/50 transition-colors"
+            <div className="space-y-4">
+              {/* 2. Tabla Desktop (hidden sm:table) */}
+              <div className="hidden sm:block rounded-2xl bg-surface border border-border overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="hidden sm:table w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface-alt border-b border-border text-[11px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                        <th scope="col" className="py-3.5 px-4 sm:px-6">
+                          Servicio
+                        </th>
+                        <th scope="col" className="py-3.5 px-4 text-center">
+                          Duración
+                        </th>
+                        <th scope="col" className="py-3.5 px-4 text-right">
+                          Precio
+                        </th>
+                        <th scope="col" className="py-3.5 px-4 text-center">
+                          Estado
+                        </th>
+                        <th
+                          scope="col"
+                          className="py-3.5 px-4 sm:px-6 text-right"
                         >
-                          <td className="py-3.5 px-4 sm:px-6">
-                            <div className="space-y-0.5">
-                              <span className="font-semibold text-text-primary block">
-                                {s.nombre}
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border text-xs sm:text-sm">
+                      {servicios.map((s) => {
+                        const duracion =
+                          s.duracion_minutos ?? s.duracionMinutos ?? 30;
+                        const isActivo = s.activo !== false;
+                        const isUpdating = updatingServiceId === s.id;
+
+                        return (
+                          <tr
+                            key={s.id}
+                            className="hover:bg-surface-alt/50 transition-colors"
+                          >
+                            <td className="py-3.5 px-4 sm:px-6">
+                              <div className="space-y-0.5">
+                                <span className="font-semibold text-text-primary block">
+                                  {s.nombre}
+                                </span>
+                                {s.descripcion && (
+                                  <p className="text-xs text-text-secondary line-clamp-1 max-w-xs sm:max-w-md">
+                                    {s.descripcion}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 font-mono text-text-primary px-2.5 py-1 rounded-md bg-surface-alt border border-border/70 text-xs">
+                                <Clock className="w-3 h-3 text-text-muted" />
+                                <span>{duracion} min</span>
                               </span>
-                              {s.descripcion && (
-                                <p className="text-xs text-text-secondary line-clamp-1 max-w-xs sm:max-w-md">
-                                  {s.descripcion}
-                                </p>
-                              )}
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 font-mono text-text-primary px-2.5 py-1 rounded-md bg-surface-alt border border-border/70 text-xs">
-                              <Clock className="w-3 h-3 text-text-muted" />
-                              <span>{duracion} min</span>
-                            </span>
-                          </td>
-
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <span className="font-mono font-bold text-text-primary">
-                              $
-                              {Number(s.precio).toLocaleString("es-MX", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}{" "}
-                              <span className="text-[10px] text-text-muted font-normal">
-                                MXN
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                              <span className="font-mono font-bold text-text-primary">
+                                $
+                                {Number(s.precio).toLocaleString("es-MX", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}{" "}
+                                <span className="text-[10px] text-text-muted font-normal">
+                                  MXN
+                                </span>
                               </span>
-                            </span>
-                          </td>
+                            </td>
 
-                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
-                                isActivo
-                                  ? "bg-mint-soft text-mint-dark border-mint/20"
-                                  : "bg-surface-alt text-text-muted border-border"
-                              }`}
-                            >
-                              {isActivo ? "ACTIVO" : "PAUSADO"}
-                            </span>
-                          </td>
+                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                              <Badge
+                                variant={isActivo ? "success" : "neutral"}
+                                size="sm"
+                                dot
+                              >
+                                {isActivo ? "ACTIVA" : "PAUSADA"}
+                              </Badge>
+                            </td>
 
-                          <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              disabled={isUpdating}
-                              onClick={() =>
-                                handleToggleServicioActivo(s.id, isActivo)
-                              }
-                              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors cursor-pointer min-h-[32px] ${
-                                isActivo
-                                  ? "border-border text-text-secondary hover:bg-surface-alt hover:text-text-primary"
-                                  : "border-mint/30 bg-mint-soft text-mint-dark hover:bg-mint/20"
-                              } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
-                              aria-label={
-                                isActivo
-                                  ? `Pausar servicio ${s.nombre}`
-                                  : `Activar servicio ${s.nombre}`
-                              }
-                            >
-                              {isUpdating
-                                ? "…"
-                                : isActivo
-                                  ? "Pausar"
-                                  : "Activar"}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant={isActivo ? "outline" : "secondary"}
+                                  size="sm"
+                                  disabled={isUpdating}
+                                  onClick={() =>
+                                    handleToggleServicioActivo(s.id, isActivo)
+                                  }
+                                  aria-label={
+                                    isActivo
+                                      ? `Pausar servicio ${s.nombre}`
+                                      : `Activar servicio ${s.nombre}`
+                                  }
+                                  className="h-8 px-3 text-xs"
+                                >
+                                  {isUpdating
+                                    ? "…"
+                                    : isActivo
+                                      ? "Pausar"
+                                      : "Activar"}
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteServicio(s)}
+                                  aria-label={`Eliminar servicio ${s.nombre}`}
+                                  className="h-8 px-2.5 text-xs"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span className="hidden lg:inline">Eliminar</span>
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 2. Transformación Responsive Mobile (block sm:hidden) con pares clave:valor */}
+              <div className="block sm:hidden space-y-4">
+                {servicios.map((s) => {
+                  const duracion =
+                    s.duracion_minutos ?? s.duracionMinutos ?? 30;
+                  const isActivo = s.activo !== false;
+                  const isUpdating = updatingServiceId === s.id;
+
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <h3 className="font-bricolage font-bold text-base text-text-primary">
+                            {s.nombre}
+                          </h3>
+                          {s.descripcion && (
+                            <p className="text-xs text-text-secondary line-clamp-2">
+                              {s.descripcion}
+                            </p>
+                          )}
+                        </div>
+                        <Badge
+                          variant={isActivo ? "success" : "neutral"}
+                          size="sm"
+                          dot
+                        >
+                          {isActivo ? "ACTIVA" : "PAUSADA"}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-2 pt-1 border-t border-border/60 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-text-muted font-medium">
+                            Duración:
+                          </span>
+                          <span className="font-mono font-semibold text-text-primary inline-flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-text-muted" />
+                            <span>{duracion} min</span>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-text-muted font-medium">
+                            Precio:
+                          </span>
+                          <span className="font-mono font-bold text-text-primary text-sm">
+                            $
+                            {Number(s.precio).toLocaleString("es-MX", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}{" "}
+                            <span className="text-[10px] text-text-muted font-normal">
+                              MXN
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border flex items-center justify-end gap-2">
+                        <Button
+                          variant={isActivo ? "outline" : "secondary"}
+                          size="sm"
+                          disabled={isUpdating}
+                          onClick={() =>
+                            handleToggleServicioActivo(s.id, isActivo)
+                          }
+                          aria-label={
+                            isActivo
+                              ? `Pausar servicio ${s.nombre}`
+                              : `Activar servicio ${s.nombre}`
+                          }
+                          className="h-8 px-3 text-xs"
+                        >
+                          {isUpdating
+                            ? "…"
+                            : isActivo
+                              ? "Pausar"
+                              : "Activar"}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteServicio(s)}
+                          aria-label={`Eliminar servicio ${s.nombre}`}
+                          className="h-8 px-2.5 text-xs"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Eliminar</span>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </section>
       )}
 
+      {/* Modales de Creación */}
       <ModalNuevaSucursal
         isOpen={modalSucursalOpen}
         onClose={() => setModalSucursalOpen(false)}
@@ -564,6 +927,9 @@ export default function SucursalesPage() {
         isOpen={modalServicioOpen}
         onClose={() => setModalServicioOpen(false)}
       />
+
+      {/* 4. Confirmación Crítica Nivel 2 */}
+      <ConfirmDialog {...confirmDialog.dialogProps} />
     </div>
   );
 }

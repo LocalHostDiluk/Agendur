@@ -602,3 +602,73 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     });
   }
 }
+
+/**
+ * DELETE /api/negocio/profesionales
+ * Elimina un profesional del negocio autenticado.
+ */
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const auth = await getAuthenticatedNegocio();
+    if (!auth.ok) return auth.error;
+
+    const { negocio } = auth;
+    const { searchParams } = new URL(request.url);
+    let id = searchParams.get("id");
+
+    if (!id) {
+      const body = await request.json().catch(() => null);
+      if (body && typeof body === "object" && "id" in body) {
+        id = String((body as Record<string, unknown>).id);
+      }
+    }
+
+    if (!id || typeof id !== "string" || !id.trim()) {
+      return apiError("ID de profesional requerido.", undefined, {
+        status: 400,
+      });
+    }
+
+    const profesionalId = id.trim();
+    const sucursalIds = await getNegocioSucursalesIds(negocio.id);
+
+    if (sucursalIds.length === 0) {
+      return apiError(
+        "Profesional no encontrado o no pertenece a este negocio.",
+        undefined,
+        { status: 404 },
+      );
+    }
+
+    const { data: profesionalExistente, error: findError } = await adminClient
+      .from("profesionales")
+      .select("id")
+      .eq("id", profesionalId)
+      .in("sucursal_id", sucursalIds)
+      .maybeSingle();
+
+    if (findError || !profesionalExistente) {
+      return apiError(
+        "Profesional no encontrado o no pertenece a este negocio.",
+        undefined,
+        { status: 404 },
+      );
+    }
+
+    const { error: deleteError } = await adminClient
+      .from("profesionales")
+      .delete()
+      .eq("id", profesionalId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    return apiSuccess({ success: true, id: profesionalId });
+  } catch (error: unknown) {
+    return apiError(error, "Error interno al eliminar el profesional.", {
+      extra: { route: "DELETE /api/negocio/profesionales" },
+    });
+  }
+}
+

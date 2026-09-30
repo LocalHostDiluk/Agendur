@@ -7,7 +7,6 @@ import {
   Clock,
   Check,
   XCircle,
-  UserX,
   Phone,
   MessageCircle,
   Mail,
@@ -16,8 +15,6 @@ import {
   User,
   Sparkles,
   FileText,
-  Loader2,
-  AlertCircle,
 } from "lucide-react";
 import type {
   Cita,
@@ -28,6 +25,8 @@ import type {
 } from "@/lib/types";
 import { useUpdateCitaEstado, useConfirmDialog } from "@/lib/hooks";
 import { notify } from "@/lib/utils/toast";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export interface CitaDetailDrawerProps {
@@ -59,49 +58,40 @@ function formatDateSpanish(dateStr: string): string {
   return dateStr;
 }
 
-function getBadgeConfig(estado: EstadoCita) {
+function getBadgeConfig(estado: EstadoCita): {
+  label: string;
+  variant: "success" | "warning" | "danger" | "grape" | "neutral";
+} {
   switch (estado) {
     case "confirmada":
       return {
         label: "Confirmada",
-        containerClass: "bg-mint-soft text-mint-dark border-mint/20",
-        icon: CheckCircle2,
-        iconColor: "text-mint",
+        variant: "success",
       };
     case "pendiente_pago":
       return {
         label: "Pendiente de pago",
-        containerClass: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-        icon: Clock,
-        iconColor: "text-amber-600",
+        variant: "warning",
       };
     case "completada":
       return {
         label: "Completada",
-        containerClass: "bg-grape-soft text-grape border-grape/20",
-        icon: Check,
-        iconColor: "text-grape",
+        variant: "grape",
       };
     case "cancelada":
       return {
         label: "Cancelada",
-        containerClass: "bg-danger/10 text-danger border-danger/20",
-        icon: XCircle,
-        iconColor: "text-danger",
+        variant: "danger",
       };
     case "no_asistio":
       return {
         label: "No asistió",
-        containerClass: "bg-zinc-500/10 text-zinc-600 border-zinc-500/20",
-        icon: UserX,
-        iconColor: "text-zinc-600",
+        variant: "neutral",
       };
     default:
       return {
         label: estado,
-        containerClass: "bg-surface-alt text-text-secondary border-border",
-        icon: AlertCircle,
-        iconColor: "text-text-muted",
+        variant: "neutral",
       };
   }
 }
@@ -201,6 +191,12 @@ export function CitaDetailDrawer({
   const clienteEmail =
     currentCita.cliente_email ?? currentCita.clienteEmail ?? null;
 
+  const isClienteNuevo = Boolean(
+    currentCita.notas_cliente?.toLowerCase().includes("primera vez") ||
+    currentCita.notas_cliente?.toLowerCase().includes("primer") ||
+    currentCita.notas_cliente?.toLowerCase().includes("nuevo")
+  );
+
   const fechaFormateada = formatDateSpanish(currentCita.fecha);
   const horaInicio = currentCita.hora_inicio ?? currentCita.hora ?? "";
   const horaFin = currentCita.hora_fin ?? "";
@@ -208,7 +204,6 @@ export function CitaDetailDrawer({
 
   const folio = `#AG-${currentCita.id.slice(0, 6).toUpperCase()}`;
   const badgeConfig = getBadgeConfig(currentCita.estado);
-  const BadgeIcon = badgeConfig.icon;
 
   // Manejador para guardar notas
   const handleGuardarNotas = async () => {
@@ -233,7 +228,15 @@ export function CitaDetailDrawer({
   // Manejador para actualizar estado rápido (1 clic)
   const handleUpdateEstado = async (nuevoEstado: EstadoCita) => {
     if (nuevoEstado === "cancelada") {
-      const confirmed = await confirmAction("cancelar_cita");
+      const confirmed = await confirmAction({
+        type: "cancelar_cita",
+        level: 1,
+        targetName: folio,
+        consequences: [
+          "Se notificará al cliente por WhatsApp de la cancelación.",
+          "El horario quedará liberado inmediatamente en la agenda.",
+        ],
+      });
       if (!confirmed) return;
     }
 
@@ -267,7 +270,7 @@ export function CitaDetailDrawer({
     <>
       {/* Backdrop oscuro */}
       <div
-        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-200 ${
           isOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -276,12 +279,12 @@ export function CitaDetailDrawer({
         aria-hidden="true"
       />
 
-      {/* Drawer lateral */}
+      {/* Drawer lateral: ancho 420px en desktop, pantalla completa en móvil (§5.10) */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-cita-title"
-        className={`fixed inset-y-0 right-0 z-50 w-full max-w-md bg-surface border-l border-border shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full h-full bg-surface border-l border-border shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform duration-250 ease-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -309,42 +312,49 @@ export function CitaDetailDrawer({
               Detalle de Cita
             </h2>
 
-            {/* Badge grande de estado */}
-            <div
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeConfig.containerClass}`}
-            >
-              <BadgeIcon
-                className={`w-3.5 h-3.5 ${badgeConfig.iconColor}`}
-                strokeWidth={2}
-              />
-              <span>{badgeConfig.label}</span>
-            </div>
+            {/* Badge oficial con dot (§5.12) */}
+            <Badge variant={badgeConfig.variant} size="md" dot>
+              {badgeConfig.label}
+            </Badge>
           </div>
         </div>
 
         {/* Contenido scrolleable */}
         <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto">
-          {/* Sección Cliente */}
+          {/* Sección Ficha del Cliente Embebida (§5.10) */}
           <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-              Cliente
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                Ficha del Cliente
+              </h3>
+              <Badge
+                variant={isClienteNuevo ? "info" : "grape"}
+                size="sm"
+                dot
+              >
+                {isClienteNuevo ? "Cliente nuevo" : "Cliente recurrente"}
+              </Badge>
+            </div>
+
             <div className="p-4 rounded-xl bg-surface-alt/50 border border-border space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-grape-soft text-grape flex items-center justify-center font-bold text-xs font-bricolage shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-grape-soft text-grape flex items-center justify-center font-bold text-sm font-bricolage shrink-0">
                   {nombreCliente.charAt(0).toUpperCase()}
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-text-primary truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bricolage font-bold text-base text-text-primary truncate">
                     {nombreCliente}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {isClienteNuevo ? "Primera cita agendada" : "Historial activo"}
                   </p>
                 </div>
               </div>
 
               {/* Teléfono y Acciones de 1 clic */}
               {cleanPhone ? (
-                <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-xs font-medium text-text-primary">
+                <div className="pt-2.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono tabular-nums text-xs font-medium text-text-primary">
                     {rawPhone}
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -353,10 +363,11 @@ export function CitaDetailDrawer({
                       href={`https://wa.me/${waPhone}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 transition-colors cursor-pointer"
+                      aria-label="Contactar por WhatsApp"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 transition-all cursor-pointer"
                     >
                       <MessageCircle
-                        className="w-3.5 h-3.5"
+                        className="w-3.5 h-3.5 shrink-0"
                         strokeWidth={1.75}
                       />
                       <span>WhatsApp</span>
@@ -365,9 +376,10 @@ export function CitaDetailDrawer({
                     {/* Botón Llamada */}
                     <a
                       href={`tel:${cleanPhone}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-surface hover:bg-surface-alt border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                      aria-label="Llamar al cliente"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface hover:bg-surface-alt border border-border text-text-secondary hover:text-text-primary transition-all cursor-pointer"
                     >
-                      <Phone className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <Phone className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
                       <span>Llamar</span>
                     </a>
                   </div>
@@ -393,6 +405,16 @@ export function CitaDetailDrawer({
                   </a>
                 </div>
               )}
+
+              {/* Historial resumido de citas */}
+              <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-text-secondary">
+                <span className="text-text-muted">Historial resumido:</span>
+                <span className="font-medium text-text-primary">
+                  {isClienteNuevo
+                    ? "1 cita registrada (primera visita)"
+                    : "Cliente recurrente con historial"}
+                </span>
+              </div>
             </div>
           </section>
 
@@ -425,7 +447,7 @@ export function CitaDetailDrawer({
                     {precioFormatted}
                   </span>
                   {currentCita.monto_anticipo_pagado ? (
-                    <span className="font-mono text-[11px] text-mint font-medium block">
+                    <span className="font-mono text-[11px] text-success font-medium block">
                       Anticipo: $
                       {Number(currentCita.monto_anticipo_pagado).toLocaleString(
                         "es-MX",
@@ -499,89 +521,66 @@ export function CitaDetailDrawer({
                 className="w-full text-xs sm:text-sm bg-surface border border-border rounded-xl p-3 text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-grape focus:ring-1 focus:ring-grape transition-all resize-none shadow-2xs"
               />
               <div className="flex justify-end">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={handleGuardarNotas}
+                  isLoading={isSavingNotas}
                   disabled={isSavingNotas || isMutating}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface hover:bg-surface-alt border border-border text-text-primary transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isSavingNotas ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-grape" />
-                      <span>Guardando...</span>
-                    </>
-                  ) : (
-                    <span>Guardar notas</span>
-                  )}
-                </button>
+                  Guardar notas
+                </Button>
               </div>
             </div>
           </section>
         </div>
 
-        {/* Pie de acciones rápidas en 1 clic */}
+        {/* Pie de acciones rápidas con Button oficial (§5.13) */}
         <div className="p-5 border-t border-border bg-surface shrink-0 space-y-2">
           {/* Botón primario: Confirmar o Marcar completada */}
           {currentCita.estado !== "confirmada" ? (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="md"
+              className="w-full min-h-[44px]"
               onClick={() => handleUpdateEstado("confirmada")}
+              isLoading={pendingEstado === "confirmada"}
               disabled={isMutating}
-              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl text-sm font-semibold bg-mint hover:bg-mint-dark text-white transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
             >
-              {pendingEstado === "confirmada" ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Confirmando...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                  <span>Confirmar cita</span>
-                </>
-              )}
-            </button>
+              <CheckCircle2 className="w-4 h-4 mr-1.5" strokeWidth={2} />
+              <span>Confirmar cita</span>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="md"
+              className="w-full min-h-[44px]"
               onClick={() => handleUpdateEstado("completada")}
+              isLoading={pendingEstado === "completada"}
               disabled={isMutating}
-              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl text-sm font-semibold bg-grape hover:bg-grape/90 text-white transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
             >
-              {pendingEstado === "completada" ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Completando...</span>
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" strokeWidth={2} />
-                  <span>Marcar completada</span>
-                </>
-              )}
-            </button>
+              <Check className="w-4 h-4 mr-1.5" strokeWidth={2} />
+              <span>Marcar completada</span>
+            </Button>
           )}
 
-          {/* Botón destructivo: Cancelar cita */}
+          {/* Botón destructivo: Cancelar cita con ConfirmDialog Nivel 1 */}
           {currentCita.estado !== "cancelada" && (
-            <button
+            <Button
               type="button"
+              variant="destructive"
+              size="md"
+              className="w-full min-h-[44px]"
               onClick={() => handleUpdateEstado("cancelada")}
+              isLoading={pendingEstado === "cancelada"}
               disabled={isMutating}
-              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl text-sm font-semibold text-danger hover:bg-danger/10 border border-transparent hover:border-danger/20 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {pendingEstado === "cancelada" ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Cancelando...</span>
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-4 h-4" strokeWidth={1.75} />
-                  <span>Cancelar cita</span>
-                </>
-              )}
-            </button>
+              <XCircle className="w-4 h-4 mr-1.5" strokeWidth={1.75} />
+              <span>Cancelar cita</span>
+            </Button>
           )}
         </div>
       </aside>
