@@ -35,13 +35,13 @@ import {
 import {
   ModalNuevoColaborador,
   ModalEditarColaborador,
+  HorariosEspecialesPanel,
   type ColaboradorCreadoPayload,
 } from "@/components/negocio";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@/lib/utils/toast";
 import type { Profesional } from "@/lib/types";
 
@@ -1285,6 +1285,11 @@ export default function PersonalPage({
                   </tbody>
                 </table>
               </div>
+              <HorariosEspecialesPanel
+                sucursales={sucursales}
+                profesionales={todosLosColaboradores}
+                canWrite={auth?.access?.capabilities.includes("branches:write") ?? false}
+              />
             </div>
           )}
         </>

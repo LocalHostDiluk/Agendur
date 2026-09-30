@@ -91,6 +91,20 @@ try {
     profesional_id: professionals[0].id, dia_semana: weekday,
     hora_inicio: "09:00", hora_fin: "17:00", es_laborable: true,
   });
+  const specialProfessional = await api(0, "/api/negocio/horarios-especiales", 200, "PUT", {
+    tipo: "profesional", recursoId: professionals[0].id, fecha: bookingDate,
+    cerrado: false, motivo: "wave3 remote check",
+    bloques: [{ inicio: "09:00", fin: "12:00" }, { inicio: "14:00", fin: "17:00" }],
+  });
+  ok(specialProfessional.excepciones?.length === 2, "Special schedule stores multiple professional blocks");
+  const specialBranch = await api(0, "/api/negocio/horarios-especiales", 200, "PUT", {
+    tipo: "sucursal", recursoId: branches[1].id, fecha: bookingDate,
+    cerrado: true, motivo: "wave3 remote close", bloques: [],
+  });
+  ok(specialBranch.excepciones?.length === 1 && specialBranch.excepciones[0].cerrado, "Special schedule stores a full branch closure");
+  const listedSpecial = await api(0, `/api/negocio/horarios-especiales?tipo=profesional&recursoId=${professionals[0].id}`, 200);
+  ok(listedSpecial.excepciones?.length === 2, "Special schedules can be listed");
+  await api(0, `/api/negocio/horarios-especiales?tipo=sucursal&recursoId=${branches[1].id}&fecha=${bookingDate}`, 200, "DELETE");
   const bookingBody = {
     sucursalId: branches[0].id,
     servicioId: service.id,
@@ -123,7 +137,7 @@ try {
   const conflictingIdentity = await fetch(`${origin}/api/cliente/reservas`, {
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json" },
-    body: JSON.stringify({ ...bookingBody, hora: "12:00", clientePhone: "+528187654321" }),
+    body: JSON.stringify({ ...bookingBody, hora: "14:00", clientePhone: "+528187654321" }),
   });
   const conflictingPayload = await conflictingIdentity.json();
   ok(conflictingIdentity.status === 400 && conflictingPayload.code === "INVALID_BOOKING_DATA", "Conflicting customer identity is rejected");
