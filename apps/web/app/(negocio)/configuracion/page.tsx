@@ -29,6 +29,7 @@ import {
   Send,
   Smartphone,
   Info,
+  Trash2,
   Image as ImageIcon,
   CheckCheck,
 } from "lucide-react";

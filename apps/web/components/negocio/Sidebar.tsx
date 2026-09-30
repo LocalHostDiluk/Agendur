@@ -114,6 +114,7 @@ export function Sidebar({
   const { data: profile } = useAuthMe();
   const { data: sucursalesData } = useSucursales();
   const sucursales = sucursalesData?.sucursales ?? [];
+  const permittedModules = navModules;
   const { confirm: confirmAction, dialogProps: confirmDialogProps } =
     useConfirmDialog();
 

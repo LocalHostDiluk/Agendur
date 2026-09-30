@@ -19,7 +19,6 @@ import {
   Trash2,
   ShieldCheck,
   X,
-  Shield,
   Lock,
 } from "lucide-react";
 import {
@@ -42,13 +41,21 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
-import { useState, type FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthMe } from "@/lib/hooks/use-auth-me";
-import { useSucursales, useServicios } from "@/lib/hooks/use-negocio-data";
-import { apiFetch } from "@/lib/query/api-client";
 import { notify } from "@/lib/utils/toast";
 import type { Profesional } from "@/lib/types";
+
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`bg-surface-alt rounded ${className}`} />;
+}
+
+function SkeletonText({ className = "" }: { className?: string }) {
+  return <SkeletonBlock className={className} />;
+}
+
+function SkeletonCircle({ className = "" }: { className?: string }) {
+  return <SkeletonBlock className={`rounded-full ${className}`} />;
+}
 
 const DIAS_SEMANA_HEADERS = [
   { dia: 1, nombre: "Lunes", corto: "Lun" },
@@ -379,8 +386,8 @@ export default function PersonalPage({
 
     return Array.from(map.values());
   }, [
-    profesionalesData?.profesionales,
-    catalogoData?.data?.profesionales,
+    profesionalesData,
+    catalogoData,
     colaboradoresLocales,
   ]);
 
@@ -522,6 +529,7 @@ export default function PersonalPage({
   };
 
   return (
+    <>
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
@@ -1313,42 +1321,6 @@ export default function PersonalPage({
       {/* Diálogo de Confirmación (Nivel 1 para desactivar, Nivel 2 con verificationText para eliminar) */}
       <ConfirmDialog {...confirmDialog.dialogProps} />
     </div>
-    <div className="flex flex-col sm:flex-row gap-4"><input aria-label="Buscar personal" placeholder="Buscar personal" value={search} onChange={e => setSearch(e.target.value)} className={`${control} flex-1`} />
-      <select aria-label="Filtrar sucursal" value={branch} onChange={e => setBranch(e.target.value)} className={`${control} flex-1`}><option value="">Todas las sucursales</option>{branchData?.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
-    {personal.isLoading && <p data-testid="personal-loading" className="animate-pulse">Cargando personal…</p>}
-    {personal.isError && <div role="alert">No se pudo consultar el personal. <button onClick={() => personal.refetch()}>Reintentar</button></div>}
-    {personal.data && members.length === 0 && <p>Aún no tienes personal registrado</p>}
-    <div className="grid gap-4">{members.map(p => <article key={p.id} className="rounded-xl border border-border bg-surface p-4 space-y-2 break-words min-w-0">
-      <h2 className="font-semibold">{p.nombre || p.email} {p.apellido}</h2><p>{labels[p.rol]} · {p.activo ? "Activo" : "Inactivo"}</p>
-      <p>{branchData?.sucursales.find(s => s.id === p.sucursalId)?.nombre ?? "Todas las sucursales"}</p>
-      {tab === "horarios" ? <p>{p.horarios?.length ? p.horarios.map(h => `${days[h.dia_semana]} ${h.hora_inicio.slice(0, 5)}–${h.hora_fin.slice(0, 5)}`).join(" · ") : "Sin horarios registrados"}</p> : <>
-        <p>{p.email}</p><p>{p.servicioIds.map(id => serviceData?.servicios.find(s => s.id === id)?.nombre).filter(Boolean).join(", ")}</p>
-        {p.kind === "professional" && <p>{p.usuarioId ? "Acceso vinculado" : "Sin cuenta de acceso vinculada"}</p>}
-      </>}
-      {canWrite && <div className="flex flex-wrap gap-3">
-        <button disabled={mutation.isPending} aria-label={`${p.activo ? "Desactivar" : "Activar"} a ${p.nombre || p.email}`} onClick={() => mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, activo: !p.activo } })}>{p.activo ? "Desactivar" : "Activar"}</button>
-        {p.kind === "collaborator" && <select aria-label={`Rol de ${p.email}`} value={p.rol} disabled={mutation.isPending} onChange={e => {
-          const rol = e.target.value;
-          const sucursalId = p.sucursalId ?? branchData?.sucursales[0]?.id;
-          if (rol === "receptionist" && !sucursalId) return notify.error("Primero registra una sucursal");
-          mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, rol, sucursalId } });
-        }}><option value="manager">Gerente</option><option value="receptionist">Recepcionista</option></select>}
-        {p.rol !== "manager" && <select aria-label={`Sucursal de ${p.email}`} value={p.sucursalId ?? ""} disabled={mutation.isPending} onChange={e => mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, sucursalId: e.target.value } })}>{branchData?.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select>}
-        {p.kind === "professional" && !p.usuarioId && <button onClick={() => mutation.mutate({ method: "PATCH", payload: { id: p.id, kind: p.kind, usuarioEmail: p.email } })}>Vincular cuenta registrada</button>}
-      </div>}
-    </article>)}</div>
-    {adding && canWrite && <form onSubmit={submit} className="rounded-xl border p-4 space-y-3" aria-label="Registrar colaborador">
-      <p>Gerentes y recepcionistas deben tener una cuenta registrada. Podrán elegir este negocio al iniciar sesión.</p>
-      <label className="block">Rol <select aria-label="Rol del colaborador" value={role} onChange={e => setRole(e.target.value as Member["rol"])} className={`${control} block mt-1 w-full`}>{Object.entries(labels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-      <label className="block">Correo <input name="email" type="email" required maxLength={254} className={`${control} block mt-1 w-full`} /></label>
-      {role !== "manager" && <label className="block">Sucursal <select name="sucursalId" required className={`${control} block mt-1 w-full`}><option value="">Seleccionar</option>{branchData?.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></label>}
-      {role === "professional" && <>
-        <label className="block">Nombre <input name="nombre" required maxLength={120} className={`${control} block mt-1 w-full`} /></label>
-        <label className="block">Apellido <input name="apellido" required maxLength={120} className={`${control} block mt-1 w-full`} /></label>
-        <label className="block">Teléfono <input name="telefono" type="tel" maxLength={20} className={`${control} block mt-1 w-full`} /></label>
-        <fieldset><legend>Servicios</legend>{serviceData?.servicios.map(s => <label key={s.id} className="block"><input name="servicioIds" type="checkbox" value={s.id} /> {s.nombre}</label>)}</fieldset>
-      </>}
-      <div className="flex flex-wrap gap-3"><button className={primaryButton} type="submit" disabled={mutation.isPending}>Guardar colaborador</button><button className="rounded-md border border-border px-4 py-2 text-sm" type="button" onClick={() => setAdding(false)}>Cancelar</button></div>
-    </form>}
-  </div>;
+    </>
+  );
 }
