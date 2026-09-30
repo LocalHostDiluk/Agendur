@@ -35,6 +35,7 @@ import {
 import { notify } from "@/lib/utils/toast";
 import { getDashboardIncomeMetrics, getDashboardOccupancy, getDashboardAbsences } from "@/lib/utils/dashboard-metrics";
 import { getBusinessToday } from "@/lib/utils/business-date";
+import { getDashboardDailySeries, getDashboardMonthlySeries } from "@/lib/utils/dashboard-series";
 import {
   useAuthMe,
   useCitasNegocio,
@@ -170,56 +171,10 @@ export default function DashboardPage() {
   const { tasaInasistencias, totalCanceladas, inasistenciasElevadas } = useMemo(() => getDashboardAbsences(citas), [citas]);
 
   // Chart 1: Serie diaria según rango
-  const citasPorDia = useMemo(() => {
-    const series = [];
-    const now = new Date();
-    const days = rangoCitas === "30d" ? 30 : now.getDate();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      const dateStr = `${yyyy}-${mm}-${dd}`;
-      const count = citas.filter((c) => c.fecha === dateStr).length;
-      const label = d.toLocaleDateString("es-MX", {
-        day: "numeric",
-        month: "short",
-      });
-      series.push({
-        date: dateStr,
-        label,
-        citas: count,
-      });
-    }
-    return series;
-  }, [citas, rangoCitas]);
+  const citasPorDia = useMemo(() => getDashboardDailySeries(citas, rangoCitas), [citas, rangoCitas]);
 
   // Chart 2: 6 months income series
-  const ingresosPorMes = useMemo(() => {
-    const series = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const prefix = `${yyyy}-${mm}`;
-      const monthLabel = d.toLocaleDateString("es-MX", { month: "short" });
-      const total = citas
-        .filter(
-          (c) =>
-            c.fecha?.startsWith(prefix) &&
-            (c.estado === "confirmada" || c.estado === "completada"),
-        )
-        .reduce((sum, c) => sum + (c.precio_total ?? 0), 0);
-      series.push({
-        month: prefix,
-        label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
-        ingresos: total,
-      });
-    }
-    return series;
-  }, [citas]);
+  const ingresosPorMes = useMemo(() => getDashboardMonthlySeries(citas), [citas]);
 
   const totalCitasMostradas = useMemo(
     () => citasPorDia.reduce((acc, curr) => acc + curr.citas, 0),
