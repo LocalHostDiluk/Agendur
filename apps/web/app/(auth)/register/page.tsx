@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -20,15 +18,8 @@ import {
   UserRound,
 } from "lucide-react";
 import TurnstileWidget from "@/components/security/TurnstileWidget";
-import { useRegisterBrand } from "@/lib/hooks";
-import { triggerRegisterConfetti } from "@/lib/utils/confetti";
-import { notify } from "@/lib/utils/toast";
+import { useRegisterForm } from "@/lib/hooks";
 import { getPasswordStrength } from "@/lib/utils/password-strength";
-import {
-  validateRegisterStep1,
-  validateRegisterStep2,
-  validateRegisterStep3,
-} from "@/lib/utils/register-validation";
 
 const STEPS = [
   { number: 1, label: "Cuenta" },
@@ -76,195 +67,73 @@ const stepVariants = {
 };
 
 export default function RegisterPage() {
-  const router = useRouter();
-
-  // Wizard step state
-  const [step, setStep] = useState(1);
-  const [direction, setDirection] = useState(1);
-
-  // Step 1: Cuenta
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [aceptaTerminosYPrivacidad, setAceptaTerminosYPrivacidad] =
-    useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [legalError, setLegalError] = useState("");
-
-  // Step 2: Perfil personal
-  const [nombres, setNombres] = useState("");
-  const [apellidos, setApellidos] = useState("");
-  const [codigoPais, setCodigoPais] = useState("+52");
-  const [telefono, setTelefono] = useState("");
-  const [rol, setRol] = useState("Dueño");
-  const [nombresError, setNombresError] = useState("");
-  const [apellidosError, setApellidosError] = useState("");
-  const [phoneError, setPhoneError] = useState("");
-
-  // Step 3: Negocio
-  const [nombreComercial, setNombreComercial] = useState("");
-  const [giroComercial, setGiroComercial] = useState(GIROS_PREDEFINIDOS[0]);
-  const [otroGiro, setOtroGiro] = useState("");
-  const [sucursales, setSucursales] = useState<"1" | "2–3" | "4+">("1");
-  const [ciudad, setCiudad] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileKey, setTurnstileKey] = useState(0);
-  const [nombreComercialError, setNombreComercialError] = useState("");
-  const [otroGiroError, setOtroGiroError] = useState("");
-  const [ciudadError, setCiudadError] = useState("");
-  const [turnstileError, setTurnstileError] = useState("");
-
-  // Global form state
-  const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
-  const errorRef = useRef<HTMLDivElement>(null);
+  const form = useRegisterForm();
+  const {
+    step,
+    direction,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    showPassword,
+    setShowPassword,
+    aceptaTerminosYPrivacidad,
+    setAceptaTerminosYPrivacidad,
+    emailError,
+    setEmailError,
+    passwordError,
+    setPasswordError,
+    legalError,
+    setLegalError,
+    nombres,
+    setNombres,
+    apellidos,
+    setApellidos,
+    codigoPais,
+    setCodigoPais,
+    telefono,
+    setTelefono,
+    rol,
+    setRol,
+    nombresError,
+    setNombresError,
+    apellidosError,
+    setApellidosError,
+    phoneError,
+    setPhoneError,
+    nombreComercial,
+    setNombreComercial,
+    giroComercial,
+    setGiroComercial,
+    otroGiro,
+    setOtroGiro,
+    sucursales,
+    setSucursales,
+    ciudad,
+    setCiudad,
+    turnstileToken,
+    setTurnstileToken,
+    turnstileKey,
+    nombreComercialError,
+    setNombreComercialError,
+    otroGiroError,
+    setOtroGiroError,
+    ciudadError,
+    setCiudadError,
+    turnstileError,
+    setTurnstileError,
+    loading,
+    formError,
+    registeredEmail,
+    errorRef,
+    handleStep1Next,
+    handleStep2Next,
+    handlePrevStep,
+    handleSubmit,
+  } = form;
 
   const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL || "/legal/terminos";
   const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || "/legal/privacidad";
-
-  // Brand copy synchronization based on active step
-  useRegisterBrand(step);
-
-  const showError = (message: string) => {
-    setFormError(message);
-    requestAnimationFrame(() => errorRef.current?.focus());
-  };
-
-  // Step 1 Validation & Next
-  const handleStep1Next = () => {
-    const { isValid, errors } = validateRegisterStep1({
-      email,
-      password,
-      aceptaTerminosYPrivacidad,
-    });
-    setEmailError(errors.email);
-    setPasswordError(errors.password);
-    setLegalError(errors.legal);
-
-    if (isValid) {
-      setFormError("");
-      setDirection(1);
-      setStep(2);
-    }
-  };
-
-  // Step 2 Validation & Next
-  const handleStep2Next = () => {
-    const { isValid, errors } = validateRegisterStep2({
-      nombres,
-      apellidos,
-      telefono,
-    });
-    setNombresError(errors.nombres);
-    setApellidosError(errors.apellidos);
-    setPhoneError(errors.phone);
-
-    if (isValid) {
-      setFormError("");
-      setDirection(1);
-      setStep(3);
-    }
-  };
-
-  const handlePrevStep = () => {
-    if (step > 1) {
-      setFormError("");
-      setDirection(-1);
-      setStep((prev) => prev - 1);
-    }
-  };
-
-  // Step 3 Submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (step === 1) {
-      handleStep1Next();
-      return;
-    }
-    if (step === 2) {
-      handleStep2Next();
-      return;
-    }
-
-    const { isValid, errors } = validateRegisterStep3({
-      nombreComercial,
-      giroComercial,
-      otroGiro,
-      ciudad,
-      turnstileToken,
-    });
-    setNombreComercialError(errors.nombreComercial);
-    setOtroGiroError(errors.otroGiro);
-    setCiudadError(errors.ciudad);
-    setTurnstileError(errors.turnstile);
-
-    if (!isValid) return;
-
-    const giroFinal =
-      giroComercial === "Otro" ? otroGiro.trim() : giroComercial;
-
-    setLoading(true);
-    setFormError("");
-
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombreComercial: nombreComercial.trim(),
-          giroComercial: giroFinal,
-          nombres: nombres.trim(),
-          apellidos: apellidos.trim(),
-          email: email.trim(),
-          password,
-          confirmarPassword: password,
-          aceptaTerminos: true,
-          aceptaPrivacidad: true,
-          termsVersionAccepted: process.env.NEXT_PUBLIC_TERMS_VERSION || "v1",
-          privacyVersionAccepted: process.env.NEXT_PUBLIC_PRIVACY_VERSION || "v1",
-          turnstileToken,
-          telefono: `${codigoPais} ${telefono}`.trim(),
-          rol,
-          sucursales,
-          ciudad: ciudad.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || (!data.success && !data.ok)) {
-        throw new Error(data.error || "Error al crear la cuenta del negocio.");
-      }
-
-      triggerRegisterConfetti();
-
-      if (data.needsEmailConfirmation) {
-        setRegisteredEmail(email.trim());
-        setLoading(false);
-        notify.info(
-          "¡Verifica tu correo!",
-          "Te hemos enviado un enlace para activar tu cuenta.",
-        );
-        return;
-      }
-
-      notify.success(
-        "¡Bienvenido a Agendur!",
-        "Tu cuenta ha sido creada exitosamente.",
-      );
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err: unknown) {
-      setTurnstileKey((prev) => prev + 1);
-      setTurnstileToken(null);
-      showError(
-        err instanceof Error ? err.message : "Error al registrar cuenta.",
-      );
-      setLoading(false);
-    }
-  };
 
   // Pantalla de Confirmación de Correo
   if (registeredEmail) {
