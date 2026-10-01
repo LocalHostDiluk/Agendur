@@ -2,11 +2,6 @@
 
 import { useState, useMemo } from "react";
 import {
-  Calendar as CalendarIcon,
-  CalendarDays,
-  Clock,
-} from "lucide-react";
-import {
   useAuthMe,
   useCitasNegocio,
   useSucursales,
@@ -14,12 +9,9 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 import { getTodayString, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agendas-date";
-import { AgendasManualButton, AgendasViewTab, AgendasDateNavigation, AgendasCronograma, AgendasSemanal, AgendasMensual, AgendasLoading, AgendasError, AgendasEmpty } from "@/components/negocio";
+import { AgendasHeader, AgendasControls, AgendasCronograma, AgendasSemanal, AgendasMensual, AgendasLoading, AgendasError, AgendasEmpty } from "@/components/negocio";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
-import {
-  PendingBadge,
-} from "@/components/ui";
 import type { Cita, EstadoCita } from "@/lib/types";
 import { getMonthStart, getMonthEnd, getAgendaQueryFilters, getSortedCitas, getWeekDays, groupCitasByDay } from "@/lib/utils/agendas-data";
 import { getMonthDaysGrid } from "@/lib/utils/agendas-month-grid";
@@ -120,115 +112,12 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* Encabezado y Acciones Principales (§5.13)                               */}
       {/* ======================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bricolage font-bold text-text-primary tracking-tight">
-            Calendario & Agendas
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Visualiza y administra las citas programadas por sucursal, fecha y
-            horario.
-          </p>
-        </div>
-
-        <AgendasManualButton onClick={() => setIsManualModalOpen(true)} className="gap-2 shrink-0 min-h-[44px]" />
-      </div>
+      <AgendasHeader setIsManualModalOpen={setIsManualModalOpen} />
 
       {/* ======================================================================= */}
       {/* Barra de Control: Fecha, Alternador de Vista (3 pestañas) y Filtros     */}
       {/* ======================================================================= */}
-      <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Navegador de Fecha */}
-          <AgendasDateNavigation selectedDate={selectedDate} todayStr={todayStr} viewMode={viewMode} mondayYMD={mondayYMD} sundayYMD={sundayYMD} setSelectedDate={setSelectedDate} />
-
-          {/* Alternador Canónico de 3 Vistas (§10) y Filtros */}
-          <div className="flex items-center gap-3 flex-wrap justify-between lg:justify-end">
-            {/* Switcher 3 Pestañas: Día (Cronograma) / Semana / Mes */}
-            <div
-              role="tablist"
-              aria-label="Modo de visualización"
-              className="inline-flex items-center p-1 bg-surface-alt rounded-xl border border-border text-xs font-medium"
-            >
-              <AgendasViewTab selected={viewMode === "cronograma"} onClick={() => setViewMode("cronograma")}>
-                <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>Día (Cronograma)</span>
-              </AgendasViewTab>
-
-              <AgendasViewTab selected={viewMode === "semanal"} onClick={() => setViewMode("semanal")} title="Semanal">
-                <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>Semana</span>
-              </AgendasViewTab>
-
-              <AgendasViewTab selected={viewMode === "mensual"} onClick={() => setViewMode("mensual")} title="Mensual">
-                <CalendarIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>Mes</span>
-                <PendingBadge
-                  label="Próximamente"
-                  tooltip="Vista mensual con arrastrar y soltar en desarrollo"
-                  className="ml-0.5"
-                />
-              </AgendasViewTab>
-            </div>
-
-            {/* Filtro por Sucursal */}
-            {sucursales.length > 1 && (
-              <select
-                value={filterSucursal}
-                onChange={(e) => setFilterSucursal(e.target.value)}
-                className="bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
-                aria-label="Filtrar por sucursal"
-              >
-                <option value="">Todas las sucursales</option>
-                {sucursales.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {/* Filtro por Profesional / Colaborador */}
-            <div className="flex items-center gap-1">
-              <select
-                value={filterProfesional}
-                onChange={(e) => setFilterProfesional(e.target.value)}
-                className="bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
-                aria-label="Filtrar por profesional"
-              >
-                <option value="">Todos los profesionales</option>
-                {profesionales.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
-              <PendingBadge
-                label="Pendiente"
-                tooltip="Filtrado por profesional en desarrollo"
-                className="ml-1 shrink-0"
-              />
-            </div>
-
-            {/* Filtro por Estado */}
-            <select
-              value={filterEstado}
-              onChange={(e) =>
-                setFilterEstado(e.target.value as EstadoCita | "")
-              }
-              className="bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
-              aria-label="Filtrar por estado de cita"
-            >
-              <option value="">Todos los estados</option>
-              <option value="confirmada">Confirmadas</option>
-              <option value="pendiente_pago">Pendientes de pago</option>
-              <option value="completada">Completadas</option>
-              <option value="cancelada">Canceladas</option>
-              <option value="no_asistio">No asistió</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <AgendasControls selectedDate={selectedDate} todayStr={todayStr} viewMode={viewMode} mondayYMD={mondayYMD} sundayYMD={sundayYMD} setSelectedDate={setSelectedDate} setViewMode={setViewMode} sucursales={sucursales} profesionales={profesionales} filterSucursal={filterSucursal} filterProfesional={filterProfesional} filterEstado={filterEstado} setFilterSucursal={setFilterSucursal} setFilterProfesional={setFilterProfesional} setFilterEstado={setFilterEstado} />
 
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 1. LOADING CON SKELETONS RISOGRÁFICOS    */}

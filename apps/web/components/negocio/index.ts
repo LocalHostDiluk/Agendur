@@ -59,3 +59,7 @@ export * from "./AgendasEmpty";
 export * from "./ConfiguracionPortalCard";
 export * from "./ConfiguracionDangerZone";
 export * from "./ConfiguracionPerfilTab";
+export * from "./AgendasHeader";
+export * from "./AgendasViewSwitcher";
+export * from "./AgendasFilters";
+export * from "./AgendasControls";
