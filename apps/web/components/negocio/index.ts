@@ -38,3 +38,4 @@ export * from "./DashboardChartFrame";
 export * from "./DashboardCitasChart";
 export * from "./DashboardIngresosChart";
 export * from "./DashboardGraficas";
+export * from "./AgendasManualButton";
