@@ -44,6 +44,8 @@ import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
 import { notify } from "@/lib/utils/toast";
 import type { Profesional } from "@/lib/types";
+import { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
+export { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
   return <div className={`bg-surface-alt rounded ${className}`} />;
@@ -74,23 +76,6 @@ export interface UnifiedColaborador extends Profesional {
   hora_fin?: string;
   dias_laborables?: number[];
   horarios?: Array<{ dia_semana: number; hora_inicio: string; hora_fin: string }>;
-}
-
-export function getRoleBadgeVariant(rol?: string): BadgeVariant {
-  const r = (rol || "").toLowerCase();
-  if (r.includes("admin")) return "grape";
-  if (r.includes("recep")) return "neutral";
-  if (r.includes("especialista")) return "info";
-  return "neutral";
-}
-
-export function formatRoleLabel(rol?: string): string {
-  if (!rol) return "Especialista";
-  const r = rol.toLowerCase();
-  if (r.includes("admin")) return "Administrador";
-  if (r.includes("recep")) return "Recepcionista";
-  if (r.includes("especialista")) return "Especialista";
-  return rol;
 }
 
 const ROLES_PERMISOS_CATALOGO = [
