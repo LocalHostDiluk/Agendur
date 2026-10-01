@@ -39,3 +39,7 @@ export * from "./DashboardChartFrame";
 export * from "./DashboardCitasChart";
 export * from "./DashboardIngresosChart";
 export * from "./DashboardGraficas";
+export * from "./PersonalRolBadge";
+export * from "./PersonalEstadoBadge";
+export * from "./PersonalServicioBadge";
+export * from "./PersonalColaboradorActions";

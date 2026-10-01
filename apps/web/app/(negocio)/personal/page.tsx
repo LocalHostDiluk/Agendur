@@ -12,11 +12,6 @@ import {
   Mail,
   AlertCircle,
   RefreshCw,
-  CalendarDays,
-  Pencil,
-  UserX,
-  UserCheck,
-  Trash2,
   ShieldCheck,
   X,
   Lock,
@@ -35,6 +30,7 @@ import {
   usePersonalActions,
 } from "@/lib/hooks";
 import {
+  PersonalRolBadge, PersonalEstadoBadge, PersonalServicioBadge, PersonalColaboradorActions,
   ModalNuevoColaborador,
   ModalEditarColaborador,
   HorariosEspecialesPanel,
@@ -45,7 +41,6 @@ import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
 import type { Profesional } from "@/lib/types";
 import { mergePersonalColaboradores, filterPersonalColaboradores, getPersonalColaboradorDetails } from "@/lib/utils/personal-colaboradores";
-import { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
 export { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
@@ -647,23 +642,11 @@ export default function PersonalPage({
                             <h3 className="font-bricolage font-bold text-sm text-text-primary truncate">
                               {colab.nombre} {colab.apellido ?? ""}
                             </h3>
-                            <Badge
-                              variant={esActivo ? "success" : "neutral"}
-                              size="sm"
-                              dot
-                            >
-                              {esActivo ? "Activo" : "Inactivo"}
-                            </Badge>
+<PersonalEstadoBadge esActivo={esActivo} />
                           </div>
 
                           <div className="mt-1 flex items-center gap-2">
-                            <Badge
-                              variant={getRoleBadgeVariant(colab.rol)}
-                              size="sm"
-                              dot
-                            >
-                              {formatRoleLabel(colab.rol)}
-                            </Badge>
+<PersonalRolBadge rol={colab.rol} />
                           </div>
                         </div>
                       </div>
@@ -696,15 +679,7 @@ export default function PersonalPage({
                       {serviciosDelColab.length > 0 && (
                         <div className="flex flex-wrap gap-1 pt-1">
                           {serviciosDelColab.map((serv) => (
-                            <span
-                              key={serv.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-surface-alt border border-border text-text-primary font-medium"
-                            >
-                              <span>{serv.nombre}</span>
-                              <span className="font-mono tabular-nums text-text-muted text-[10px]">
-                                ({serv.duracion_minutos}m)
-                              </span>
-                            </span>
+<PersonalServicioBadge key={serv.id} serv={serv} />
                           ))}
                         </div>
                       )}
@@ -723,71 +698,7 @@ export default function PersonalPage({
 
                         <div className="flex items-center gap-1">
                           {canWriteStaff && <>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setActiveTab("horarios")}
-                            className="gap-1 text-xs"
-                          >
-                            <CalendarDays className="w-3.5 h-3.5 text-grape" />
-                            <span>Ver horarios</span>
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            title="Editar colaborador"
-                            onClick={() => {
-                              setColaboradorAEditar(colab);
-                              setIsEditModalOpen(true);
-                            }}
-                            aria-label={`Editar a ${colab.nombre}`}
-                            className="p-1.5"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant={esActivo ? "ghost" : "secondary"}
-                            size="sm"
-                            title={
-                              esActivo
-                                ? "Desactivar colaborador"
-                                : "Reactivar colaborador"
-                            }
-                            onClick={() => handleToggleActivo(colab)}
-                            aria-label={
-                              esActivo
-                                ? `Desactivar a ${colab.nombre}`
-                                : `Activar a ${colab.nombre}`
-                            }
-                            className={`p-1.5 ${
-                              esActivo
-                                ? "text-danger hover:bg-danger/10"
-                                : "text-mint-dark hover:bg-mint/10"
-                            }`}
-                          >
-                            {esActivo ? (
-                              <UserX className="w-3.5 h-3.5" />
-                            ) : (
-                              <UserCheck className="w-3.5 h-3.5" />
-                            )}
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            title="Eliminar colaborador"
-                            onClick={() => handleEliminarColaborador(colab)}
-                            aria-label={`Eliminar a ${colab.nombre}`}
-                            className="p-1.5 text-danger hover:bg-danger/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+<PersonalColaboradorActions colab={colab} esActivo={esActivo} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />
                           </>}
                         </div>
                       </div>
@@ -861,13 +772,7 @@ export default function PersonalPage({
 
                             {/* Rol */}
                             <td className="p-3.5">
-                              <Badge
-                                variant={getRoleBadgeVariant(colab.rol)}
-                                size="sm"
-                                dot
-                              >
-                                {formatRoleLabel(colab.rol)}
-                              </Badge>
+<PersonalRolBadge rol={colab.rol} />
                             </td>
 
                             {/* Sucursal */}
@@ -891,15 +796,7 @@ export default function PersonalPage({
                               {serviciosDelColab.length > 0 ? (
                                 <div className="flex flex-wrap gap-1 max-w-xs">
                                   {serviciosDelColab.map((serv) => (
-                                    <span
-                                      key={serv.id}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-surface-alt border border-border text-text-primary font-medium"
-                                    >
-                                      <span>{serv.nombre}</span>
-                                      <span className="font-mono tabular-nums text-text-muted text-[10px]">
-                                        ({serv.duracion_minutos}m)
-                                      </span>
-                                    </span>
+<PersonalServicioBadge key={serv.id} serv={serv} />
                                   ))}
                                 </div>
                               ) : (
@@ -918,84 +815,14 @@ export default function PersonalPage({
 
                             {/* Estado */}
                             <td className="p-3.5">
-                              <Badge
-                                variant={esActivo ? "success" : "neutral"}
-                                size="sm"
-                                dot
-                              >
-                                {esActivo ? "Activo" : "Inactivo"}
-                              </Badge>
+<PersonalEstadoBadge esActivo={esActivo} />
                             </td>
 
                             {/* Acciones */}
                             <td className="p-3.5 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 {canWriteStaff && <>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => setActiveTab("horarios")}
-                                  className="gap-1 text-xs"
-                                >
-                                  <CalendarDays className="w-3.5 h-3.5 text-grape" />
-                                  <span>Ver horarios</span>
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  title="Editar colaborador"
-                                  onClick={() => {
-                                    setColaboradorAEditar(colab);
-                                    setIsEditModalOpen(true);
-                                  }}
-                                  aria-label={`Editar a ${colab.nombre}`}
-                                  className="p-1.5"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  variant={esActivo ? "ghost" : "secondary"}
-                                  size="sm"
-                                  title={
-                                    esActivo
-                                      ? "Desactivar colaborador"
-                                      : "Reactivar colaborador"
-                                  }
-                                  onClick={() => handleToggleActivo(colab)}
-                                  aria-label={
-                                    esActivo
-                                      ? `Desactivar a ${colab.nombre}`
-                                      : `Activar a ${colab.nombre}`
-                                  }
-                                  className={`p-1.5 ${
-                                    esActivo
-                                      ? "text-danger hover:bg-danger/10"
-                                      : "text-mint-dark hover:bg-mint/10"
-                                  }`}
-                                >
-                                  {esActivo ? (
-                                    <UserX className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <UserCheck className="w-3.5 h-3.5" />
-                                  )}
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  title="Eliminar colaborador"
-                                  onClick={() => handleEliminarColaborador(colab)}
-                                  aria-label={`Eliminar a ${colab.nombre}`}
-                                  className="p-1.5 text-danger hover:bg-danger/10"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
+<PersonalColaboradorActions colab={colab} esActivo={esActivo} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />
                                 </>}
                               </div>
                             </td>
