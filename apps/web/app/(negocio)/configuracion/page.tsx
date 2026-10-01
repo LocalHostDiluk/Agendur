@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import {
-  Users,
   MessageSquare,
   CreditCard,
   Save,
@@ -14,9 +13,7 @@ import {
   ExternalLink,
   Clock,
   Sparkles,
-  ShieldCheck,
   UserCheck,
-  Plus,
   Send,
   Smartphone,
   Info,
@@ -39,6 +36,7 @@ import {
   ConfiguracionTabsNav,
   ConfiguracionPerfilTab,
   ConfiguracionPoliticasTab,
+  ConfiguracionUsuariosTab,
 } from "@/components/negocio";
 import { Button, Badge, PendingBadge } from "@/components/ui";
 import {
@@ -331,216 +329,11 @@ function ConfiguracionForm({
             TAB 3: USUARIOS Y ROLES (§10)
            ========================================================================= */}
         {activeTab === "usuarios" && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Header section with pending controls */}
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-grape" />
-                    <h2 className="font-bricolage font-bold text-lg text-text-primary">
-                      Equipo y Permisos de Acceso
-                    </h2>
-                  </div>
-                  <p className="text-xs text-text-secondary mt-1">
-                    Administra quién puede acceder al panel, gestionar citas, servicios y reportes comerciales.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <PendingBadge
-                    label="Pendiente"
-                    tooltip="Gestión avanzada de permisos en desarrollo"
-                  />
-                  <Button variant="secondary" size="sm" disabled className="gap-1.5">
-                    <Plus className="w-4 h-4" />
-                    <span>Invitar usuario</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Table of Members */}
-              <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-surface-alt border-b border-border text-xs font-medium text-text-secondary">
-                      <th className="py-3 px-4">Usuario o colaborador</th>
-                      <th className="py-3 px-4">Rol asignado</th>
-                      <th className="py-3 px-4">Sucursal</th>
-                      <th className="py-3 px-4">Estado</th>
-                      <th className="py-3 px-4 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {/* Owner / Active Auth User */}
-                    <tr className="hover:bg-surface-alt/50 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-9 rounded-full bg-grape-soft text-grape font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                            {authData?.perfil?.nombres?.[0] || "P"}
-                            {authData?.perfil?.apellidos?.[0] || "R"}
-                          </div>
-                          <div>
-                            <p className="font-medium text-text-primary">
-                              {authData?.perfil?.nombres
-                                ? `${authData.perfil.nombres} ${authData.perfil.apellidos || ""}`.trim()
-                                : "Propietario del Negocio"}
-                            </p>
-                            <p className="text-xs text-text-secondary font-mono">
-                              {authData?.user?.email || "owner@agendur.com"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="grape" size="sm" dot>
-                          Propietario
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-xs text-text-secondary">
-                        Todas las sedes
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="success" size="sm" dot>
-                          Activo
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-xs text-text-muted font-medium select-none">
-                          Acceso total
-                        </span>
-                      </td>
-                    </tr>
-
-                    {/* Staff members from useProfesionales */}
-                    {profesionalesData?.profesionales?.map((profesional) => (
-                      <tr key={profesional.id} className="hover:bg-surface-alt/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="size-9 rounded-full bg-surface-alt border border-border text-text-secondary font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                              {profesional.nombre?.[0] || "C"}
-                              {profesional.apellido?.[0] || "L"}
-                            </div>
-                            <div>
-                              <p className="font-medium text-text-primary">
-                                {profesional.nombre} {profesional.apellido || ""}
-                              </p>
-                              <p className="text-xs text-text-secondary font-mono">
-                                {profesional.email || "colaborador@negocio.com"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant="neutral" size="sm" dot>
-                            {profesional.cargo || "Profesional"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-xs text-text-secondary">
-                          {sucursalesData?.sucursales?.find(
-                            (s) => s.id === profesional.sucursal_id || s.id === profesional.sucursalId
-                          )?.nombre || "Sede asignada"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge
-                            variant={profesional.activo !== false ? "success" : "neutral"}
-                            size="sm"
-                            dot
-                          >
-                            {profesional.activo !== false ? "Activo" : "Inactivo"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="inline-flex items-center gap-2">
-                            <PendingBadge
-                              label="Pendiente"
-                              tooltip="Gestión avanzada de permisos en desarrollo"
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-
-                    {/* Demo manager role for completeness */}
-                    {(!profesionalesData?.profesionales || profesionalesData.profesionales.length === 0) && (
-                      <tr className="hover:bg-surface-alt/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="size-9 rounded-full bg-surface-alt border border-border text-text-secondary font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                              GA
-                            </div>
-                            <div>
-                              <p className="font-medium text-text-primary">
-                                Gerente de Operaciones
-                              </p>
-                              <p className="text-xs text-text-secondary font-mono">
-                                gerencia@negocio.com
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant="info" size="sm" dot>
-                            Administrador
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-xs text-text-secondary">
-                          Matriz Centro
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant="success" size="sm" dot>
-                            Activo
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <PendingBadge
-                            label="Pendiente"
-                            tooltip="Gestión avanzada de permisos en desarrollo"
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Roles matrix info (§10) */}
-              <div className="p-4 rounded-xl bg-surface-alt border border-border space-y-3">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-grape" />
-                  <span className="text-xs font-medium text-text-secondary">
-                    Matriz de roles tipificados
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3 rounded-lg bg-surface border border-border/70 space-y-1">
-                    <p className="font-bold text-grape">Propietario</p>
-                    <p className="text-text-secondary">
-                      Control absoluto de pagos, facturación, sucursales y borrado comercial.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-surface border border-border/70 space-y-1">
-                    <p className="font-bold text-text-primary">Administrador</p>
-                    <p className="text-text-secondary">
-                      Gestión completa de agendas, clientes, servicios y personal de la sede.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-surface border border-border/70 space-y-1">
-                    <p className="font-bold text-text-primary">Profesional / Staff</p>
-                    <p className="text-text-secondary">
-                      Visualización de su propio calendario y confirmación de turnos asignados.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-surface border border-border/70 space-y-1">
-                    <p className="font-bold text-text-primary">Recepcionista</p>
-                    <p className="text-text-secondary">
-                      Creación rápida de citas manuales, cobro presencial y registro de llegada.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ConfiguracionUsuariosTab
+            authData={authData}
+            profesionalesData={profesionalesData}
+            sucursalesData={sucursalesData}
+          />
         )}
 
         {/* =========================================================================

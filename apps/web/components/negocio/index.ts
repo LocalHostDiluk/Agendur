@@ -65,3 +65,5 @@ export * from "./AgendasFilters";
 export * from "./AgendasControls";
 export * from "./ConfiguracionAnticipoCard";
 export * from "./ConfiguracionPoliticasTab";
+export * from "./ConfiguracionRolesCard";
+export * from "./ConfiguracionUsuariosTab";
