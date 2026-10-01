@@ -53,3 +53,6 @@ export * from "./AgendasMesDia";
 export * from "./AgendasMensual";
 export * from "./ConfiguracionHeader";
 export * from "./ConfiguracionTabsNav";
+export * from "./AgendasLoading";
+export * from "./AgendasError";
+export * from "./AgendasEmpty";

@@ -5,9 +5,6 @@ import {
   Calendar as CalendarIcon,
   CalendarDays,
   Clock,
-  AlertCircle,
-  RefreshCw,
-  Ticket,
 } from "lucide-react";
 import {
   useAuthMe,
@@ -17,14 +14,11 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 import { getTodayString, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agendas-date";
-import { AgendasManualButton, AgendasViewTab, AgendasDateNavigation, AgendasCitaSkeletonRow, AgendasSemanaSkeletonDia, AgendasCronograma, AgendasSemanal, AgendasMensual } from "@/components/negocio";
+import { AgendasManualButton, AgendasViewTab, AgendasDateNavigation, AgendasCronograma, AgendasSemanal, AgendasMensual, AgendasLoading, AgendasError, AgendasEmpty } from "@/components/negocio";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
-  Button,
   PendingBadge,
-  SkeletonBlock,
-  SkeletonText,
 } from "@/components/ui";
 import type { Cita, EstadoCita } from "@/lib/types";
 import { getMonthStart, getMonthEnd, getAgendaQueryFilters, getSortedCitas, getWeekDays, groupCitasByDay } from "@/lib/utils/agendas-data";
@@ -239,116 +233,20 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 1. LOADING CON SKELETONS RISOGRÁFICOS    */}
       {/* ======================================================================= */}
-      {loadingCitas && viewMode === "cronograma" && (
-        <div
-          className="divide-y divide-border rounded-[var(--radius-lg)] bg-surface border border-border overflow-hidden shadow-xs animate-pulse"
-          data-testid="agenda-loading"
-        >
-          {[1, 2, 3, 4, 5].map((i) => (<AgendasCitaSkeletonRow key={i} i={i} />))}
-        </div>
-      )}
-
-      {loadingCitas && viewMode === "semanal" && (
-        <div
-          className="grid grid-cols-1 md:grid-cols-7 gap-3 animate-pulse"
-          data-testid="agenda-loading"
-        >
-          {weekDays.map((item) => (<AgendasSemanaSkeletonDia key={item.ymd} item={item} />))}
-        </div>
-      )}
-
-      {loadingCitas && viewMode === "mensual" && (
-        <div
-          className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 space-y-4 animate-pulse shadow-xs"
-          data-testid="agenda-loading"
-        >
-          <div className="grid grid-cols-7 gap-2 pb-2 border-b border-border text-center">
-            {["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"].map((dayName) => (
-              <SkeletonText key={dayName} className="h-3 w-8 mx-auto" />
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 35 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-[var(--radius-md)] border border-border p-2 min-h-[90px] flex flex-col justify-between"
-              >
-                <SkeletonText className="h-4 w-6" />
-                <div className="space-y-1 mt-auto">
-                  <SkeletonBlock className="h-3 w-full rounded" />
-                  <SkeletonBlock className="h-3 w-3/4 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {loadingCitas && <AgendasLoading viewMode={viewMode} weekDays={weekDays} />}
 
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 2. ERROR CON BANNER Y REINTENTO          */}
       {/* ======================================================================= */}
       {!loadingCitas && errorCitas && (
-        <div
-          role="alert"
-          className="p-8 rounded-[var(--radius-lg)] bg-surface border border-danger/30 text-center space-y-4 shadow-xs"
-        >
-          <div className="w-12 h-12 rounded-full bg-danger-soft text-danger flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" strokeWidth={1.75} />
-          </div>
-          <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-base font-bold text-text-primary font-bricolage">
-              No se pudieron consultar las citas
-            </h3>
-            <p className="text-xs text-text-secondary">
-              Ocurrió un error al consultar la agenda del negocio. Intenta
-              recargar la información.
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            onClick={() => refetchCitas()}
-            className="gap-2 min-h-[44px]"
-          >
-            <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.75} />
-            <span>Reintentar</span>
-          </Button>
-        </div>
+        <AgendasError refetchCitas={refetchCitas} />
       )}
 
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 3. ESTADO VACÍO (TICKET RISOGRÁFICO)      */}
       {/* ======================================================================= */}
       {!loadingCitas && !errorCitas && citas.length === 0 && (
-        <div className="p-10 sm:p-12 rounded-[var(--radius-lg)] bg-surface border border-dashed border-border text-center space-y-5 shadow-xs relative overflow-hidden">
-          {/* Ilustración ligera de ticket risográfico (§5.6.2) */}
-          <div className="relative mx-auto w-24 h-24 bg-surface-alt/70 rounded-2xl border-2 border-dashed border-grape/30 p-2.5 flex flex-col justify-between items-center shadow-xs">
-            {/* Muescas semicirculares de ticket de turno */}
-            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-surface border-r border-dashed border-grape/30" />
-            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-surface border-l border-dashed border-grape/30" />
-
-            <div className="w-9 h-9 rounded-xl bg-grape-soft text-grape flex items-center justify-center mt-1">
-              <Ticket className="w-5 h-5" strokeWidth={1.75} />
-            </div>
-            <div className="w-full border-t border-dashed border-border my-1" />
-            <span className="font-mono text-[9px] text-text-muted tracking-widest uppercase">
-              AG-TICKET
-            </span>
-          </div>
-
-          <div className="space-y-1.5 max-w-sm mx-auto">
-            <h3 className="text-lg font-bricolage font-bold text-text-primary tracking-tight">
-              No hay citas programadas para este período
-            </h3>
-            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
-              Las citas reservadas por clientes o agendadas desde recepción
-              aparecerán aquí organizadas por horario.
-            </p>
-          </div>
-
-          <div className="pt-1">
-            <AgendasManualButton onClick={() => setIsManualModalOpen(true)} className="gap-2 min-h-[44px]" />
-          </div>
-        </div>
+        <AgendasEmpty setIsManualModalOpen={setIsManualModalOpen} />
       )}
 
       {/* ======================================================================= */}
