@@ -32,12 +32,12 @@ import {
   useDeleteProfesional,
   useConfirmDialog,
   usePersonalMutations,
+  usePersonalActions,
 } from "@/lib/hooks";
 import {
   ModalNuevoColaborador,
   ModalEditarColaborador,
   HorariosEspecialesPanel,
-  type ColaboradorCreadoPayload,
 } from "@/components/negocio";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -357,31 +357,9 @@ export default function PersonalPage({
     return filterPersonalColaboradores(todosLosColaboradores, selectedSucursalId, searchQuery, servicios);
   }, [todosLosColaboradores, selectedSucursalId, searchQuery, servicios]);
 
-  // Handler when a new professional is created in the modal
-  const handleColaboradorCreado = (payload: ColaboradorCreadoPayload) => {
-    const nuevo: UnifiedColaborador = {
-      id: payload.id,
-      nombre: payload.nombre,
-      apellido: payload.apellido,
-      sucursal_id: payload.sucursal_id,
-      email: payload.email || null,
-      telefono: payload.telefono || null,
-      serviciosIds: payload.serviciosIds,
-      rol: payload.rol,
-      hora_inicio: payload.hora_inicio,
-      hora_fin: payload.hora_fin,
-      dias_laborables: payload.dias_laborables,
-      activo: payload.activo,
-    };
-    setColaboradoresLocales((prev) => [nuevo, ...prev]);
-  };
-
-  // Handler when a professional is updated in the edit modal
-  const handleColaboradorActualizado = (updated: UnifiedColaborador) => {
-    setColaboradoresLocales((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c)),
-    );
-  };
+  const { handleColaboradorCreado, handleColaboradorActualizado, handleRetryAll } = usePersonalActions({
+    setColaboradoresLocales, refetchProfesionales, refetchCatalogo, refetchSucursales,
+  });
 
   const { handleToggleActivo, handleEliminarColaborador } = usePersonalMutations({
     confirmDialog, updateProfesional, deleteProfesional, setColaboradoresLocales,
@@ -399,12 +377,6 @@ export default function PersonalPage({
     (authError || profesionalesError || catalogoError || sucursalesError) &&
     !profesionalesData &&
     !catalogoData;
-
-  const handleRetryAll = () => {
-    refetchProfesionales();
-    refetchCatalogo();
-    refetchSucursales();
-  };
 
   return (
     <>
