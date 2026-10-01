@@ -48,3 +48,8 @@ export * from "./AgendasCronograma";
 export * from "./AgendasSemanaCita";
 export * from "./AgendasSemanaDia";
 export * from "./AgendasSemanal";
+export * from "./AgendasMesCita";
+export * from "./AgendasMesDia";
+export * from "./AgendasMensual";
+export * from "./ConfiguracionHeader";
+export * from "./ConfiguracionTabsNav";
