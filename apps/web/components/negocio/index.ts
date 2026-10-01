@@ -63,3 +63,5 @@ export * from "./AgendasHeader";
 export * from "./AgendasViewSwitcher";
 export * from "./AgendasFilters";
 export * from "./AgendasControls";
+export * from "./ConfiguracionAnticipoCard";
+export * from "./ConfiguracionPoliticasTab";
