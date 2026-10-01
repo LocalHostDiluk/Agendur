@@ -78,6 +78,74 @@ try {
   const professionals = await insert("profesionales", branches.map((branch, n) => ({ sucursal_id: branch.id, nombre: tag, apellido: "Fixture", email: users[n === 0 ? 3 : 0].email, usuario_id: users[n === 0 ? 3 : 0].id })));
   const [secondProfessional] = await insert("profesionales", { sucursal_id: branches[1].id, nombre: tag, apellido: "Multi-sede", usuario_id: users[3].id });
   await insert("profesional_servicios", professionals.map((professional) => ({ profesional_id: professional.id, servicio_id: service.id })));
+
+  const bookingDay = new Date();
+  bookingDay.setUTCDate(bookingDay.getUTCDate() + 14);
+  const bookingDate = bookingDay.toISOString().slice(0, 10);
+  const weekday = bookingDay.getUTCDay();
+  await insert("horarios_sucursal", {
+    sucursal_id: branches[0].id, dia_semana: weekday,
+    hora_apertura: "09:00", hora_cierre: "17:00", es_laborable: true,
+  });
+  await insert("horarios_profesional", {
+    profesional_id: professionals[0].id, dia_semana: weekday,
+    hora_inicio: "09:00", hora_fin: "17:00", es_laborable: true,
+  });
+  const specialProfessional = await api(0, "/api/negocio/horarios-especiales", 200, "PUT", {
+    tipo: "profesional", recursoId: professionals[0].id, fecha: bookingDate,
+    cerrado: false, motivo: "wave3 remote check",
+    bloques: [{ inicio: "09:00", fin: "12:00" }, { inicio: "14:00", fin: "17:00" }],
+  });
+  ok(specialProfessional.excepciones?.length === 2, "Special schedule stores multiple professional blocks");
+  const specialBranch = await api(0, "/api/negocio/horarios-especiales", 200, "PUT", {
+    tipo: "sucursal", recursoId: branches[1].id, fecha: bookingDate,
+    cerrado: true, motivo: "wave3 remote close", bloques: [],
+  });
+  ok(specialBranch.excepciones?.length === 1 && specialBranch.excepciones[0].cerrado, "Special schedule stores a full branch closure");
+  const listedSpecial = await api(0, `/api/negocio/horarios-especiales?tipo=profesional&recursoId=${professionals[0].id}`, 200);
+  ok(listedSpecial.excepciones?.length === 2, "Special schedules can be listed");
+  await api(0, `/api/negocio/horarios-especiales?tipo=sucursal&recursoId=${branches[1].id}&fecha=${bookingDate}`, 200, "DELETE");
+  const bookingBody = {
+    sucursalId: branches[0].id,
+    servicioId: service.id,
+    profesionalId: professionals[0].id,
+    clienteNombre: "Reserva",
+    clienteApellido: "Remota",
+    clientePhone: "+528112345678",
+    clienteEmail: `${tag}-booking@example.com`,
+    fecha: bookingDate,
+    hora: "10:00",
+    aceptaPrivacidad: true,
+  };
+  const book = () => fetch(`${origin}/api/cliente/reservas`, {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify(bookingBody),
+  });
+  const concurrent = await Promise.all([book(), book()]);
+  const concurrentPayloads = await Promise.all(concurrent.map((response) => response.json()));
+  ok(concurrent.map((response) => response.status).sort().join(",") === "201,409", "Concurrent booking returns one 201 and one 409");
+  ok(concurrentPayloads.some((payload) => payload.code === "SLOT_UNAVAILABLE"), "Concurrent conflict uses SLOT_UNAVAILABLE");
+  const bookedClients = await admin.from("clientes").select("id").eq("negocio_id", business.id).eq("email_normalizado", `${tag}-booking@example.com`);
+  assert.ifError(bookedClients.error);
+  ok(bookedClients.data?.length === 1, "Concurrent booking reuses one customer");
+  const bookedAppointments = await admin.from("citas").select("id, cliente_id, duracion_minutos_snapshot, precio_servicio_snapshot, buffer_minutos_snapshot, hora_fin_buffer").eq("negocio_id", business.id).eq("fecha", bookingDate);
+  assert.ifError(bookedAppointments.error);
+  ok(bookedAppointments.data?.length === 1, "Concurrent booking creates one appointment");
+  ok(bookedAppointments.data?.[0].cliente_id === bookedClients.data?.[0].id, "Appointment links the resolved customer");
+  ok(bookedAppointments.data?.[0].duracion_minutos_snapshot === 30 && bookedAppointments.data?.[0].precio_servicio_snapshot === 100 && bookedAppointments.data?.[0].buffer_minutos_snapshot === 10 && bookedAppointments.data?.[0].hora_fin_buffer === "10:40:00", "Booking stores immutable snapshots and buffer end");
+  const conflictingIdentity = await fetch(`${origin}/api/cliente/reservas`, {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({ ...bookingBody, hora: "14:00", clientePhone: "+528187654321" }),
+  });
+  const conflictingPayload = await conflictingIdentity.json();
+  ok(conflictingIdentity.status === 400 && conflictingPayload.code === "INVALID_BOOKING_DATA", "Conflicting customer identity is rejected");
+  const bookedAppointmentCleanup = await admin.from("citas").delete().eq("id", bookedAppointments.data![0].id);
+  assert.ifError(bookedAppointmentCleanup.error);
+  const bookedClientCleanup = await admin.from("clientes").delete().eq("id", bookedClients.data![0].id);
+  assert.ifError(bookedClientCleanup.error);
+
   await api(0, "/api/negocio/personal", 201, "POST", { email: users[1].email, rol: "manager" });
   const staff = await api(0, "/api/negocio/personal", 201, "POST", { email: users[2].email, rol: "receptionist", sucursalId: branches[0].id });
   await api(0, "/api/negocio/personal", 400, "POST", { email: users[2].email, rol: "receptionist", sucursalId: otherBranch.id });
@@ -87,8 +155,8 @@ try {
   await api(2, "/api/negocio/citas", 403);
   await api(0, "/api/negocio/personal", 200, "PATCH", { id: staff.personal.id, kind: "collaborator", activo: true });
   const clients = await insert("clientes", branches.map((_, n) => ({ negocio_id: business.id, nombre: tag, apellido: "Fixture", email: `${tag}-client${n}@example.com` })));
-  const appointments = await insert("citas", branches.map((branch, n) => ({ negocio_id: business.id, sucursal_id: branch.id, profesional_id: professionals[n].id, servicio_id: service.id, cliente_id: clients[n].id, cliente_nombre: tag, cliente_apellido: "Fixture", cliente_email: clients[n].email, fecha: "2030-01-15", hora_inicio: "10:00", hora_fin: "10:30", precio_total: 100 })));
-  await insert("citas", { negocio_id: business.id, sucursal_id: branches[1].id, profesional_id: secondProfessional.id, servicio_id: service.id, cliente_id: clients[1].id, cliente_nombre: tag, cliente_apellido: "Fixture", cliente_email: clients[1].email, fecha: "2030-01-15", hora_inicio: "10:00", hora_fin: "10:30", precio_total: 100 });
+  const appointments = await insert("citas", branches.map((branch, n) => ({ negocio_id: business.id, sucursal_id: branch.id, profesional_id: professionals[n].id, servicio_id: service.id, cliente_id: clients[n].id, fecha: "2030-01-15", hora_inicio: "10:00" })));
+  await insert("citas", { negocio_id: business.id, sucursal_id: branches[1].id, profesional_id: secondProfessional.id, servicio_id: service.id, cliente_id: clients[1].id, fecha: "2030-01-15", hora_inicio: "10:00" });
 
   for (const [index, role, count] of [[0, "owner", 3], [1, "manager", 3], [2, "receptionist", 1], [3, "professional", 2]] as const) {
     const me = await api(index, "/api/auth/me", 200);

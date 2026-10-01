@@ -253,7 +253,7 @@ export async function obtenerDisponibilidad(
       // Obtener citas activas de este profesional para la fecha
       const { data: citas, error: citasError } = await adminClient
         .from("citas")
-        .select("hora_inicio, hora_fin, hora_fin_buffer")
+        .select("hora_inicio, hora_fin_buffer")
         .eq("profesional_id", profId)
         .eq("fecha", fecha)
         .in("estado", ["pendiente_pago", "confirmada"]);
@@ -262,7 +262,7 @@ export async function obtenerDisponibilidad(
 
       const citasMin = (citas || []).map((c) => ({
         inicio: timeToMinutes(c.hora_inicio),
-        fin: timeToMinutes(c.hora_fin_buffer ?? c.hora_fin),
+        fin: timeToMinutes(c.hora_fin_buffer),
       }));
 
       // Probar cada franja candidata dentro de cada intersección.
@@ -437,7 +437,6 @@ export async function crearReservaCita(
     );
   }
   const horaInicioStr = minutesToTime(horaInicioMin) + ":00";
-  const horaFinStr = minutesToTime(horaFinMin) + ":00";
 
   // 5. Exigir un slot ofrecido; la restricción SQL resuelve las carreras posteriores.
   const horarios = await obtenerDisponibilidad({ sucursalId, servicioId, profesionalId, fecha });
@@ -445,31 +444,28 @@ export async function crearReservaCita(
     throw bookingError("El horario seleccionado ya no está disponible.", 409, "SLOT_UNAVAILABLE");
   }
 
-  // 6. Insertar la cita en Supabase
+  // 6. Comprobar el conflicto e insertar en una sola transacción PostgreSQL.
   const aceptadaEn = new Date().toISOString();
-  const { data: nuevaCita, error: insertError } = await adminClient
-    .from("citas")
-    .insert({
-      negocio_id: sucursal.negocio_id,
-      sucursal_id: sucursalId,
-      servicio_id: servicioId,
-      profesional_id: profesionalId,
-      cliente_nombre: clienteNombre,
-      cliente_apellido: clienteApellido,
-      cliente_telefono: clientePhone,
-      cliente_email: clienteEmail,
-      fecha,
-      hora_inicio: horaInicioStr,
-      hora_fin: horaFinStr,
-      estado: "pendiente_pago", // RLS compliant
-      precio_total: Number(servicio.precio),
-      monto_anticipo_pagado: 0,
-      notas_cliente: notasCliente || null,
-      privacidad_aceptada_en: aceptadaEn,
-      politica_cancelacion_aceptada_en: negocio.politica_cancelacion?.trim() ? aceptadaEn : null,
-    })
-    .select("*")
-    .single();
+  const { data: nuevaCita, error: insertError } = await adminClient.rpc(
+    "create_booking_transactional",
+    {
+      p_negocio_id: sucursal.negocio_id,
+      p_sucursal_id: sucursalId,
+      p_servicio_id: servicioId,
+      p_profesional_id: profesionalId,
+      p_cliente_nombre: clienteNombre,
+      p_cliente_apellido: clienteApellido,
+      p_cliente_telefono: clientePhone,
+      p_cliente_email: clienteEmail,
+      p_fecha: fecha,
+      p_hora_inicio: horaInicioStr,
+      p_notas_cliente: notasCliente || null,
+      p_privacidad_aceptada_en: aceptadaEn,
+      p_politica_cancelacion_aceptada_en: negocio.politica_cancelacion?.trim()
+        ? aceptadaEn
+        : null,
+    },
+  );
 
   if (insertError || !nuevaCita) {
     if (insertError?.code === "23P01") {
@@ -498,5 +494,13 @@ export async function crearReservaCita(
     });
   }
 
-  return nuevaCita as Cita;
+  return {
+    ...nuevaCita,
+    cliente_nombre: clienteNombre,
+    cliente_apellido: clienteApellido,
+    cliente_telefono: clientePhone,
+    cliente_email: clienteEmail,
+    hora_fin: nuevaCita.hora_fin_servicio,
+    precio_total: nuevaCita.precio_servicio_snapshot,
+  } as Cita;
 }

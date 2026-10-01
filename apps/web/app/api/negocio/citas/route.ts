@@ -27,6 +27,30 @@ const ESTADOS_PATCH_PERMITIDOS = [
 
 type EstadoPatch = (typeof ESTADOS_PATCH_PERMITIDOS)[number];
 
+type CitaApiRow = Record<string, unknown> & {
+  cliente?: {
+    nombre: string;
+    apellido: string | null;
+    telefono: string | null;
+    email: string | null;
+  } | null;
+};
+
+const CITA_SELECT =
+  "*, cliente:clientes!citas_cliente_negocio_fkey(nombre, apellido, telefono, email)";
+
+function citaConContratoLegacy({ cliente, ...cita }: CitaApiRow) {
+  return {
+    ...cita,
+    cliente_nombre: cliente?.nombre ?? "",
+    cliente_apellido: cliente?.apellido ?? "",
+    cliente_telefono: cliente?.telefono ?? null,
+    cliente_email: cliente?.email ?? null,
+    hora_fin: cita.hora_fin_servicio,
+    precio_total: cita.precio_servicio_snapshot,
+  };
+}
+
 /**
  * Valida autenticación del usuario, existencia del negocio y vigencia de la suscripción.
  */
@@ -92,7 +116,7 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
 
     let query = admin
       .from("citas")
-      .select("*")
+      .select(CITA_SELECT)
       .eq("negocio_id", access.negocioId);
 
     const scopedBranch = access.profesionalIds ? sucursalId : access.sucursalId ?? sucursalId;
@@ -122,7 +146,9 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
       });
     }
 
-    return apiSuccess({ citas: citas || [] });
+    return apiSuccess({
+      citas: (citas || []).map((cita) => citaConContratoLegacy(cita as CitaApiRow)),
+    });
   } catch (error: unknown) {
     const denied = accessFailure(error);
     if (denied) return denied;
@@ -203,7 +229,7 @@ export async function PATCH(request: NextRequest | Request): Promise<NextRespons
       updateQuery = updateQuery.eq("sucursal_id", access.sucursalId);
     }
     const { data: updatedCita, error: updateError } = await updateQuery
-      .select()
+      .select(CITA_SELECT)
       .single();
 
     if (updateError || !updatedCita) {
@@ -212,7 +238,7 @@ export async function PATCH(request: NextRequest | Request): Promise<NextRespons
       });
     }
 
-    return apiSuccess({ cita: updatedCita });
+    return apiSuccess({ cita: citaConContratoLegacy(updatedCita as CitaApiRow) });
   } catch (error: unknown) {
     const denied = accessFailure(error);
     if (denied) return denied;

@@ -30,6 +30,12 @@ const mockAuthMe = {
   },
   onboardingStatus: "complete",
   sucursalesCount: 2,
+  access: {
+    role: "owner",
+    sucursalId: null,
+    profesionalId: null,
+    capabilities: ["config:read", "config:write", "billing:read", "billing:write"],
+  },
   suscripcion: {
     plan_nombre: "Plan Pro Multi-Sede",
     estado: "activa",

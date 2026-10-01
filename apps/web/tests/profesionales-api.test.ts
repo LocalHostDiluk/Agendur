@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase fluent-client test doubles intentionally mirror dynamic SDK chains. */
 import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET, POST, PATCH } from "@/app/api/negocio/profesionales/route";
@@ -34,6 +35,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
   let mockRelacionesList: Array<{ profesional_id: string; servicio_id: string }> = [];
   let mockServiciosList: Array<{ id: string; negocio_id: string }> = [];
   let mockDbError: Error | null = null;
+  let mockScheduleRpcPayload: Record<string, unknown> | null = null;
 
   beforeEach(() => {
     accessSpy = spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => {
@@ -47,6 +49,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
     mockNegocio = { id: "neg-456" };
     mockNegocioError = null;
     mockDbError = null;
+    mockScheduleRpcPayload = null;
 
     mockSucursalesList = [
       { id: "suc-1", negocio_id: "neg-456" },
@@ -125,6 +128,10 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
     // Mock admin client
     getAdminClientSpy = spyOn(supabaseAdmin, "getAdminClient").mockImplementation(() => {
       return {
+        rpc: async (_name: string, payload: Record<string, unknown>) => {
+          mockScheduleRpcPayload = payload;
+          return { data: payload.p_horarios, error: null };
+        },
         from: (table: string) => {
           return {
             select: (fields?: string, options?: any) => {
@@ -392,6 +399,10 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
           email: "elena@barber.com",
           telefono: "+52 55 9999 8888",
           serviciosIds: ["serv-1", "serv-2"],
+          horarios: [
+            { dia_semana: 1, hora_inicio: "10:00", hora_fin: "17:00" },
+            { dia_semana: 4, hora_inicio: "10:00", hora_fin: "17:00" },
+          ],
         }),
       });
       const res = await POST(req);
@@ -403,6 +414,14 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
       expect(json.profesional.nombre).toBe("Elena");
       expect(json.profesional.cargo).toBe("Colorista Experta");
       expect(json.profesional.serviciosIds).toEqual(["serv-1", "serv-2"]);
+      expect(json.profesional.horarios).toHaveLength(2);
+      expect(mockScheduleRpcPayload).toEqual({
+        p_profesional_id: "new-prof-id",
+        p_horarios: [
+          { dia_semana: 1, hora_inicio: "10:00", hora_fin: "17:00" },
+          { dia_semana: 4, hora_inicio: "10:00", hora_fin: "17:00" },
+        ],
+      });
     });
   });
 

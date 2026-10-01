@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Navigation mock accepts multiple Next.js component prop shapes. */
 import React from "react";
 import { describe, it, expect, mock } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
