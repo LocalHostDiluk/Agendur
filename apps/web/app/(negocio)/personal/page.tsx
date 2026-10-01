@@ -44,7 +44,7 @@ import { Button } from "@/components/ui/Button";
 import { PendingBadge } from "@/components/ui/PendingBadge";
 import { notify } from "@/lib/utils/toast";
 import type { Profesional } from "@/lib/types";
-import { mergePersonalColaboradores } from "@/lib/utils/personal-colaboradores";
+import { mergePersonalColaboradores, filterPersonalColaboradores, getPersonalColaboradorDetails } from "@/lib/utils/personal-colaboradores";
 import { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
 export { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
 
@@ -354,29 +354,7 @@ export default function PersonalPage({
 
   // Filtered list
   const colaboradoresFiltrados = useMemo(() => {
-    return todosLosColaboradores.filter((colab) => {
-      const matchSucursal =
-        selectedSucursalId === "todas" ||
-        colab.sucursal_id === selectedSucursalId;
-
-      if (!matchSucursal) return false;
-
-      if (!searchQuery.trim()) return true;
-
-      const q = searchQuery.toLowerCase().trim();
-      const nombreCompleto =
-        `${colab.nombre} ${colab.apellido ?? ""}`.toLowerCase();
-      const matchNombre = nombreCompleto.includes(q);
-      const matchRol = (colab.rol ?? "").toLowerCase().includes(q);
-
-      // Check if services match search
-      const matchServicio = (colab.serviciosIds || []).some((sId) => {
-        const serv = servicios.find((s) => s.id === sId);
-        return serv?.nombre.toLowerCase().includes(q);
-      });
-
-      return matchNombre || matchRol || matchServicio;
-    });
+    return filterPersonalColaboradores(todosLosColaboradores, selectedSucursalId, searchQuery, servicios);
   }, [todosLosColaboradores, selectedSucursalId, searchQuery, servicios]);
 
   // Handler when a new professional is created in the modal
@@ -735,17 +713,7 @@ export default function PersonalPage({
                 data-testid="colaboradores-mobile-list"
               >
                 {colaboradoresFiltrados.map((colab) => {
-                  const sucursal = sucursales.find(
-                    (s) => s.id === colab.sucursal_id,
-                  );
-                  const serviciosDelColab = servicios.filter((s) =>
-                    (colab.serviciosIds || []).includes(s.id),
-                  );
-                  const citasAsignadas = citas.filter(
-                    (c) =>
-                      c.profesional_id === colab.id && c.estado !== "cancelada",
-                  );
-                  const esActivo = colab.activo !== false;
+                  const { sucursal, serviciosDelColab, citasAsignadas, esActivo } = getPersonalColaboradorDetails(colab, sucursales, servicios, citas);
 
                   return (
                     <div
@@ -948,18 +916,7 @@ export default function PersonalPage({
                     </thead>
                     <tbody className="divide-y divide-border">
                       {colaboradoresFiltrados.map((colab) => {
-                        const sucursal = sucursales.find(
-                          (s) => s.id === colab.sucursal_id,
-                        );
-                        const serviciosDelColab = servicios.filter((s) =>
-                          (colab.serviciosIds || []).includes(s.id),
-                        );
-                        const citasAsignadas = citas.filter(
-                          (c) =>
-                            c.profesional_id === colab.id &&
-                            c.estado !== "cancelada",
-                        );
-                        const esActivo = colab.activo !== false;
+                        const { sucursal, serviciosDelColab, citasAsignadas, esActivo } = getPersonalColaboradorDetails(colab, sucursales, servicios, citas);
 
                         return (
                           <tr
