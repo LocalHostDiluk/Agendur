@@ -82,6 +82,13 @@ export function Footer() {
                   {t.footer.columns.legal.links[0]}
                 </Link>
               </li>
+              
+              <li>
+                <Link href="/beneficios" className="hover:text-flame">
+                  {t.nav.benefits}
+                </Link>
+              </li>
+              
               <li>
                 <Link href="/legal/terminos" className="hover:text-flame">
                   {t.footer.columns.legal.links[1]}

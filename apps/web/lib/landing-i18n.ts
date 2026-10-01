@@ -10,6 +10,7 @@ export const landingCopy = {
       contact: "Contacto",
       login: "Iniciar sesión",
       cta: "Reclama tus 14 días gratis",
+      benefits: "Beneficios",
     },
     hero: {
       h1: "Deja de perseguir citas. Que te busquen a ti.",
@@ -92,6 +93,44 @@ export const landingCopy = {
           title: "Cobra un anticipo, no pierdas el lugar",
           desc: "Pagos y depósitos directos a tu cuenta al agendar. Compromiso real del cliente antes de apartar tu tiempo.",
           badge: "Pagos en línea",
+        },
+      ],
+    },
+    benefits: {
+    badge: "Beneficios",
+      title: "Todo lo que ya tienes, funcionando a la vez dice DJ.",
+      subtitle:
+        "Piezas que se refuerzan solas: la agenda, el catálogo, el portal del cliente y tu equipo trabajando sobre la misma información.",
+      cards: [
+        {
+          id: "agenda-inteligente",
+          title: "Una agenda que nunca se empalma",
+          desc: "Disponibilidad por profesional y por sucursal. Al confirmar una cita el bloque se recalcula y nadie termina en el mismo horario.",
+          badge: "Sin empalmes",
+        },
+        {
+          id: "catalogo-servicios",
+          title: "Catálogo con duración y precio",
+          desc: "Cada servicio con su tiempo, su precio y su categoría. El cliente elige solo, sin llamadas ni mensajes para preguntar. Ademas de disfrutas de los beneficios de usuario de alto valor",
+          badge: "Sin llamadas",
+        },
+        {
+          id: "portal-cliente",
+          title: "El cliente confirma solo",
+          desc: "Portal de autoservicio para confirmar, reprogramar o cancelar. Le toca a él, no a tu recepción.",
+          badge: "24/7",
+        },
+        {
+          id: "equipo-permisos",
+          title: "Recibe recompensas al terminar tu cuponera",
+          desc: "termina tu tarjeta de puntos y disfruta de esta, ademas de muchos beneficios mas que vienen incluidos con esta cuponera",
+          badge: "Una vista",
+        },
+        {
+          id: "historial-cliente",
+          title: "Historial que no se pierde",
+          desc: "Ficha del cliente con sus citas anteriores y notas. Dejas de empezar cada visita desde cero.",
+          badge: "Contexto",
         },
       ],
     },
@@ -287,6 +326,7 @@ export const landingCopy = {
       contact: "Contact",
       login: "Log in",
       cta: "Claim your 14-day free trial",
+      benefits: "benefits",
     },
     hero: {
       h1: "Stop chasing appointments. Let them come to you.",
@@ -369,6 +409,44 @@ export const landingCopy = {
           title: "Collect a deposit, keep the slot secured",
           desc: "Online deposits directly to your account. Real client commitment before blocking your working hours.",
           badge: "Online payments",
+        },
+      ],
+    },
+    benefits: {
+      badge: "Benefits",
+      title: "Everything you already have, working together.",
+      subtitle:
+        "Pieces that reinforce each other: the schedule, the catalog, the client portal and your team working off the same information.",
+      cards: [
+        {
+          id: "agenda-inteligente",
+          title: "A schedule that never overlaps",
+          desc: "Availability per professional and per branch. When an appointment is confirmed the slot is recalculated and nobody ends up in the same time.",
+          badge: "No overlaps",
+        },
+        {
+          id: "catalogo-servicios",
+          title: "A catalog with duration and price",
+          desc: "Every service carries its own time, price and category. Clients choose on their own, without calls or messages to ask.",
+          badge: "No calls",
+        },
+        {
+          id: "portal-cliente",
+          title: "Clients confirm on their own",
+          desc: "Self-service portal to confirm, reschedule or cancel. That is their job, not your front desk's.",
+          badge: "24/7",
+        },
+        {
+          id: "equipo-permisos",
+          title: "Everyone sees only their part",
+          desc: "Roles and permissions per person. Specialists see their schedule, admins see everything, and nobody sees what they should not.",
+          badge: "One view",
+        },
+        {
+          id: "historial-cliente",
+          title: "History that is never lost",
+          desc: "A client record with previous appointments and notes. You stop starting every visit from scratch.",
+          badge: "Context",
         },
       ],
     },

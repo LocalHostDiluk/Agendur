@@ -8,6 +8,7 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
+import { BenefitsSection } from "@/components/beneficios";
 
 export default function LandingPage() {
   return (
@@ -24,6 +25,9 @@ export default function LandingPage() {
 
         {/* 4. DIFERENCIADORES CLAVE (Bento asimétrico con esquinas no convencionales) */}
         <FeaturesSection />
+
+        {/* 4.5 BENEFICIOS (Fondo --paper, cards dark con esquinas clip) */}
+        <BenefitsSection />
 
         {/* 5. PRUEBA SOCIAL COMBINADA (Métricas + 3 Testimonios en tickets + Logos) */}
         <SocialProofMarquee />

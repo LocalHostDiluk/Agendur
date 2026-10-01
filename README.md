@@ -316,9 +316,16 @@ Las operaciones privadas verifican la sesión y la pertenencia del recurso; las 
 
 ### 1. Instalar dependencias
 
+> Para poder instalar bun necesitas instalar desde la documentacion
+> https://bun.com/docs/installation
+
 ```bash
 git clone https://github.com/LocalHostDiluk/Agendur.git
+
+curl -fsSL https://bun.com/install | bash
+
 cd Agendur
+
 bun install --frozen-lockfile
 ```
 
