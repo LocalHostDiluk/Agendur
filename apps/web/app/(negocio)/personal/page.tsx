@@ -3,12 +3,9 @@
 import { useState, useMemo } from "react";
 import {
   Users,
-  Calendar,
   UserPlus,
-  Search,
   AlertCircle,
   RefreshCw,
-  ShieldCheck,
 } from "lucide-react";
 import {
   useAuthMe,
@@ -24,7 +21,7 @@ import {
   usePersonalActions,
 } from "@/lib/hooks";
 import {
-  PersonalDirectorio,
+  PersonalDirectorio, PersonalHeader, PersonalControls,
   PersonalRolesModal, PersonalLoading,
   ModalNuevoColaborador,
   ModalEditarColaborador,
@@ -157,127 +154,10 @@ export default function PersonalPage({
     ) : (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bricolage font-bold text-text-primary tracking-tight">
-            Equipo &amp; Personal
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Gestiona los especialistas y colaboradores de tu negocio, sus
-            especialidades y horarios de trabajo.
-          </p>
-        </div>
-
-        {/* Action Buttons: Roles y Permisos + Registrar Colaborador */}
-        {canWriteStaff && <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setIsPermisosModalOpen(true)}
-            className="gap-2"
-          >
-            <ShieldCheck className="w-4 h-4 text-grape" />
-            <span>Roles y Permisos</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => setIsModalOpen(true)}
-            className="gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Registrar Colaborador</span>
-          </Button>
-        </div>}
-      </div>
+      <PersonalHeader canWriteStaff={canWriteStaff} setIsPermisosModalOpen={setIsPermisosModalOpen} setIsModalOpen={setIsModalOpen} />
 
       {/* Control Bar: Tabs Switcher, Branch Filter and Search */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Pills Switcher (§10: Directorio y Horarios semanales) */}
-        <div
-          className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-fit shrink-0"
-          role="tablist"
-          aria-label="Vistas de personal"
-        >
-          <button
-            type="button"
-            role="tab"
-            id="tab-directorio"
-            aria-selected={activeTab === "directorio"}
-            onClick={() => setActiveTab("directorio")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
-              activeTab === "directorio"
-                ? "bg-grape text-white shadow-xs"
-                : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Directorio del Equipo</span>
-            <span
-              className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === "directorio"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-alt text-text-muted"
-              }`}
-            >
-              {todosLosColaboradores.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            id="tab-horarios"
-            aria-selected={activeTab === "horarios"}
-            onClick={() => setActiveTab("horarios")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
-              activeTab === "horarios"
-                ? "bg-grape text-white shadow-xs"
-                : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Horarios semanales</span>
-            <span className="sr-only">Matriz de Horarios</span>
-          </button>
-
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 lg:max-w-md lg:justify-end">
-          {/* Branch Filter */}
-          {sucursales.length > 1 && (
-            <div className="relative shrink-0 sm:w-48">
-              <select
-                value={selectedSucursalId}
-                onChange={(e) => setSelectedSucursalId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-                aria-label="Filtrar por sucursal"
-              >
-                <option value="todas">Todas las sedes</option>
-                {sucursales.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre} {s.es_matriz ? "(Matriz)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar colaborador o servicio..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-            />
-          </div>
-        </div>
-      </div>
+      <PersonalControls activeTab={activeTab} setActiveTab={setActiveTab} totalColaboradores={todosLosColaboradores.length} sucursales={sucursales} selectedSucursalId={selectedSucursalId} setSelectedSucursalId={setSelectedSucursalId} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
       {/* STATE 1: LOADING */}
       {isLoading && (

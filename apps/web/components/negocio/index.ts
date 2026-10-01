@@ -57,3 +57,5 @@ export * from "./PersonalAvatar";
 export * from "./PersonalHorarioCell";
 export * from "./PersonalHorarioRow";
 export * from "./PersonalHorarios";
+export * from "./PersonalHeader";
+export * from "./PersonalControls";
