@@ -2,22 +2,13 @@
 
 import { useState, useMemo } from "react";
 import {
-  MessageSquare,
   CreditCard,
   Save,
-  Loader2,
   AlertCircle,
   RefreshCw,
-  Copy,
   Check,
   ExternalLink,
-  Clock,
   Sparkles,
-  UserCheck,
-  Send,
-  Smartphone,
-  Info,
-  CheckCheck,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { notify } from "@/lib/utils/toast";
@@ -37,6 +28,7 @@ import {
   ConfiguracionPerfilTab,
   ConfiguracionPoliticasTab,
   ConfiguracionUsuariosTab,
+  ConfiguracionPlantillasTab,
 } from "@/components/negocio";
 import { Button, Badge, PendingBadge } from "@/components/ui";
 import {
@@ -340,235 +332,19 @@ function ConfiguracionForm({
             TAB 4: PLANTILLAS DE RECORDATORIOS (§10 con Preview Ticket Perforado §5.6)
            ========================================================================= */}
         {activeTab === "plantillas" && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-6">
-              {/* Header with Beta Badge */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-grape" />
-                    <h2 className="font-bricolage font-bold text-lg text-text-primary">
-                      Plantillas de Notificaciones
-                    </h2>
-                    <PendingBadge
-                      label="Beta"
-                      tooltip="Envío automatizado en fase de pruebas"
-                    />
-                  </div>
-                  <p className="text-xs text-text-secondary mt-1">
-                    Personaliza los mensajes directos que tus clientes reciben por WhatsApp y SMS para reducir ausencias.
-                  </p>
-                </div>
-
-                {/* Channel Switcher */}
-                <div className="flex items-center gap-1.5 p-1 bg-surface-alt border border-border rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setCanalPlantilla("whatsapp")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      canalPlantilla === "whatsapp"
-                        ? "bg-grape text-white shadow-xs"
-                        : "text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>WhatsApp</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCanalPlantilla("sms")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      canalPlantilla === "sms"
-                        ? "bg-grape text-white shadow-xs"
-                        : "text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    <Smartphone className="w-3.5 h-3.5" />
-                    <span>SMS</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Template Selection Pills */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-text-secondary mr-1">
-                  Momento de envío:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setTipoPlantilla("recordatorio")}
-                  className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all ${
-                    tipoPlantilla === "recordatorio"
-                      ? "bg-grape text-white shadow-xs"
-                      : "bg-surface-alt border border-border text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  Recordatorio 24h antes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTipoPlantilla("confirmacion")}
-                  className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all ${
-                    tipoPlantilla === "confirmacion"
-                      ? "bg-grape text-white shadow-xs"
-                      : "bg-surface-alt border border-border text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  Confirmación inmediata
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTipoPlantilla("cancelacion")}
-                  className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all ${
-                    tipoPlantilla === "cancelacion"
-                      ? "bg-grape text-white shadow-xs"
-                      : "bg-surface-alt border border-border text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  Cancelación o Reagendamiento
-                </button>
-              </div>
-
-              {/* Grid: Editor + Ticket Preview (§5.6) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Column: Template Editor */}
-                <div className="lg:col-span-7 space-y-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="templateText"
-                        className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-                      >
-                        Contenido del Mensaje
-                      </label>
-                      <span className="font-mono text-xs text-text-secondary">
-                        {activeTemplateText.length} caracteres
-                      </span>
-                    </div>
-
-                    <textarea
-                      id="templateText"
-                      rows={6}
-                      value={canalPlantilla === "whatsapp" ? plantillaWhatsApp : plantillaSMS}
-                      onChange={(e) => {
-                        if (canalPlantilla === "whatsapp") {
-                          setPlantillaWhatsApp(e.target.value);
-                        } else {
-                          setPlantillaSMS(e.target.value);
-                        }
-                      }}
-                      className="w-full p-3.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape font-sans leading-relaxed"
-                    />
-                  </div>
-
-                  {/* Variables pills */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-text-secondary">
-                      Haz clic para insertar variables dinámicas:
-                    </p>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {[
-                        { key: "{cliente}", label: "Nombre Cliente" },
-                        { key: "{servicio}", label: "Servicio" },
-                        { key: "{fecha}", label: "Fecha" },
-                        { key: "{hora}", label: "Hora" },
-                        { key: "{profesional}", label: "Profesional" },
-                        { key: "{sucursal}", label: "Sucursal" },
-                        { key: "{negocio}", label: "Negocio" },
-                        { key: "{enlace_gestion}", label: "Enlace Gestión" },
-                      ].map((v) => (
-                        <button
-                          key={v.key}
-                          type="button"
-                          onClick={() => insertVariable(v.key)}
-                          className="px-2.5 py-1 rounded-[var(--radius-sm)] bg-surface-alt border border-border text-[11px] font-mono font-medium text-grape hover:bg-grape-soft transition-colors select-none"
-                        >
-                          {v.key}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Interactive Perforated Ticket Preview (§5.6) */}
-                <div className="lg:col-span-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-grape" />
-                      <span>Vista Previa del Cliente</span>
-                    </span>
-                    <PendingBadge
-                      label="Beta"
-                      tooltip="Envío automatizado en fase de pruebas"
-                    />
-                  </div>
-
-                  {/* Perforated ticket card with notch styling */}
-                  <div className="relative bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
-                    {/* Ticket Header */}
-                    <div className="p-4 bg-surface-alt/70 border-b border-border flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="size-6 rounded-md bg-grape text-white font-mono font-bold text-xs flex items-center justify-center">
-                          A
-                        </div>
-                        <span className="font-bricolage font-bold text-sm text-text-primary">
-                          {nombreNegocio || "Agendur"}
-                        </span>
-                      </div>
-                      <span className="font-mono text-[11px] font-bold text-grape bg-grape-soft px-2 py-0.5 rounded-full">
-                        #TK-4820
-                      </span>
-                    </div>
-
-                    {/* Perforation line with circular cutout notches on edges (§5.6) */}
-                    <div className="relative py-2 px-4 flex items-center justify-center">
-                      <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-background border border-border" />
-                      <div className="w-full border-b border-dashed border-border" />
-                      <div className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-background border border-border" />
-                    </div>
-
-                    {/* WhatsApp / SMS Chat Bubble */}
-                    <div className="p-4 bg-surface space-y-3">
-                      <div className="flex items-center gap-2 text-[11px] text-text-muted justify-center">
-                        <Clock className="w-3 h-3" />
-                        <span>Notificación Automática — 24h antes</span>
-                      </div>
-
-                      <div
-                        className={`rounded-xl p-3 text-xs leading-relaxed space-y-1.5 shadow-xs ${
-                          canalPlantilla === "whatsapp"
-                            ? "bg-mint-soft/30 dark:bg-mint-dark/15 border border-mint/25 text-text-primary"
-                            : "bg-surface-alt border border-border text-text-primary"
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap">{renderedPreview}</p>
-                        <div className="flex items-center justify-end gap-1 text-[10px] text-text-muted">
-                          <span className="font-mono">10:00</span>
-                          {canalPlantilla === "whatsapp" && (
-                            <CheckCheck className="w-3.5 h-3.5 text-mint-dark" />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Ticket Footer details */}
-                      <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2 text-[11px] font-mono">
-                        <div>
-                          <p className="text-text-muted">FECHA & HORA</p>
-                          <p className="font-bold text-text-primary">30 SEP · 16:00</p>
-                        </div>
-                        <div>
-                          <p className="text-text-muted">CANAL</p>
-                          <p className="font-bold text-grape uppercase">
-                            {canalPlantilla}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ConfiguracionPlantillasTab
+            canalPlantilla={canalPlantilla}
+            onCanalPlantillaChange={setCanalPlantilla}
+            tipoPlantilla={tipoPlantilla}
+            onTipoPlantillaChange={setTipoPlantilla}
+            plantillaWhatsApp={plantillaWhatsApp}
+            onPlantillaWhatsAppChange={setPlantillaWhatsApp}
+            plantillaSMS={plantillaSMS}
+            onPlantillaSMSChange={setPlantillaSMS}
+            onInsertVariable={insertVariable}
+            nombreNegocio={nombreNegocio}
+            renderedPreview={renderedPreview}
+          />
         )}
 
         {/* =========================================================================

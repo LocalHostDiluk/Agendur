@@ -67,3 +67,5 @@ export * from "./ConfiguracionAnticipoCard";
 export * from "./ConfiguracionPoliticasTab";
 export * from "./ConfiguracionRolesCard";
 export * from "./ConfiguracionUsuariosTab";
+export * from "./ConfiguracionTicketPreview";
+export * from "./ConfiguracionPlantillasTab";
