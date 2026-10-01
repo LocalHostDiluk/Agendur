@@ -43,3 +43,7 @@ export * from "./PersonalRolBadge";
 export * from "./PersonalEstadoBadge";
 export * from "./PersonalServicioBadge";
 export * from "./PersonalColaboradorActions";
+export * from "./PersonalPermiso";
+export * from "./PersonalRolCard";
+export * from "./PersonalRolesHeader";
+export * from "./PersonalRolesModal";
