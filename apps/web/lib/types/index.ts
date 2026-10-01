@@ -98,6 +98,7 @@ export interface CreateProfesionalPayload {
   avatar_url?: string | null;
   activo?: boolean;
   serviciosIds?: string[];
+  horarios?: HorarioProfesionalInput[];
 }
 
 export interface UpdateProfesionalPayload {
@@ -139,6 +140,12 @@ export interface HorarioProfesional {
   es_laborable: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface HorarioProfesionalInput {
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
 }
 
 export type EstadoCita =

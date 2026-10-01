@@ -3,6 +3,7 @@ import { NegocioAccessError, requireNegocioAccess, type NegocioCapability } from
 import { adminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription, SubscriptionExpiredError } from "@/lib/payments/guards";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import { parseProfessionalSchedule } from "@/lib/schedules/professional";
 
 /**
  * Autentica al usuario y obtiene el negocio asociado (owner_id = user.id).
@@ -142,7 +143,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       avatar_url,
       activo = true,
       serviciosIds = [],
+      horarios,
     } = body as Record<string, unknown>;
+
+    const cleanHorarios = horarios === undefined
+      ? null
+      : parseProfessionalSchedule(horarios);
+    if (horarios !== undefined && !cleanHorarios) {
+      return apiError("Horario semanal inválido.", undefined, {
+        status: 400,
+        code: "INVALID_WEEKLY_SCHEDULE",
+      });
+    }
 
     // Validar nombre
     if (
@@ -310,11 +322,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    let horariosGuardados = null;
+    if (cleanHorarios) {
+      const { data, error: horarioError } = await adminClient.rpc(
+        "replace_professional_schedule",
+        {
+          p_profesional_id: nuevoProfesional.id,
+          p_horarios: cleanHorarios,
+        },
+      );
+      if (horarioError) {
+        await adminClient.from("profesionales").delete().eq("id", nuevoProfesional.id);
+        throw horarioError;
+      }
+      horariosGuardados = data;
+    }
+
     return apiSuccess(
       {
         profesional: {
           ...nuevoProfesional,
           serviciosIds: cleanServiciosIds,
+          horarios: horariosGuardados ?? undefined,
         },
       },
       201,

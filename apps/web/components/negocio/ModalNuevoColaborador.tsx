@@ -6,6 +6,7 @@ import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
 import { useCreateProfesional } from "@/lib/hooks";
 import { PendingBadge } from "@/components/ui/PendingBadge";
+import { buildUniformProfessionalSchedule } from "@/lib/schedules/professional";
 
 export interface ColaboradorCreadoPayload {
   id: string;
@@ -149,6 +150,16 @@ export function ModalNuevoColaborador({
       return;
     }
 
+    if (diasLaborables.length === 0) {
+      notify.warning("Horario requerido", "Selecciona al menos un día laboral.");
+      return;
+    }
+
+    if (horaInicio >= horaFin) {
+      notify.warning("Horario inválido", "La hora de salida debe ser posterior a la entrada.");
+      return;
+    }
+
     try {
       const response = await createProfesional.mutateAsync({
         nombre: nombre.trim(),
@@ -158,6 +169,11 @@ export function ModalNuevoColaborador({
         email: email.trim() || null,
         telefono: telefono.trim() || null,
         serviciosIds: selectedServicios,
+        horarios: buildUniformProfessionalSchedule(
+          diasLaborables,
+          horaInicio,
+          horaFin,
+        ),
         activo: true,
       });
 
@@ -387,6 +403,8 @@ export function ModalNuevoColaborador({
                     key={d.dia}
                     type="button"
                     onClick={() => toggleDia(d.dia)}
+                    aria-pressed={isSelected}
+                    aria-label={`${d.label}: ${isSelected ? "laborable" : "no laborable"}`}
                     className={`size-8 rounded-lg text-xs font-semibold transition-all ${
                       isSelected
                         ? "bg-grape text-white shadow-xs"
