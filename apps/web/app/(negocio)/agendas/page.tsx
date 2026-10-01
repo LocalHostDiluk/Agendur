@@ -18,7 +18,7 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 import { getTodayString, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agendas-date";
-import { AgendasManualButton, AgendasViewTab, AgendasDateNavigation, AgendasCitaSkeletonRow } from "@/components/negocio";
+import { AgendasManualButton, AgendasViewTab, AgendasDateNavigation, AgendasCitaSkeletonRow, AgendasSemanaSkeletonDia } from "@/components/negocio";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
@@ -27,7 +27,6 @@ import {
   PendingBadge,
   SkeletonBlock,
   SkeletonText,
-  SkeletonCircle,
 } from "@/components/ui";
 import type { Cita, EstadoCita } from "@/lib/types";
 import { getMonthStart, getMonthEnd, getAgendaQueryFilters, getSortedCitas, getWeekDays, groupCitasByDay } from "@/lib/utils/agendas-data";
@@ -258,28 +257,7 @@ export default function AgendasPage() {
           className="grid grid-cols-1 md:grid-cols-7 gap-3 animate-pulse"
           data-testid="agenda-loading"
         >
-          {weekDays.map((item) => (
-            <div
-              key={item.ymd}
-              className="rounded-[var(--radius-lg)] border border-border bg-surface flex flex-col min-h-[320px]"
-            >
-              <div className="p-3 border-b border-border text-center rounded-t-[var(--radius-lg)] bg-surface-alt/70">
-                <span className="text-[11px] font-mono font-semibold text-text-secondary block">
-                  {item.dayName}
-                </span>
-                <span className="text-lg font-bricolage font-bold text-text-primary">
-                  {item.dayNumber}
-                </span>
-                <div className="flex justify-center items-center h-2 mt-1">
-                  <SkeletonCircle className="w-1 h-1" />
-                </div>
-              </div>
-              <div className="p-2 space-y-2 flex-1">
-                <SkeletonBlock className="h-16 w-full rounded-xl" />
-                <SkeletonBlock className="h-16 w-full rounded-xl" />
-              </div>
-            </div>
-          ))}
+          {weekDays.map((item) => (<AgendasSemanaSkeletonDia key={item.ymd} item={item} />))}
         </div>
       )}
 

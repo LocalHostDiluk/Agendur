@@ -42,3 +42,4 @@ export * from "./AgendasManualButton";
 export * from "./AgendasViewTab";
 export * from "./AgendasDateNavigation";
 export * from "./AgendasCitaSkeletonRow";
+export * from "./AgendasSemanaSkeletonDia";
