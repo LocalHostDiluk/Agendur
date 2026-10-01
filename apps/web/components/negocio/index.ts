@@ -69,3 +69,5 @@ export * from "./ConfiguracionRolesCard";
 export * from "./ConfiguracionUsuariosTab";
 export * from "./ConfiguracionTicketPreview";
 export * from "./ConfiguracionPlantillasTab";
+export * from "./ConfiguracionSuscripcionTab";
+export * from "./ConfiguracionForm";
