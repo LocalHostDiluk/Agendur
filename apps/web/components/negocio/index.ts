@@ -61,3 +61,4 @@ export * from "./PersonalHeader";
 export * from "./PersonalControls";
 export * from "./PersonalError";
 export * from "./PersonalEmpty";
+export * from "./PersonalModals";
