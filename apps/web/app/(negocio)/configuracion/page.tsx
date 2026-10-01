@@ -12,9 +12,7 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Globe,
   Clock,
-  Coins,
   ShieldAlert,
   Sparkles,
   Phone,
@@ -27,8 +25,6 @@ import {
   Send,
   Smartphone,
   Info,
-  Trash2,
-  Image as ImageIcon,
   CheckCheck,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -46,13 +42,10 @@ import { ConfiguracionLoading } from "./loading";
 import {
   ConfiguracionHeader,
   ConfiguracionTabsNav,
+  ConfiguracionPerfilTab,
 } from "@/components/negocio";
 import { Button, Badge, PendingBadge, SwitchToggle } from "@/components/ui";
 import {
-  GIROS_FRECUENTES,
-  PAISES,
-  ZONAS_HORARIAS,
-  MONEDAS,
   ANTICIPACIONES_MINIMAS,
   ANTICIPACIONES_MAXIMAS,
   type ConfigType,
@@ -293,251 +286,26 @@ function ConfiguracionForm({
             TAB 1: PERFIL COMERCIAL
            ========================================================================= */}
         {activeTab === "perfil" && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Public Portal Link Card */}
-            <div className="bg-surface-alt border border-border rounded-2xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-grape" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                    Portal Público de Clientes
-                  </span>
-                </div>
-                <Badge variant="success" size="sm" dot>
-                  En Línea
-                </Badge>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl">
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                  <span className="text-xs text-text-secondary font-mono select-none">
-                    agendur.com/reserva/
-                  </span>
-                  <span className="text-xs font-mono font-bold text-grape truncate">
-                    {configuracion.slug || "mi-negocio"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
-                    className="px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium bg-surface-alt hover:bg-border/60 text-text-primary border border-border transition-colors flex items-center gap-1.5 min-h-[36px]"
-                  >
-                    {copied ? (
-                      <Check className="w-3.5 h-3.5 text-success" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                    <span>{copied ? "Copiado" : "Copiar enlace"}</span>
-                  </button>
-                  <a
-                    href={`/reserva/${configuracion.slug || ""}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium bg-grape-soft hover:bg-grape-soft/80 text-grape transition-colors flex items-center gap-1.5 min-h-[36px]"
-                  >
-                    <span>Abrir portal</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-
-              <p className="text-xs text-text-secondary">
-                Este es el enlace directo a tu catálogo de citas para compartir
-                por WhatsApp, Instagram y redes sociales. El identificador permanente
-                garantiza que tus clientes siempre encuentren tu negocio.
-              </p>
-            </div>
-
-            {/* General Business Information & Logo */}
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-5">
-              <div className="border-b border-border pb-3">
-                <h2 className="font-bricolage font-bold text-lg text-text-primary">
-                  Información Comercial
-                </h2>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Datos principales y logotipo que tus clientes verán al ingresar al portal
-                  de reservas.
-                </p>
-              </div>
-
-              {/* Logo Preview & Input */}
-              <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl bg-surface-alt border border-border">
-                <div className="size-16 rounded-xl bg-surface border border-border flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-                  {logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={logoUrl}
-                      alt="Logo de negocio"
-                      className="w-full h-full object-cover"
-                      onError={() => {
-                        notify.error("No se pudo cargar la vista previa del logotipo.");
-                      }}
-                    />
-                  ) : (
-                    <ImageIcon className="w-7 h-7 text-text-muted" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-1.5 w-full">
-                  <label
-                    htmlFor="logoUrl"
-                    className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5"
-                  >
-                    <span>URL del Logotipo Comercial</span>
-                  </label>
-                  <input
-                    id="logoUrl"
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://tudominio.com/logo.png"
-                    maxLength={500}
-                    className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
-                  />
-                  <p className="text-[11px] text-text-muted">
-                    Proporciona un enlace directo a tu imagen (PNG, JPG o WebP con fondo transparente o sólido).
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Nombre Comercial */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label
-                    htmlFor="nombreNegocio"
-                    className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-                  >
-                    Nombre del Negocio *
-                  </label>
-                  <input
-                    id="nombreNegocio"
-                    type="text"
-                    required
-                    value={nombreNegocio}
-                    onChange={(e) => setNombreNegocio(e.target.value)}
-                    placeholder="Ej. Barbería Clásica & Spa"
-                    maxLength={200}
-                    className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
-                  />
-                </div>
-
-                {/* Giro Comercial */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="giroComercial"
-                    className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-                  >
-                    Giro o Categoría *
-                  </label>
-                  <input
-                    id="giroComercial"
-                    type="text"
-                    list="giros-list"
-                    required
-                    value={giroComercial}
-                    onChange={(e) => setGiroComercial(e.target.value)}
-                    placeholder="Selecciona o escribe el giro comercial"
-                    className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
-                  />
-                  <datalist id="giros-list">
-                    {GIROS_FRECUENTES.map((g) => (
-                      <option key={g} value={g} />
-                    ))}
-                  </datalist>
-                </div>
-
-                {/* Moneda Principal */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="monedaPrincipal"
-                    className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5"
-                  >
-                    <Coins className="w-3.5 h-3.5 text-grape" />
-                    <span>Moneda Comercial</span>
-                  </label>
-                  <select
-                    id="monedaPrincipal"
-                    value={monedaPrincipal}
-                    onChange={(e) => setMonedaPrincipal(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
-                  >
-                    {MONEDAS.map((m) => (
-                      <option key={m.code} value={m.code}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* País */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="pais"
-                    className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-                  >
-                    País
-                  </label>
-                  <select
-                    id="pais"
-                    value={pais}
-                    onChange={(e) => setPais(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
-                  >
-                    {PAISES.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.name} ({p.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Zona Horaria */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="zonaHoraria"
-                    className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-grape" />
-                    <span>Zona Horaria Oficial</span>
-                  </label>
-                  <select
-                    id="zonaHoraria"
-                    value={zonaHoraria}
-                    onChange={(e) => setZonaHoraria(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
-                  >
-                    {ZONAS_HORARIAS.map((z) => (
-                      <option key={z.value} value={z.value}>
-                        {z.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-danger/5 border border-danger/25 rounded-2xl p-5 sm:p-6 space-y-4">
-              <div className="space-y-1">
-                <h2 className="font-bricolage font-bold text-lg text-danger">
-                  Zona de peligro
-                </h2>
-                <p className="text-xs text-text-secondary">
-                  Desactivaremos todos tus portales y cancelaremos las
-                  suscripciones vinculadas. Por integridad y auditoría,
-                  conservaremos el historial de citas y pagos.
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={!accountEmail || deletingAccount}
-                onClick={() => setDeleteDialogOpen(true)}
-                className="min-h-[44px] px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Eliminar mi cuenta</span>
-              </button>
-            </div>
-          </div>
+          <ConfiguracionPerfilTab
+            slug={configuracion.slug}
+            copied={copied}
+            onCopyLink={handleCopyLink}
+            logoUrl={logoUrl}
+            onLogoUrlChange={setLogoUrl}
+            nombreNegocio={nombreNegocio}
+            onNombreNegocioChange={setNombreNegocio}
+            giroComercial={giroComercial}
+            onGiroComercialChange={setGiroComercial}
+            monedaPrincipal={monedaPrincipal}
+            onMonedaPrincipalChange={setMonedaPrincipal}
+            pais={pais}
+            onPaisChange={setPais}
+            zonaHoraria={zonaHoraria}
+            onZonaHorariaChange={setZonaHoraria}
+            accountEmail={accountEmail}
+            deletingAccount={deletingAccount}
+            onOpenDeleteDialog={() => setDeleteDialogOpen(true)}
+          />
         )}
 
         {/* =========================================================================

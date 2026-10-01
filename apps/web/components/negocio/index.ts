@@ -56,3 +56,6 @@ export * from "./ConfiguracionTabsNav";
 export * from "./AgendasLoading";
 export * from "./AgendasError";
 export * from "./AgendasEmpty";
+export * from "./ConfiguracionPortalCard";
+export * from "./ConfiguracionDangerZone";
+export * from "./ConfiguracionPerfilTab";
