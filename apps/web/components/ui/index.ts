@@ -7,3 +7,4 @@ export * from "./Skeleton";
 export * from "./ProcessingOverlay";
 export * from "./ConfirmDialog";
 export * from "./PendingBadge";
+export * from "./SwitchToggle";
