@@ -59,6 +59,32 @@ export function getDiaSemana(fechaStr: string): number {
   return d.getUTCDay();
 }
 
+type Ventana = { inicio: number; fin: number };
+
+function intersectarVentanas(a: Ventana[], b: Ventana[]): Ventana[] {
+  return a.flatMap((primera) =>
+    b.flatMap((segunda) => {
+      const inicio = Math.max(primera.inicio, segunda.inicio);
+      const fin = Math.min(primera.fin, segunda.fin);
+      return inicio < fin ? [{ inicio, fin }] : [];
+    }),
+  );
+}
+
+function resolverExcepciones(
+  excepciones: Array<Record<string, unknown>> | null,
+  campoInicio: string,
+  campoFin: string,
+): Ventana[] | null {
+  if (!excepciones?.length) return null;
+  if (excepciones.some((excepcion) => excepcion.cerrado === true)) return [];
+
+  return excepciones.map((excepcion) => ({
+    inicio: timeToMinutes(String(excepcion[campoInicio])),
+    fin: timeToMinutes(String(excepcion[campoFin])),
+  }));
+}
+
 /**
  * Calcula la disponibilidad de horarios a dos niveles (Sucursal + Profesional)
  * descontando citas agendadas y solapamientos.
@@ -73,34 +99,54 @@ export async function obtenerDisponibilidad(
     // 1. Validar que la sucursal exista y esté activa
     const { data: sucursal, error: sucError } = await adminClient
       .from("sucursales")
-      .select("id, activa")
+      .select("id, activa, negocios!inner(id)")
       .eq("id", sucursalId)
+      .is("negocios.desactivado_at", null)
       .maybeSingle();
 
     if (sucError || !sucursal || !sucursal.activa) {
       return [];
     }
 
-    // 2. Nivel 1: Horario de apertura general de la sucursal
-    const { data: horarioSucursal } = await adminClient
+    // 2. Nivel 1: horario semanal o bloques especiales de la sucursal.
+    const { data: horarioSucursal, error: horarioSucursalError } = await adminClient
       .from("horarios_sucursal")
       .select("hora_apertura, hora_cierre, es_laborable")
       .eq("sucursal_id", sucursalId)
       .eq("dia_semana", diaSemana)
       .maybeSingle();
 
-    if (!horarioSucursal || !horarioSucursal.es_laborable) {
-      // Sucursal cerrada este día
-      return [];
+    const { data: excepcionesSucursal, error: excepcionesSucursalError } = await adminClient
+      .from("excepciones_horario_sucursal")
+      .select("cerrado, hora_apertura, hora_cierre")
+      .eq("sucursal_id", sucursalId)
+      .eq("fecha", fecha);
+
+    if (horarioSucursalError || excepcionesSucursalError) {
+      throw horarioSucursalError || excepcionesSucursalError;
     }
 
-    const sucAperturaMin = timeToMinutes(horarioSucursal.hora_apertura);
-    const sucCierreMin = timeToMinutes(horarioSucursal.hora_cierre);
+    const ventanasSucursal =
+      resolverExcepciones(
+        excepcionesSucursal,
+        "hora_apertura",
+        "hora_cierre",
+      ) ??
+      (horarioSucursal?.es_laborable
+        ? [
+            {
+              inicio: timeToMinutes(horarioSucursal.hora_apertura),
+              fin: timeToMinutes(horarioSucursal.hora_cierre),
+            },
+          ]
+        : []);
+
+    if (ventanasSucursal.length === 0) return [];
 
     // 3. Obtener el servicio y su duración
     const { data: servicio, error: servError } = await adminClient
       .from("servicios")
-      .select("id, duracion_minutos, activo")
+      .select("id, duracion_minutos, buffer_minutos, activo")
       .eq("id", servicioId)
       .maybeSingle();
 
@@ -109,6 +155,8 @@ export async function obtenerDisponibilidad(
     }
 
     const duracionMin = servicio.duracion_minutos || 30;
+    const bufferMin = servicio.buffer_minutos ?? 0;
+    const ocupacionMin = duracionMin + bufferMin;
 
     // 4. Obtener profesionales elegibles
     let elegiblesIds: string[] = [];
@@ -166,64 +214,74 @@ export async function obtenerDisponibilidad(
 
     // 5. Nivel 2: Para cada profesional, evaluar su turno y descontar citas
     for (const profId of elegiblesIds) {
-      const { data: horarioProf } = await adminClient
+      const { data: horarioProf, error: horarioProfError } = await adminClient
         .from("horarios_profesional")
         .select("hora_inicio, hora_fin, es_laborable")
         .eq("profesional_id", profId)
         .eq("dia_semana", diaSemana)
         .maybeSingle();
 
-      // Si no tiene horario específico configurado, asumimos el horario de la sucursal
-      const profInicioMin = horarioProf?.es_laborable
-        ? timeToMinutes(horarioProf.hora_inicio)
-        : horarioProf
-          ? null // Si existe registro con es_laborable = false, no labora
-          : sucAperturaMin;
+      const { data: excepcionesProf, error: excepcionesProfError } = await adminClient
+        .from("excepciones_horario_profesional")
+        .select("cerrado, hora_inicio, hora_fin")
+        .eq("profesional_id", profId)
+        .eq("fecha", fecha);
 
-      const profFinMin = horarioProf?.es_laborable
-        ? timeToMinutes(horarioProf.hora_fin)
-        : horarioProf
-          ? null
-          : sucCierreMin;
-
-      if (profInicioMin === null || profFinMin === null) {
-        continue;
+      if (horarioProfError || excepcionesProfError) {
+        throw horarioProfError || excepcionesProfError;
       }
 
-      // Intersección del horario de apertura y el turno del profesional
-      const ventanaInicio = Math.max(sucAperturaMin, profInicioMin);
-      const ventanaFin = Math.min(sucCierreMin, profFinMin);
+      const ventanasProfesional =
+        resolverExcepciones(excepcionesProf, "hora_inicio", "hora_fin") ??
+        (horarioProf
+          ? horarioProf.es_laborable
+            ? [
+                {
+                  inicio: timeToMinutes(horarioProf.hora_inicio),
+                  fin: timeToMinutes(horarioProf.hora_fin),
+                },
+              ]
+            : []
+          : ventanasSucursal);
 
-      if (ventanaInicio + duracionMin > ventanaFin) {
-        continue;
-      }
+      const ventanas = intersectarVentanas(
+        ventanasSucursal,
+        ventanasProfesional,
+      );
+      if (ventanas.length === 0) continue;
 
       // Obtener citas activas de este profesional para la fecha
-      const { data: citas } = await adminClient
+      const { data: citas, error: citasError } = await adminClient
         .from("citas")
-        .select("hora_inicio, hora_fin")
+        .select("hora_inicio, hora_fin_buffer")
         .eq("profesional_id", profId)
         .eq("fecha", fecha)
         .in("estado", ["pendiente_pago", "confirmada"]);
 
+      if (citasError) throw citasError;
+
       const citasMin = (citas || []).map((c) => ({
         inicio: timeToMinutes(c.hora_inicio),
-        fin: timeToMinutes(c.hora_fin),
+        fin: timeToMinutes(c.hora_fin_buffer),
       }));
 
-      // Probar cada franja candidata
-      for (
-        let inicio = ventanaInicio;
-        inicio + duracionMin <= ventanaFin;
-        inicio += pasoMin
-      ) {
-        const fin = inicio + duracionMin;
+      // Probar cada franja candidata dentro de cada intersección.
+      for (const ventana of ventanas) {
+        for (
+          let inicio = ventana.inicio;
+          inicio + ocupacionMin <= ventana.fin &&
+          inicio + ocupacionMin < 24 * 60;
+          inicio += pasoMin
+        ) {
+          const fin = inicio + ocupacionMin;
 
-        // Comprobar solapamiento: inicio < cita.fin && fin > cita.inicio
-        const solapada = citasMin.some((c) => inicio < c.fin && fin > c.inicio);
+          const solapada = citasMin.some(
+            (c) => inicio < c.fin && fin > c.inicio,
+          );
 
-        if (!solapada) {
-          franjasDisponibles.add(minutesToTime(inicio));
+          if (!solapada) {
+            franjasDisponibles.add(minutesToTime(inicio));
+          }
         }
       }
     }
@@ -295,6 +353,7 @@ export async function crearReservaCita(
     .from("negocios")
     .select("telefono_cliente_requerido, email_cliente_requerido, notas_cliente_habilitadas, politica_cancelacion, zona_horaria")
     .eq("id", sucursal.negocio_id)
+    .is("desactivado_at", null)
     .single();
   if (negocioError || !negocio) {
     throw bookingError("No se pudo consultar la configuración de reservas.", 503, "BOOKING_CONFIG_UNAVAILABLE");
@@ -325,7 +384,7 @@ export async function crearReservaCita(
   // 3. Obtener servicio oficial y validar que pertenezca al mismo negocio
   const { data: servicio, error: servErr } = await adminClient
     .from("servicios")
-    .select("id, negocio_id, duracion_minutos, precio, activo, nombre")
+    .select("id, negocio_id, duracion_minutos, buffer_minutos, precio, activo, nombre")
     .eq("id", servicioId)
     .single();
 
@@ -367,12 +426,17 @@ export async function crearReservaCita(
   // 4. Calcular hora_fin
   const horaInicioMin = timeToMinutes(hora);
   const duracionMin = servicio.duracion_minutos || 30;
+  const bufferMin = servicio.buffer_minutos ?? 0;
   const horaFinMin = horaInicioMin + duracionMin;
-  if (horaFinMin > 24 * 60) {
-    throw bookingError("La cita debe terminar el mismo día.", 400, "INVALID_DATE_TIME");
+  const horaFinBufferMin = horaFinMin + bufferMin;
+  if (horaFinBufferMin >= 24 * 60) {
+    throw bookingError(
+      "La cita y su buffer deben terminar el mismo día.",
+      400,
+      "INVALID_DATE_TIME",
+    );
   }
   const horaInicioStr = minutesToTime(horaInicioMin) + ":00";
-  const horaFinStr = minutesToTime(horaFinMin) + ":00";
 
   // 5. Exigir un slot ofrecido; la restricción SQL resuelve las carreras posteriores.
   const horarios = await obtenerDisponibilidad({ sucursalId, servicioId, profesionalId, fecha });
@@ -380,31 +444,28 @@ export async function crearReservaCita(
     throw bookingError("El horario seleccionado ya no está disponible.", 409, "SLOT_UNAVAILABLE");
   }
 
-  // 6. Insertar la cita en Supabase
+  // 6. Comprobar el conflicto e insertar en una sola transacción PostgreSQL.
   const aceptadaEn = new Date().toISOString();
-  const { data: nuevaCita, error: insertError } = await adminClient
-    .from("citas")
-    .insert({
-      negocio_id: sucursal.negocio_id,
-      sucursal_id: sucursalId,
-      servicio_id: servicioId,
-      profesional_id: profesionalId,
-      cliente_nombre: clienteNombre,
-      cliente_apellido: clienteApellido,
-      cliente_telefono: clientePhone,
-      cliente_email: clienteEmail,
-      fecha,
-      hora_inicio: horaInicioStr,
-      hora_fin: horaFinStr,
-      estado: "pendiente_pago", // RLS compliant
-      precio_total: Number(servicio.precio),
-      monto_anticipo_pagado: 0,
-      notas_cliente: notasCliente || null,
-      privacidad_aceptada_en: aceptadaEn,
-      politica_cancelacion_aceptada_en: negocio.politica_cancelacion?.trim() ? aceptadaEn : null,
-    })
-    .select("*")
-    .single();
+  const { data: nuevaCita, error: insertError } = await adminClient.rpc(
+    "create_booking_transactional",
+    {
+      p_negocio_id: sucursal.negocio_id,
+      p_sucursal_id: sucursalId,
+      p_servicio_id: servicioId,
+      p_profesional_id: profesionalId,
+      p_cliente_nombre: clienteNombre,
+      p_cliente_apellido: clienteApellido,
+      p_cliente_telefono: clientePhone,
+      p_cliente_email: clienteEmail,
+      p_fecha: fecha,
+      p_hora_inicio: horaInicioStr,
+      p_notas_cliente: notasCliente || null,
+      p_privacidad_aceptada_en: aceptadaEn,
+      p_politica_cancelacion_aceptada_en: negocio.politica_cancelacion?.trim()
+        ? aceptadaEn
+        : null,
+    },
+  );
 
   if (insertError || !nuevaCita) {
     if (insertError?.code === "23P01") {
@@ -433,5 +494,13 @@ export async function crearReservaCita(
     });
   }
 
-  return nuevaCita as Cita;
+  return {
+    ...nuevaCita,
+    cliente_nombre: clienteNombre,
+    cliente_apellido: clienteApellido,
+    cliente_telefono: clientePhone,
+    cliente_email: clienteEmail,
+    hora_fin: nuevaCita.hora_fin_servicio,
+    precio_total: nuevaCita.precio_servicio_snapshot,
+  } as Cita;
 }

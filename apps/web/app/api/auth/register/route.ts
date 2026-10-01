@@ -59,6 +59,10 @@ export async function POST(request: Request) {
       termsVersionAccepted,
       privacyVersionAccepted,
       turnstileToken,
+      telefono,
+      rol,
+      sucursales,
+      ciudad,
     } = body;
 
     // 0.1. Defensa Anti-Spam: Cloudflare Turnstile
@@ -139,6 +143,41 @@ export async function POST(request: Request) {
       );
     }
 
+    const telefonoNormalizado =
+      typeof telefono === "string" && telefono.trim().startsWith("+")
+        ? `+${telefono.replace(/\D/g, "")}`
+        : "";
+    if (!/^\+[1-9][0-9]{1,14}$/.test(telefonoNormalizado)) {
+      return NextResponse.json(
+        { success: false, ok: false, error: "Se requiere un teléfono internacional válido (+...)." },
+        { status: 400 },
+      );
+    }
+
+    const rolesPermitidos = new Set(["Dueño", "Gerente", "Recepcionista", "Otro"]);
+    const rolNormalizado = typeof rol === "string" ? rol.trim() : "";
+    if (!rolesPermitidos.has(rolNormalizado)) {
+      return NextResponse.json(
+        { success: false, ok: false, error: "El rol de registro no es válido." },
+        { status: 400 },
+      );
+    }
+
+    const sucursalesEstimadas = sucursales === "2-3" ? "2–3" : sucursales;
+    if (!["1", "2–3", "4+"].includes(sucursalesEstimadas)) {
+      return NextResponse.json(
+        { success: false, ok: false, error: "La cantidad estimada de sucursales no es válida." },
+        { status: 400 },
+      );
+    }
+
+    if (typeof ciudad !== "string" || !ciudad.trim() || ciudad.trim().length > 120) {
+      return NextResponse.json(
+        { success: false, ok: false, error: "Se requiere una ciudad válida (máximo 120 caracteres)." },
+        { status: 400 },
+      );
+    }
+
     if (confirmarPassword !== password) {
       return NextResponse.json(
         { success: false, ok: false, error: "Las contraseñas no coinciden." },
@@ -153,19 +192,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL;
-    const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL;
-    const termsVersion = process.env.NEXT_PUBLIC_TERMS_VERSION;
-    const privacyVersion = process.env.NEXT_PUBLIC_PRIVACY_VERSION;
-    const isHttpsUrl = (value?: string) => {
-      if (!value) return false;
+    const termsUrl = process.env.NEXT_PUBLIC_TERMS_URL || "/terminos";
+    const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || "/privacidad";
+    const termsVersion = process.env.NEXT_PUBLIC_TERMS_VERSION || "v1";
+    const privacyVersion = process.env.NEXT_PUBLIC_PRIVACY_VERSION || "v1";
+    const isLegalUrl = (value: string) => {
+      if (value.startsWith("/") && !value.startsWith("//")) return true;
       try {
         return new URL(value).protocol === "https:";
       } catch {
         return false;
       }
     };
-    if (!isHttpsUrl(termsUrl) || !isHttpsUrl(privacyUrl) || !termsVersion?.trim() || !privacyVersion?.trim()) {
+    if (!isLegalUrl(termsUrl) || !isLegalUrl(privacyUrl)) {
       return NextResponse.json(
         { success: false, ok: false, error: "El registro no está disponible temporalmente." },
         { status: 503 },
@@ -180,19 +219,6 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
     const admin = createAdminClient();
-
-    const schemaChecks = await Promise.all([
-      admin.from("perfiles_usuario").select("usuario_id").limit(1),
-      admin.from("consentimientos_usuario").select("id").limit(1),
-      admin.from("negocios").select("id,pais,zona_horaria").limit(1),
-    ]);
-    if (schemaChecks.some((result) => result.error)) {
-      Sentry.captureException(schemaChecks.find((result) => result.error)?.error);
-      return NextResponse.json(
-        { success: false, ok: false, error: "El registro no está disponible temporalmente." },
-        { status: 503 },
-      );
-    }
 
     // 2. Determinar slug único
     const baseSlug =
@@ -277,8 +303,30 @@ export async function POST(request: Request) {
 
     const userId = signedUpUser.id;
 
-    const failProvisioning = async (cause: unknown) => {
+    const failProvisioning = async (cause: unknown, negocioId?: string) => {
       Sentry.captureException(cause);
+
+      if (negocioId) {
+        const { error: negocioCleanupError } = await admin
+          .from("negocios")
+          .delete()
+          .eq("id", negocioId)
+          .eq("owner_id", userId);
+
+        if (negocioCleanupError) {
+          Sentry.captureException(negocioCleanupError);
+          return NextResponse.json(
+            {
+              success: false,
+              ok: false,
+              error:
+                "No se pudo completar el registro. Por favor intenta de nuevo.",
+            },
+            { status: 500 },
+          );
+        }
+      }
+
       const { error: rollbackError } = await admin.auth.admin.deleteUser(userId);
       if (rollbackError) Sentry.captureException(rollbackError);
       return NextResponse.json(
@@ -287,11 +335,13 @@ export async function POST(request: Request) {
       );
     };
 
-    // Los tres registros comparten el usuario; su eliminación revierte las FK en cascada.
+    // Perfil y consentimientos se revierten al eliminar el usuario; si ya existe,
+    // el negocio se elimina primero para respetar la FK restrictiva.
     const { error: profileError } = await admin.from("perfiles_usuario").insert({
       usuario_id: userId,
       nombres: nombres.trim(),
       apellidos: apellidos.trim(),
+      telefono: telefonoNormalizado,
     });
     const { error: consentError } = profileError
       ? { error: null }
@@ -306,6 +356,8 @@ export async function POST(request: Request) {
           nombre_comercial: nombreComercial.trim(),
           slug: finalSlug,
           giro_comercial: giroComercial.trim(),
+          ciudad: ciudad.trim(),
+          sucursales_estimadas: sucursalesEstimadas,
           moneda_principal: "MXN",
           porcentaje_anticipo_default: 0,
         }).select().single();
@@ -333,7 +385,7 @@ export async function POST(request: Request) {
     });
 
     if (subError) {
-      return failProvisioning(subError);
+      return failProvisioning(subError, negocio.id);
     }
 
     const needsEmailConfirmation = !authData.session;
@@ -353,6 +405,8 @@ export async function POST(request: Request) {
           nombreComercial: negocio.nombre_comercial,
           slug: negocio.slug,
           giroComercial: negocio.giro_comercial,
+          ciudad: negocio.ciudad,
+          sucursalesEstimadas: negocio.sucursales_estimadas,
         },
       },
       { status: 201 },

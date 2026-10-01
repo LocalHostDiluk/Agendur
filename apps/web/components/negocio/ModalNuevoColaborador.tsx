@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, UserPlus, Clock, Store, Sparkles, Check } from "lucide-react";
+import { X, UserPlus, Clock, Store, Sparkles, Check, Loader2 } from "lucide-react";
 import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
+import { useCreateProfesional } from "@/lib/hooks";
+import { PendingBadge } from "@/components/ui/PendingBadge";
+import { buildUniformProfessionalSchedule } from "@/lib/schedules/professional";
 
 export interface ColaboradorCreadoPayload {
   id: string;
@@ -73,6 +76,8 @@ export function ModalNuevoColaborador({
   const [horaFin, setHoraFin] = useState("18:00");
   const [diasLaborables, setDiasLaborables] = useState<number[]>([1, 2, 3, 4, 5, 6]);
 
+  const createProfesional = useCreateProfesional();
+
   // Accessibility: escape key and body scroll lock
   useEffect(() => {
     if (!isOpen) return;
@@ -127,7 +132,7 @@ export function ModalNuevoColaborador({
     setDiasLaborables([1, 2, 3, 4, 5, 6]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!nombre.trim()) {
@@ -145,29 +150,61 @@ export function ModalNuevoColaborador({
       return;
     }
 
-    const nuevoColaborador: ColaboradorCreadoPayload = {
-      id: `prof-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-      nombre: nombre.trim(),
-      apellido: apellido.trim(),
-      sucursal_id: sucursalId,
-      email: email.trim() || "",
-      telefono: telefono.trim() || "",
-      serviciosIds: selectedServicios,
-      rol,
-      hora_inicio: horaInicio,
-      hora_fin: horaFin,
-      dias_laborables: diasLaborables,
-      activo: true,
-    };
+    if (diasLaborables.length === 0) {
+      notify.warning("Horario requerido", "Selecciona al menos un día laboral.");
+      return;
+    }
 
-    notify.success(
-      "Colaborador registrado",
-      `${nombre} ${apellido} ha sido agregado al equipo de trabajo.`,
-    );
+    if (horaInicio >= horaFin) {
+      notify.warning("Horario inválido", "La hora de salida debe ser posterior a la entrada.");
+      return;
+    }
 
-    onColaboradorCreado?.(nuevoColaborador);
-    resetForm();
-    onClose();
+    try {
+      const response = await createProfesional.mutateAsync({
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        sucursal_id: sucursalId,
+        cargo: rol,
+        email: email.trim() || null,
+        telefono: telefono.trim() || null,
+        serviciosIds: selectedServicios,
+        horarios: buildUniformProfessionalSchedule(
+          diasLaborables,
+          horaInicio,
+          horaFin,
+        ),
+        activo: true,
+      });
+
+      const prof = response.profesional;
+      notify.success(
+        "Colaborador registrado",
+        `${prof.nombre} ${prof.apellido ?? ""} ha sido agregado al equipo de trabajo.`,
+      );
+
+      onColaboradorCreado?.({
+        id: prof.id,
+        nombre: prof.nombre,
+        apellido: prof.apellido ?? "",
+        sucursal_id: prof.sucursal_id ?? sucursalId,
+        email: prof.email || "",
+        telefono: prof.telefono || "",
+        serviciosIds: prof.serviciosIds ?? selectedServicios,
+        rol: prof.cargo || rol,
+        hora_inicio: horaInicio,
+        hora_fin: horaFin,
+        dias_laborables: diasLaborables,
+        activo: true,
+      });
+
+      resetForm();
+      onClose();
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Error al registrar colaborador.";
+      notify.error("No se pudo registrar", errorMsg);
+    }
   };
 
   return (
@@ -281,12 +318,18 @@ export function ModalNuevoColaborador({
             </div>
 
             <div className="space-y-1.5">
-              <label
-                htmlFor="colaborador-rol"
-                className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
-              >
-                Rol en el Negocio
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="colaborador-rol"
+                  className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+                >
+                  Rol en el Negocio
+                </label>
+                <PendingBadge
+                  label="Pendiente"
+                  tooltip="Gestión avanzada de permisos en desarrollo"
+                />
+              </div>
               <select
                 id="colaborador-rol"
                 value={rol}
@@ -360,6 +403,8 @@ export function ModalNuevoColaborador({
                     key={d.dia}
                     type="button"
                     onClick={() => toggleDia(d.dia)}
+                    aria-pressed={isSelected}
+                    aria-label={`${d.label}: ${isSelected ? "laborable" : "no laborable"}`}
                     className={`size-8 rounded-lg text-xs font-semibold transition-all ${
                       isSelected
                         ? "bg-grape text-white shadow-xs"
@@ -491,10 +536,20 @@ export function ModalNuevoColaborador({
 
             <button
               type="submit"
-              className="min-h-[44px] px-5 py-2 rounded-lg bg-grape hover:bg-grape/90 text-white text-sm font-medium transition-all shadow-sm flex items-center gap-2"
+              disabled={createProfesional.isPending}
+              className="min-h-[44px] px-5 py-2 rounded-lg bg-grape hover:bg-grape/90 disabled:opacity-50 text-white text-sm font-medium transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>Registrar Colaborador</span>
+              {createProfesional.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Registrando...</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  <span>Registrar Colaborador</span>
+                </>
+              )}
             </button>
           </div>
         </form>

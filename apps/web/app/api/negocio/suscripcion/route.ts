@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { NegocioAccessError, requireNegocioAccess } from "@/lib/auth/negocio-access";
 import {
   getSubscriptionUsage,
   getPaymentAdapter,
@@ -33,23 +34,11 @@ function validateRedirectUrl(url: string | undefined, origin: string, fallback: 
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión inválida o expirada.", undefined, {
-        status: 401,
-      });
-    }
-
-    // Buscar negocio del usuario
-    const { data: negocio, error: negocioError } = await supabase
+    const access = await requireNegocioAccess("billing:read");
+    const { data: negocio, error: negocioError } = await createAdminClient()
       .from("negocios")
       .select("id, nombre_comercial, slug")
-      .eq("owner_id", user.id)
+      .eq("id", access.negocioId)
       .maybeSingle();
 
     if (negocioError || !negocio) {
@@ -63,6 +52,9 @@ export async function GET() {
     // `useSuscripcion` lee { data }: no aplanar esta respuesta.
     return apiSuccess({ data: { negocio, ...usage } });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "GET /api/negocio/suscripcion" },
     });
@@ -77,22 +69,11 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return apiError("No autorizado. Sesión requerida.", undefined, {
-        status: 401,
-      });
-    }
-
-    const { data: negocio, error: negocioError } = await supabase
+    const access = await requireNegocioAccess("billing:write");
+    const { data: negocio, error: negocioError } = await createAdminClient()
       .from("negocios")
       .select("id, nombre_comercial, slug")
-      .eq("owner_id", user.id)
+      .eq("id", access.negocioId)
       .maybeSingle();
 
     if (negocioError || !negocio) {
@@ -161,7 +142,7 @@ export async function POST(req: NextRequest) {
 
       const result = await adapter.createCheckoutSession({
         negocioId: negocio.id,
-        userEmail: user.email ?? "",
+        userEmail: access.user.email ?? "",
         userName: negocio.nombre_comercial,
         planNombre: plan_nombre as PlanNombre,
         intervalo: intervalo as IntervaloPlan,
@@ -226,7 +207,7 @@ export async function POST(req: NextRequest) {
 
       const result = await adapter.createCheckoutSession({
         negocioId: negocio.id,
-        userEmail: user.email ?? "",
+        userEmail: access.user.email ?? "",
         userName: negocio.nombre_comercial,
         planNombre: plan_nombre as PlanNombre,
         intervalo: intervalo as IntervaloPlan,
@@ -242,6 +223,9 @@ export async function POST(req: NextRequest) {
 
     return apiError("Método de pago no soportado.", undefined, { status: 400 });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "POST /api/negocio/suscripcion" },
     });

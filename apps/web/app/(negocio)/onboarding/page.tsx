@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { useAuthMe, useConfiguracion, useSucursales } from "@/lib/hooks";
 import { apiFetch, ApiClientError } from "@/lib/query/api-client";
 import { notify } from "@/lib/utils/toast";
+import { Button } from "@/components/ui/Button";
+import { PendingBadge } from "@/components/ui/PendingBadge";
 
-const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
-const labelClass = "space-y-1 text-sm font-medium text-slate-700 dark:text-slate-200";
+const fieldClass =
+  "w-full bg-surface-alt/50 border border-border focus:border-grape focus:ring-1 focus:ring-grape rounded-[var(--radius-md)] px-3 py-2 text-sm text-text-primary placeholder:text-text-muted transition-colors outline-hidden";
+const labelClass = "space-y-1.5 text-xs font-medium text-text-secondary";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -51,19 +55,27 @@ export default function OnboardingPage() {
     setSaving(true);
     try {
       await apiFetch("/api/auth/profile", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombres: nombresValue, apellidos: apellidosValue, telefono: telefonoPerfilValue }),
       });
       await apiFetch("/api/negocio/configuracion", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombreNegocio: nombreNegocioValue, giroComercial: giroComercialValue, pais: paisValue, zonaHoraria }),
       });
       await apiFetch("/api/negocio/sucursales", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          primeraSucursal: true, nombre: nombreSucursal, direccion, ciudad,
-          estado_provincia: estadoProvincia, codigo_postal: codigoPostal,
-          telefono: telefonoSucursal, zona_horaria: zonaHoraria,
+          primeraSucursal: true,
+          nombre: nombreSucursal,
+          direccion,
+          ciudad,
+          estado_provincia: estadoProvincia,
+          codigo_postal: codigoPostal,
+          telefono: telefonoSucursal,
+          zona_horaria: zonaHoraria,
         }),
       });
       await Promise.all([
@@ -85,51 +97,310 @@ export default function OnboardingPage() {
   };
 
   if (authLoading || configLoading || branchesLoading) {
-    return <p role="status" className="text-sm text-slate-600 dark:text-slate-300">Cargando tus datos…</p>;
+    return (
+      <div className="flex items-center justify-center p-12">
+        <p role="status" className="text-sm text-text-secondary">Cargando tus datos…</p>
+      </div>
+    );
   }
   if (auth && !auth.negocio) {
-    return <p role="alert" className="text-sm text-red-700 dark:text-red-300">Esta cuenta no tiene un negocio asociado. Contacta a soporte antes de crear una sucursal.</p>;
+    return (
+      <div className="mx-auto max-w-xl p-6 bg-surface border border-danger/30 rounded-[var(--radius-md)]">
+        <p role="alert" className="text-sm text-danger">Esta cuenta no tiene un negocio asociado. Contacta a soporte antes de crear una sucursal.</p>
+      </div>
+    );
   }
   if (authError || configError || branchesError) {
-    return <p role="alert" className="text-sm text-red-700 dark:text-red-300">No pudimos cargar los datos de tu negocio. Recarga la página o vuelve a iniciar sesión.</p>;
+    return (
+      <div className="mx-auto max-w-xl p-6 bg-surface border border-danger/30 rounded-[var(--radius-md)]">
+        <p role="alert" className="text-sm text-danger">No pudimos cargar los datos de tu negocio. Recarga la página o vuelve a iniciar sesión.</p>
+      </div>
+    );
   }
   if ((sucursales?.sucursales.length ?? 0) > 0) {
-    return <div className="max-w-xl space-y-3"><h1 className="text-2xl font-bold">Tu primera sucursal ya está registrada</h1><p>El onboarding está completo.</p><Link href="/dashboard" className="text-blue-600 underline">Ir al panel</Link></div>;
+    return (
+      <div className="mx-auto max-w-xl space-y-4 p-8 bg-surface border border-border rounded-[var(--radius-md)] shadow-2xs text-center">
+        <h1 className="font-bricolage font-bold text-2xl text-text-primary">Tu primera sucursal ya está registrada</h1>
+        <p className="text-sm text-text-secondary">El onboarding está completo.</p>
+        <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-grape px-4 h-10 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+          >
+            Ir al panel
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Completa tu negocio</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Confirma tus datos y registra una ubicación real antes de compartir el portal de reservas.</p>
+      {/* Tarjeta de bienvenida con borde perforado y sello circular de progreso (§5.6.1) */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-xs">
+        <div className="h-1 w-full bg-gradient-to-r from-grape via-flame to-mint" />
+        <div className="grid grid-cols-1 md:grid-cols-12 items-stretch">
+          <div className="md:col-span-8 p-6 sm:p-7 space-y-3">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-grape-soft text-grape border border-grape/20 text-xs font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Configuración inicial del negocio</span>
+            </div>
+            <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-text-primary tracking-tight">
+              Completa tu negocio
+            </h1>
+            <p className="text-text-secondary text-sm max-w-xl leading-relaxed">
+              Confirma tus datos y registra una ubicación real antes de compartir el portal de reservas.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-grape-soft text-grape border border-grape/30 text-xs font-semibold">
+                1. Registrar primera sucursal
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-alt text-text-muted text-xs font-medium">
+                2. Configurar servicios
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-alt text-text-muted text-xs font-medium">
+                3. Recibir reservas
+              </span>
+            </div>
+          </div>
+
+          {/* Talón derecho del Ticket con perforación y sello circular */}
+          <div className="md:col-span-4 relative border-t-2 md:border-t-0 md:border-l-2 border-dashed border-border bg-surface-alt/45 p-6 sm:p-7 flex flex-col items-center justify-center text-center gap-3">
+            <span
+              aria-hidden="true"
+              className="hidden md:block absolute -top-3 -left-3 w-6 h-6 rounded-full bg-background border border-border"
+            />
+            <span
+              aria-hidden="true"
+              className="hidden md:block absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-background border border-border"
+            />
+            <span className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              PASO INICIAL
+            </span>
+            <div
+              aria-hidden="true"
+              className="sello text-grape border-grape/40 shrink-0"
+              style={{ width: "72px", height: "72px", fontSize: "10px" }}
+            >
+              <span>
+                1 / 3
+                <br />
+                PASOS
+              </span>
+            </div>
+            <span className="text-xs text-text-secondary font-medium">
+              0 sedes registradas
+            </span>
+          </div>
+        </div>
       </div>
+
       <form onSubmit={save} className="space-y-6">
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2" aria-labelledby="identity-title">
-          <h2 id="identity-title" className="text-lg font-semibold sm:col-span-2">Tu identidad</h2>
-          <label className={labelClass}>Nombres<input name="nombres" className={fieldClass} value={nombresValue} onChange={(e) => setNombres(e.target.value)} maxLength={120} required /></label>
-          <label className={labelClass}>Apellidos<input name="apellidos" className={fieldClass} value={apellidosValue} onChange={(e) => setApellidos(e.target.value)} maxLength={120} required /></label>
-          <label className={labelClass}>Teléfono personal (opcional, + código de país)<input name="telefono_perfil" type="tel" className={fieldClass} value={telefonoPerfilValue} onChange={(e) => setTelefonoPerfil(e.target.value)} placeholder="+528112345678" /></label>
+        <section
+          className="bg-surface border border-border rounded-[var(--radius-md)] p-6 shadow-2xs grid gap-4 sm:grid-cols-2"
+          aria-labelledby="identity-title"
+        >
+          <h2 id="identity-title" className="font-semibold text-base text-text-primary sm:col-span-2">
+            Tu identidad
+          </h2>
+          <label className={labelClass}>
+            <span>Nombres</span>
+            <input
+              name="nombres"
+              className={fieldClass}
+              value={nombresValue}
+              onChange={(e) => setNombres(e.target.value)}
+              maxLength={120}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Apellidos</span>
+            <input
+              name="apellidos"
+              className={fieldClass}
+              value={apellidosValue}
+              onChange={(e) => setApellidos(e.target.value)}
+              maxLength={120}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span className="inline-flex items-center">
+              Teléfono personal (opcional)
+              <PendingBadge
+                label="Opcional"
+                tooltip="Dato opcional para contacto del administrador"
+                className="ml-2"
+              />
+            </span>
+            <input
+              name="telefono_perfil"
+              type="tel"
+              className={`${fieldClass} font-mono tabular-nums`}
+              value={telefonoPerfilValue}
+              onChange={(e) => setTelefonoPerfil(e.target.value)}
+              placeholder="+528112345678"
+            />
+          </label>
         </section>
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2" aria-labelledby="business-title">
-          <h2 id="business-title" className="text-lg font-semibold sm:col-span-2">Negocio</h2>
-          <label className={labelClass}>Nombre comercial<input name="nombre_negocio" className={fieldClass} value={nombreNegocioValue} onChange={(e) => setNombreNegocio(e.target.value)} maxLength={200} required /></label>
-          <label className={labelClass}>Giro comercial<input name="giro_comercial" className={fieldClass} value={giroComercialValue} onChange={(e) => setGiroComercial(e.target.value)} maxLength={200} required /></label>
-          <label className={labelClass}>País (código ISO de dos letras)<input name="pais" className={fieldClass} value={paisValue} onChange={(e) => setPais(e.target.value.toUpperCase())} maxLength={2} pattern="[A-Z]{2}" required /></label>
-          <label className={labelClass}>Zona horaria IANA<input name="zona_horaria" className={fieldClass} value={zonaHoraria} onChange={(e) => setZonaHoraria(e.target.value)} placeholder="America/Monterrey" list="zonas-horarias" required /></label>
-          <datalist id="zonas-horarias"><option value="America/Monterrey" /><option value="America/Mexico_City" /><option value="America/Cancun" /><option value="America/Tijuana" /></datalist>
-          <p className="text-xs text-slate-500 sm:col-span-2">Selecciona la zona donde opera tu negocio; no uses la zona de tu dispositivo si es distinta.</p>
+
+        <section
+          className="bg-surface border border-border rounded-[var(--radius-md)] p-6 shadow-2xs grid gap-4 sm:grid-cols-2"
+          aria-labelledby="business-title"
+        >
+          <h2 id="business-title" className="font-semibold text-base text-text-primary sm:col-span-2">
+            Negocio
+          </h2>
+          <label className={labelClass}>
+            <span>Nombre comercial</span>
+            <input
+              name="nombre_negocio"
+              className={fieldClass}
+              value={nombreNegocioValue}
+              onChange={(e) => setNombreNegocio(e.target.value)}
+              maxLength={200}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Giro comercial</span>
+            <input
+              name="giro_comercial"
+              className={fieldClass}
+              value={giroComercialValue}
+              onChange={(e) => setGiroComercial(e.target.value)}
+              maxLength={200}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>País (código ISO de dos letras)</span>
+            <input
+              name="pais"
+              className={`${fieldClass} font-mono uppercase`}
+              value={paisValue}
+              onChange={(e) => setPais(e.target.value.toUpperCase())}
+              maxLength={2}
+              pattern="[A-Z]{2}"
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Zona horaria IANA</span>
+            <input
+              name="zona_horaria"
+              className={fieldClass}
+              value={zonaHoraria}
+              onChange={(e) => setZonaHoraria(e.target.value)}
+              placeholder="America/Monterrey"
+              list="zonas-horarias"
+              required
+            />
+          </label>
+          <datalist id="zonas-horarias">
+            <option value="America/Monterrey" />
+            <option value="America/Mexico_City" />
+            <option value="America/Cancun" />
+            <option value="America/Tijuana" />
+          </datalist>
+          <p className="text-xs text-text-muted sm:col-span-2">
+            Selecciona la zona donde opera tu negocio; no uses la zona de tu dispositivo si es distinta.
+          </p>
         </section>
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2" aria-labelledby="branch-title">
-          <h2 id="branch-title" className="text-lg font-semibold sm:col-span-2">Primera sucursal</h2>
-          <label className={labelClass}>Nombre de la sucursal<input name="nombre_sucursal" className={fieldClass} value={nombreSucursal} onChange={(e) => setNombreSucursal(e.target.value)} maxLength={120} required /></label>
-          <label className={labelClass}>Teléfono de la sucursal (+ código de país)<input name="telefono_sucursal" type="tel" className={fieldClass} value={telefonoSucursal} onChange={(e) => setTelefonoSucursal(e.target.value)} placeholder="+528112345678" required /></label>
-          <label className={labelClass}>Dirección<input name="direccion" className={fieldClass} value={direccion} onChange={(e) => setDireccion(e.target.value)} maxLength={250} required /></label>
-          <label className={labelClass}>Ciudad<input name="ciudad" className={fieldClass} value={ciudad} onChange={(e) => setCiudad(e.target.value)} maxLength={120} required /></label>
-          <label className={labelClass}>Estado o provincia<input name="estado_provincia" className={fieldClass} value={estadoProvincia} onChange={(e) => setEstadoProvincia(e.target.value)} maxLength={120} required /></label>
-          <label className={labelClass}>Código postal<input name="codigo_postal" className={fieldClass} value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)} maxLength={10} required /></label>
+
+        <section
+          className="bg-surface border border-border rounded-[var(--radius-md)] p-6 shadow-2xs grid gap-4 sm:grid-cols-2"
+          aria-labelledby="branch-title"
+        >
+          <h2 id="branch-title" className="font-semibold text-base text-text-primary sm:col-span-2">
+            Primera sucursal
+          </h2>
+          <label className={labelClass}>
+            <span>Nombre de la sucursal</span>
+            <input
+              name="nombre_sucursal"
+              className={fieldClass}
+              value={nombreSucursal}
+              onChange={(e) => setNombreSucursal(e.target.value)}
+              maxLength={120}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Teléfono de la sucursal (+ código de país)</span>
+            <input
+              name="telefono_sucursal"
+              type="tel"
+              className={`${fieldClass} font-mono tabular-nums`}
+              value={telefonoSucursal}
+              onChange={(e) => setTelefonoSucursal(e.target.value)}
+              placeholder="+528112345678"
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Dirección</span>
+            <input
+              name="direccion"
+              className={fieldClass}
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              maxLength={250}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Ciudad</span>
+            <input
+              name="ciudad"
+              className={fieldClass}
+              value={ciudad}
+              onChange={(e) => setCiudad(e.target.value)}
+              maxLength={120}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Estado o provincia</span>
+            <input
+              name="estado_provincia"
+              className={fieldClass}
+              value={estadoProvincia}
+              onChange={(e) => setEstadoProvincia(e.target.value)}
+              maxLength={120}
+              required
+            />
+          </label>
+          <label className={labelClass}>
+            <span>Código postal</span>
+            <input
+              name="codigo_postal"
+              className={`${fieldClass} font-mono tabular-nums`}
+              value={codigoPostal}
+              onChange={(e) => setCodigoPostal(e.target.value)}
+              maxLength={10}
+              required
+            />
+          </label>
         </section>
-        {formError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{formError}</p>}
-        <button type="submit" disabled={saving || !sucursales} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Guardando…" : "Guardar y abrir panel"}</button>
+
+        {formError && (
+          <p role="alert" className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-[var(--radius-md)] p-3">
+            {formError}
+          </p>
+        )}
+
+        <div>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={saving}
+            disabled={saving || !sucursales}
+          >
+            Guardar y abrir panel
+          </Button>
+        </div>
       </form>
     </div>
   );

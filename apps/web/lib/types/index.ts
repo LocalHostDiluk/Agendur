@@ -2,6 +2,18 @@
 // Agendur - Definiciones de Tipos TypeScript (Sincronizadas con Supabase DB)
 // ==============================================================================
 
+export type RegistroRol = "Dueño" | "Gerente" | "Recepcionista" | "Otro";
+export type SucursalesEstimadas = "1" | "2–3" | "4+";
+
+export interface PerfilUsuario {
+  usuario_id?: string;
+  nombres: string;
+  apellidos: string;
+  telefono: string | null;
+  rol: RegistroRol | null;
+  locale: string;
+}
+
 export interface Negocio {
   id: string;
   owner_id: string;
@@ -9,6 +21,8 @@ export interface Negocio {
   slug: string;
   logo_url: string | null;
   giro_comercial: string;
+  ciudad?: string | null;
+  sucursales_estimadas?: SucursalesEstimadas | null;
   moneda_principal: string; // default 'MXN'
   pais?: string | null;
   zona_horaria?: string | null;
@@ -45,6 +59,7 @@ export interface Servicio {
   descripcion?: string | null;
   duracionMinutos?: number;
   duracion_minutos?: number;
+  buffer_minutos?: number;
   precio: number;
   activo?: boolean;
   created_at?: string;
@@ -57,13 +72,46 @@ export interface Profesional {
   sucursalId?: string;
   nombre: string;
   apellido?: string;
+  cargo?: string | null;
   email?: string | null;
   telefono?: string | null;
   avatar_url?: string | null;
   avatarUrl?: string;
   activo?: boolean;
+  serviciosIds?: string[];
+  horarios?: Array<{
+    dia_semana: number;
+    hora_inicio: string;
+    hora_fin: string;
+  }>;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CreateProfesionalPayload {
+  nombre: string;
+  apellido: string;
+  sucursal_id: string;
+  cargo?: string;
+  email?: string | null;
+  telefono?: string | null;
+  avatar_url?: string | null;
+  activo?: boolean;
+  serviciosIds?: string[];
+  horarios?: HorarioProfesionalInput[];
+}
+
+export interface UpdateProfesionalPayload {
+  id: string;
+  nombre?: string;
+  apellido?: string;
+  sucursal_id?: string;
+  cargo?: string;
+  email?: string | null;
+  telefono?: string | null;
+  avatar_url?: string | null;
+  activo?: boolean;
+  serviciosIds?: string[];
 }
 
 export interface ProfesionalServicio {
@@ -94,6 +142,12 @@ export interface HorarioProfesional {
   updated_at?: string;
 }
 
+export interface HorarioProfesionalInput {
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+}
+
 export type EstadoCita =
   | "pendiente_pago"
   | "confirmada"
@@ -111,6 +165,7 @@ export interface Cita {
   servicioId?: string;
   profesional_id?: string;
   profesionalId?: string;
+  cliente_id?: string | null;
   cliente_nombre?: string;
   clienteNombre?: string;
   cliente_apellido?: string;
@@ -121,13 +176,19 @@ export interface Cita {
   fecha: string; // YYYY-MM-DD
   hora_inicio?: string;
   hora_fin?: string;
+  hora_fin_servicio?: string;
+  hora_fin_buffer?: string;
   hora?: string; // e.g. "16:30"
   estado: EstadoCita;
   precio_total?: number;
+  duracion_minutos_snapshot?: number;
+  precio_servicio_snapshot?: number;
+  buffer_minutos_snapshot?: number;
   monto_anticipo_pagado?: number;
   montoAnticipo?: number;
   metodo_pago_anticipo?: string | null;
   notas_cliente?: string | null;
+  notas_internas?: string | null;
   privacidad_aceptada_en?: string | null;
   politica_cancelacion_aceptada_en?: string | null;
   created_at?: string;

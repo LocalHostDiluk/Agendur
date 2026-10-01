@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/lib/utils/api-error";
-import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { StripeGatewayAdapter } from "@/lib/payments/stripe-adapter";
+import { NegocioAccessError, requireNegocioAccess } from "@/lib/auth/negocio-access";
 
 /**
  * POST /api/negocio/suscripcion/portal
@@ -11,41 +11,13 @@ import { StripeGatewayAdapter } from "@/lib/payments/stripe-adapter";
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "No autorizado. Sesión requerida." },
-        { status: 401 }
-      );
-    }
-
-    // Buscar negocio del usuario
-    const { data: negocio, error: negocioError } = await supabase
-      .from("negocios")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (negocioError || !negocio) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "No se encontró un negocio registrado para esta cuenta.",
-        },
-        { status: 404 }
-      );
-    }
+    const access = await requireNegocioAccess("billing:write");
 
     // Consultar el customer_external_id en suscripciones
     const { data: suscripcion } = await adminClient
       .from("suscripciones")
       .select("customer_external_id, pasarela")
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .maybeSingle();
 
     if (!suscripcion?.customer_external_id) {
@@ -86,9 +58,11 @@ export async function POST(req: NextRequest) {
       portalUrl: portalSession.url,
     });
   } catch (error: unknown) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, { status: error.status, code: error.code });
+    }
     return apiError(error, "Error al procesar suscripción.", {
       extra: { route: "POST /api/negocio/suscripcion/portal" },
     });
   }
 }
-

@@ -15,6 +15,7 @@ export async function getSucursalesByNegocio(
       .from("negocios")
       .select("id")
       .eq("slug", slug)
+      .is("desactivado_at", null)
       .maybeSingle();
 
     if (negError || !negocio) {
@@ -71,7 +72,7 @@ export async function createSucursal(
   // 1. Validar límite de suscripción
   const usage = await getSubscriptionUsage(negocioId);
 
-  if (usage.sucursales_disponibles <= 0) {
+  if (data.activa !== false && usage.sucursales_disponibles <= 0) {
     const err = new Error(
       `Límite de sucursales alcanzado para su plan (${usage.sucursales_limite}). Actualice su suscripción para crear más sucursales.`
     );

@@ -9,8 +9,212 @@ import {
   GET as getConfigHandler,
   PUT as putConfigHandler,
 } from "@/app/api/negocio/configuracion/route";
+import { obtenerDisponibilidad } from "@/lib/backend/reserva-service";
+
+type AvailabilityScenario = {
+  servicio?: Record<string, unknown>;
+  excepcionesSucursal?: Array<Record<string, unknown>>;
+  excepcionesProfesional?: Array<Record<string, unknown>>;
+  citas?: Array<Record<string, unknown>>;
+  negocioDesactivado?: boolean;
+};
+
+async function withAvailabilityScenario(
+  scenario: AvailabilityScenario,
+  run: () => Promise<void>,
+) {
+  const { getAdminClient } = await import("@/lib/supabase/admin");
+  const client = getAdminClient();
+  const originalFrom = client.from;
+
+  try {
+    (client as unknown as Record<string, unknown>).from = (table: string) => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        is: () => query,
+        in: () => query,
+        maybeSingle: async () => {
+          if (table === "sucursales" && scenario.negocioDesactivado) {
+            return { data: null, error: null };
+          }
+          const rows: Record<string, unknown> = {
+            sucursales: { id: "suc-1", activa: true },
+            horarios_sucursal: {
+              hora_apertura: "09:00",
+              hora_cierre: "17:00",
+              es_laborable: true,
+            },
+            servicios: {
+              id: "serv-1",
+              duracion_minutos: 30,
+              buffer_minutos: 0,
+              activo: true,
+              ...scenario.servicio,
+            },
+            profesionales: {
+              id: "prof-1",
+              sucursal_id: "suc-1",
+              activo: true,
+            },
+            profesional_servicios: { servicio_id: "serv-1" },
+            horarios_profesional: {
+              hora_inicio: "09:00",
+              hora_fin: "17:00",
+              es_laborable: true,
+            },
+          };
+          return { data: rows[table] ?? null, error: null };
+        },
+        then: (
+          resolve: (value: { data: unknown[]; error: null }) => void,
+        ) => {
+          const rows: Record<string, unknown[]> = {
+            excepciones_horario_sucursal:
+              scenario.excepcionesSucursal ?? [],
+            excepciones_horario_profesional:
+              scenario.excepcionesProfesional ?? [],
+            citas: scenario.citas ?? [],
+          };
+          resolve({ data: rows[table] ?? [], error: null });
+        },
+      };
+      return query;
+    };
+
+    await run();
+  } finally {
+    (client as unknown as Record<string, unknown>).from = originalFrom;
+  }
+}
 
 describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
+  describe("Disponibilidad v2", () => {
+    it("intersecta múltiples bloques especiales y exige que duración más buffer quepan completos", async () => {
+      await withAvailabilityScenario(
+        {
+          servicio: { duracion_minutos: 30, buffer_minutos: 30 },
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "09:00", hora_cierre: "12:00" },
+            { cerrado: false, hora_apertura: "14:00", hora_cierre: "17:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "10:00", hora_fin: "11:00" },
+            { cerrado: false, hora_inicio: "14:00", hora_fin: "15:00" },
+          ],
+        },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual(["10:00", "14:00"]);
+        },
+      );
+    });
+
+    it("un cierre especial total reemplaza el horario semanal", async () => {
+      await withAvailabilityScenario(
+        { excepcionesSucursal: [{ cerrado: true }] },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual([]);
+        },
+      );
+    });
+
+    it("no ofrece disponibilidad de un negocio desactivado", async () => {
+      await withAvailabilityScenario({ negocioDesactivado: true }, async () => {
+        expect(
+          await obtenerDisponibilidad({
+            sucursalId: "suc-1",
+            servicioId: "serv-1",
+            profesionalId: "prof-1",
+            fecha: "2098-01-01",
+          }),
+        ).toEqual([]);
+      });
+    });
+
+    it("usa el horario semanal cuando no existen excepciones", async () => {
+      await withAvailabilityScenario({}, async () => {
+        const horarios = await obtenerDisponibilidad({
+          sucursalId: "suc-1",
+          servicioId: "serv-1",
+          profesionalId: "prof-1",
+          fecha: "2098-01-01",
+        });
+
+        expect(horarios).toHaveLength(16);
+        expect(horarios[0]).toBe("09:00");
+        expect(horarios.at(-1)).toBe("16:30");
+      });
+    });
+
+    it("no ofrece un slot cuya ocupación termina exactamente a medianoche", async () => {
+      await withAvailabilityScenario(
+        {
+          servicio: { duracion_minutos: 30, buffer_minutos: 30 },
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "23:00", hora_cierre: "24:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "23:00", hora_fin: "24:00" },
+          ],
+        },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual([]);
+        },
+      );
+    });
+
+    it("bloquea citas hasta hora_fin_buffer", async () => {
+      await withAvailabilityScenario(
+        {
+          excepcionesSucursal: [
+            { cerrado: false, hora_apertura: "09:00", hora_cierre: "12:00" },
+          ],
+          excepcionesProfesional: [
+            { cerrado: false, hora_inicio: "09:00", hora_fin: "12:00" },
+          ],
+          citas: [
+            {
+              hora_inicio: "09:00",
+              hora_fin_buffer: "10:00",
+            },
+            { hora_inicio: "10:00", hora_fin_buffer: "10:30" },
+          ],
+        },
+        async () => {
+          expect(
+            await obtenerDisponibilidad({
+              sucursalId: "suc-1",
+              servicioId: "serv-1",
+              profesionalId: "prof-1",
+              fecha: "2098-01-01",
+            }),
+          ).toEqual(["10:30", "11:00", "11:30"]);
+        },
+      );
+    });
+  });
+
   describe("POST /api/cliente/reservas", () => {
     it("debería retornar 400 si faltan campos obligatorios", async () => {
       const req = new NextRequest("http://localhost:3000/api/cliente/reservas", {
@@ -77,24 +281,35 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       const { getAdminClient } = await import("@/lib/supabase/admin");
       const client = getAdminClient();
       const originalFrom = client.from;
-      let inserting = false;
+      const originalRpc = client.rpc;
       let insertErrorCode = "23P01";
       let politica: string | null = "Cancela con 24 horas de anticipación.";
-      const insertPayloads: Array<Record<string, unknown>> = [];
+      const rpcPayloads: Array<Record<string, unknown>> = [];
       const estadosFiltrados: string[][] = [];
       try {
+        (client as unknown as Record<string, unknown>).rpc = async (
+          name: string,
+          payload: Record<string, unknown>,
+        ) => {
+          expect(name).toBe("create_booking_transactional");
+          rpcPayloads.push(payload);
+          return {
+            data: null,
+            error: { code: insertErrorCode, message: "constraint violation" },
+          };
+        };
         (client as unknown as Record<string, unknown>).from = (table: string) => {
           const query = {
             select: () => query,
             eq: () => query,
+            is: () => query,
             in: (column: string, values: string[]) => { if (column === "estado") estadosFiltrados.push(values); return query; },
             then: (resolve: (value: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null }),
-            insert: (payload: Record<string, unknown>) => { inserting = true; insertPayloads.push(payload); return query; },
             maybeSingle: async () => {
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", activa: true },
                 horarios_sucursal: { hora_apertura: "09:00", hora_cierre: "17:00", es_laborable: true },
-                servicios: { id: "serv-1", duracion_minutos: 30, activo: true },
+                servicios: { id: "serv-1", duracion_minutos: 30, buffer_minutos: 30, activo: true },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true },
                 profesional_servicios: { servicio_id: "serv-1" },
                 suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
@@ -102,12 +317,11 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
               return { data: data[table] ?? null, error: null };
             },
             single: async () => {
-              if (table === "citas" && inserting) return { data: null, error: { code: insertErrorCode, message: "constraint violation" } };
               const data: Record<string, unknown> = {
                 sucursales: { id: "suc-1", negocio_id: "neg-1", activa: true, nombre: "Sucursal", zona_horaria: "UTC" },
                 suscripciones: { estado: "active", plan_nombre: "starter", current_period_end: "2099-01-01T00:00:00Z" },
                 negocios: { telefono_cliente_requerido: false, email_cliente_requerido: true, notas_cliente_habilitadas: true, politica_cancelacion: politica, zona_horaria: "UTC" },
-                servicios: { id: "serv-1", negocio_id: "neg-1", duracion_minutos: 30, precio: 100, activo: true, nombre: "Servicio" },
+                servicios: { id: "serv-1", negocio_id: "neg-1", duracion_minutos: 30, buffer_minutos: 30, precio: 100, activo: true, nombre: "Servicio" },
                 profesionales: { id: "prof-1", sucursal_id: "suc-1", activo: true, nombre: "Profesional" },
               };
               return { data: data[table], error: null };
@@ -135,14 +349,15 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         }));
         expect(noPolicyConsent.status).toBe(400);
         expect((await noPolicyConsent.json()).code).toBe("CANCELLATION_CONSENT_REQUIRED");
-        expect(insertPayloads).toHaveLength(0);
+        expect(rpcPayloads).toHaveLength(0);
 
         const res = await reservasHandler(req);
         expect(res.status).toBe(409);
         expect((await res.json()).code).toBe("SLOT_UNAVAILABLE");
-        expect(insertPayloads[0].cliente_telefono).toBeNull();
-        expect(insertPayloads[0].privacidad_aceptada_en).toMatch(/^20\d\d-/);
-        expect(insertPayloads[0].politica_cancelacion_aceptada_en).toBe(insertPayloads[0].privacidad_aceptada_en);
+        expect(rpcPayloads[0].p_cliente_telefono).toBeNull();
+        expect(rpcPayloads[0].p_hora_inicio).toBe("10:00:00");
+        expect(rpcPayloads[0].p_privacidad_aceptada_en).toMatch(/^20\d\d-/);
+        expect(rpcPayloads[0].p_politica_cancelacion_aceptada_en).toBe(rpcPayloads[0].p_privacidad_aceptada_en);
         expect(estadosFiltrados[0]).toEqual(["pendiente_pago", "confirmada"]);
 
         politica = null;
@@ -155,19 +370,19 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           }),
         }));
         expect(withoutPolicy.status).toBe(409);
-        expect(insertPayloads[1].politica_cancelacion_aceptada_en).toBeNull();
+        expect(rpcPayloads[1].p_politica_cancelacion_aceptada_en).toBeNull();
 
         const crossesMidnight = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
           method: "POST",
           body: JSON.stringify({
             sucursalId: "suc-1", servicioId: "serv-1", profesionalId: "prof-1",
             clienteNombre: "Juan", clienteApellido: "Pérez", clienteEmail: "juan@ejemplo.com",
-            fecha: "2098-01-01", hora: "23:45", aceptaPrivacidad: true,
+            fecha: "2098-01-01", hora: "23:15", aceptaPrivacidad: true,
           }),
         }));
         expect(crossesMidnight.status).toBe(400);
         expect((await crossesMidnight.json()).code).toBe("INVALID_DATE_TIME");
-        expect(insertPayloads).toHaveLength(2);
+        expect(rpcPayloads).toHaveLength(2);
 
         const outsideHours = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
           method: "POST",
@@ -179,7 +394,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         }));
         expect(outsideHours.status).toBe(409);
         expect((await outsideHours.json()).code).toBe("SLOT_UNAVAILABLE");
-        expect(insertPayloads).toHaveLength(2);
+        expect(rpcPayloads).toHaveLength(2);
         // 23514 (violación de CHECK) es dato inválido del cliente: 400, no 500.
         insertErrorCode = "23514";
         const checkViolation = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
@@ -197,6 +412,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
 
       } finally {
         (client as unknown as Record<string, unknown>).from = originalFrom;
+        (client as unknown as Record<string, unknown>).rpc = originalRpc;
       }
     });
 

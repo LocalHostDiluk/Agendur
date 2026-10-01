@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       .from("negocios")
       .select("id, nombre_comercial, slug, logo_url, giro_comercial, moneda_principal, porcentaje_anticipo_default, telefono_cliente_requerido, email_cliente_requerido, notas_cliente_habilitadas, politica_cancelacion")
       .eq("slug", slug)
+      .is("desactivado_at", null)
       .maybeSingle();
 
     if (negErr || !negocio) {

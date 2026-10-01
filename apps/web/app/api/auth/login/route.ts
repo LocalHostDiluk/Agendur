@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { apiError } from "@/lib/utils/api-error";
+import { listNegocioAccess } from "@/lib/auth/negocio-access";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
@@ -72,10 +74,12 @@ export async function POST(request: Request) {
 
     // 3. Consultar datos del negocio del usuario
     const admin = createAdminClient();
+    const access = (await listNegocioAccess(authData.user))[0];
+    try { (await cookies()).delete("agendur_business"); } catch { /* Tests outside request context. */ }
     const { data: negocio, error: negocioError } = await admin
       .from("negocios")
       .select("id, nombre_comercial, slug, giro_comercial, logo_url")
-      .eq("owner_id", authData.user.id)
+      .eq("id", access?.negocioId ?? "00000000-0000-0000-0000-000000000000")
       .maybeSingle();
 
     if (negocioError) {
@@ -84,7 +88,7 @@ export async function POST(request: Request) {
 
     // 4. Consultar suscripción activa
     let suscripcion = null;
-    if (negocio?.id) {
+    if (negocio?.id && access?.role === "owner") {
       const { data: subData } = await admin
         .from("suscripciones")
         .select(

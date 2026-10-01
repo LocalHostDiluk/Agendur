@@ -34,9 +34,9 @@
 
   --border-ink: rgba(243, 238, 223, 0.15);
 
-  --sidebar-bg: #110d15;
-  --sidebar-text: #a79fae;
-  --sidebar-text-muted: #766e82;
+  --sidebar-bg: #1d1720;
+  --sidebar-text: #ede7dd;
+  --sidebar-text-muted: #948c7e;
 
   --success: #3f9e76;
   --success-soft: rgba(63, 158, 118, 0.12);
@@ -67,9 +67,9 @@
   --text-secondary: #a79fae;
   --text-muted: #766e82;
 
-  --sidebar-bg: #110d15;
-  --sidebar-text: #a79fae;
-  --sidebar-text-muted: #766e82;
+  --sidebar-bg: #1d1720;
+  --sidebar-text: #ede7dd;
+  --sidebar-text-muted: #948c7e;
 
   --grape: #8b67c4;
   --grape-soft: rgba(139, 103, 196, 0.18);
@@ -132,6 +132,14 @@
   --font-mono: var(--font-space-mono);
   --font-space-mono: var(--font-space-mono);
 
+  --motion-fast: var(--motion-fast);
+  --motion-base: var(--motion-base);
+  --motion-slow: var(--motion-slow);
+  --motion-page: var(--motion-page);
+  --duration-fast: var(--motion-fast);
+  --duration-base: var(--motion-base);
+  --duration-slow: var(--motion-slow);
+  --duration-page: var(--motion-page);
   --ease-out: var(--ease-out);
   --ease-in-out: var(--ease-in-out);
   --animate-marquee: marquee var(--duration) infinite linear;
@@ -279,25 +287,28 @@ body {
   margin-inline: auto;
 }
 
-.brand-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15rem;
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: var(--ink);
-  text-decoration: none;
-}
+@layer components {
+  :where(.brand-mark) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: none;
+  }
 
-.brand-mark span {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--paper);
-  background: var(--grape);
-  clip-path: polygon(0 0, 100% 0, 100% 72%, 72% 100%, 0 100%);
+  .brand-mark > span:first-child {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    color: #f3eedf;
+    background: #6e49a6;
+    clip-path: polygon(0 0, 100% 0, 100% 72%, 72% 100%, 0 100%);
+  }
 }
 
 .nav-link {
@@ -343,11 +354,10 @@ body {
 }
 
 .language-switch button {
-  padding: 0.25rem 0.625rem;
+  padding: 0.45rem 0.6rem;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
-  background: transparent;
   border: none;
   transition:
     color 160ms ease,

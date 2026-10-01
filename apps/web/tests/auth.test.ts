@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase fluent-client test doubles intentionally mirror dynamic SDK chains. */
 import { describe, it, expect, spyOn } from "bun:test";
 import { POST as registerHandler } from "@/app/api/auth/register/route";
 import { POST as loginHandler } from "@/app/api/auth/login/route";
@@ -22,6 +23,10 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       apellidos: "López",
       nombreComercial: "Mi Negocio",
       giroComercial: "Barbería",
+      telefono: "+52 55 1234 5678",
+      rol: "Dueño",
+      sucursales: "2–3",
+      ciudad: "Ciudad de México",
       aceptaTerminos: true,
       aceptaPrivacidad: true,
       termsVersionAccepted: "v1",
@@ -39,6 +44,10 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       const cases = [
         [{ nombres: " " }, "nombres"],
         [{ apellidos: " " }, "apellidos"],
+        [{ telefono: "5512345678" }, "teléfono internacional"],
+        [{ rol: "Administrador global" }, "rol de registro"],
+        [{ sucursales: "muchas" }, "sucursales"],
+        [{ ciudad: " " }, "ciudad"],
         [{ password: "12345678901", confirmarPassword: "12345678901" }, "12 caracteres"],
         [{ confirmarPassword: "otra-clave-segura-123" }, "coinciden"],
         [{ aceptaTerminos: false }, "Términos"],
@@ -49,21 +58,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         const response = await registerHandler(registrationRequest({ ...validRegistration, ...change }));
         expect(response.status).toBe(400);
         expect((await response.json()).error).toContain(message);
-      }
-    });
-
-    it("no crea el usuario si falta la configuración legal", async () => {
-      const signUp = spyOn(supabaseServer, "createClient");
-      const previous = process.env.NEXT_PUBLIC_TERMS_VERSION;
-      delete process.env.NEXT_PUBLIC_TERMS_VERSION;
-      try {
-        const response = await registerHandler(registrationRequest(validRegistration));
-        expect(response.status).toBe(503);
-        expect(signUp).not.toHaveBeenCalled();
-      } finally {
-        signUp.mockRestore();
-        if (previous === undefined) delete process.env.NEXT_PUBLIC_TERMS_VERSION;
-        else process.env.NEXT_PUBLIC_TERMS_VERSION = previous;
       }
     });
 
@@ -81,9 +75,10 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       const inserts: Array<{ table: string; rows: unknown }> = [];
       let callbackUrl = "";
       let signUpCalls = 0;
-      let schemaAvailable = false;
       let subscriptionFails = false;
+      let businessCleanupFails = false;
       let deleteCalls = 0;
+      const cleanupOrder: string[] = [];
       let obfuscated = false;
       let existingUnconfirmed = false;
       const serverSpy = spyOn(supabaseServer, "createClient").mockResolvedValue({
@@ -96,10 +91,9 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         },
       } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
       const adminSpy = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
-        auth: { admin: { deleteUser: async () => { deleteCalls++; return { error: null }; } } },
+        auth: { admin: { deleteUser: async () => { cleanupOrder.push("auth"); deleteCalls++; return { error: null }; } } },
         from: (table: string) => ({
           select: () => ({
-            limit: async () => ({ error: schemaAvailable ? null : { message: "identity_data not installed" } }),
             eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
           }),
           insert: (rows: unknown) => {
@@ -111,6 +105,14 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
               ? { select: () => ({ single: async () => ({ data: { id: "negocio-1", nombre_comercial: "Mi Negocio", slug: "mi-negocio", giro_comercial: "Barbería" }, error: null }) }) }
               : Promise.resolve({ error: null });
           },
+          delete: () => ({
+            eq: () => ({
+              eq: async () => {
+                cleanupOrder.push("negocio");
+                return { error: businessCleanupFails ? { message: "cleanup failed" } : null };
+              },
+            }),
+          }),
         }),
       }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
 
@@ -121,11 +123,6 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         }));
         expect(staleDocument.status).toBe(409);
         expect(signUpCalls).toBe(0);
-
-        const unavailable = await registerHandler(registrationRequest(validRegistration));
-        expect(unavailable.status).toBe(503);
-        expect(signUpCalls).toBe(0);
-        schemaAvailable = true;
 
         obfuscated = true;
         const existingAccount = await registerHandler(registrationRequest(validRegistration));
@@ -148,17 +145,44 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         expect(inserts.map((entry) => entry.table)).toEqual([
           "perfiles_usuario", "consentimientos_usuario", "negocios", "suscripciones",
         ]);
-        expect(inserts[0].rows).toEqual({ usuario_id: "user-1", nombres: "Ana", apellidos: "López" });
+        expect(inserts[0].rows).toEqual({
+          usuario_id: "user-1",
+          nombres: "Ana",
+          apellidos: "López",
+          telefono: "+525512345678",
+        });
         expect(inserts[1].rows).toEqual([
           { usuario_id: "user-1", documento: "terminos_servicio", version: "v1" },
           { usuario_id: "user-1", documento: "aviso_privacidad", version: "v2" },
         ]);
+        expect(inserts[2].rows).toMatchObject({
+          ciudad: "Ciudad de México",
+          sucursales_estimadas: "2–3",
+        });
         expect(callbackUrl).toBe("http://localhost:3000/api/auth/callback");
         expect(signUpCalls).toBe(3);
 
         subscriptionFails = true;
         const failedTrial = await registerHandler(registrationRequest(validRegistration));
         expect(failedTrial.status).toBe(500);
+        expect(deleteCalls).toBe(1);
+
+        subscriptionFails = false;
+        keys.forEach((key) => delete process.env[key]);
+        const fallbackLegal = await registerHandler(registrationRequest({
+          ...validRegistration,
+          termsVersionAccepted: "v1",
+          privacyVersionAccepted: "v1",
+        }));
+        expect(fallbackLegal.status).toBe(201);
+        expect(cleanupOrder).toEqual(["negocio", "auth"]);
+
+        cleanupOrder.length = 0;
+        businessCleanupFails = true;
+        subscriptionFails = true;
+        const failedCleanup = await registerHandler(registrationRequest({ ...validRegistration, privacyVersionAccepted: "v1" }));
+        expect(failedCleanup.status).toBe(500);
+        expect(cleanupOrder).toEqual(["negocio"]);
         expect(deleteCalls).toBe(1);
       } finally {
         adminSpy.mockRestore();
@@ -469,7 +493,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
 
     it("debería propagar cookies acumuladas en response a redirectResponse al acceder a ruta de autenticación con sesión activa", async () => {
       let registeredSetAll: CookieSetAllFn | null = null;
-      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url, _key, options) => {
+      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url: any, _key: any, options: any) => {
         if ("setAll" in options.cookies && typeof options.cookies.setAll === "function") {
           registeredSetAll = options.cookies.setAll as CookieSetAllFn;
         }
@@ -506,7 +530,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
 
     it("debería respetar maxAge efímero (< 7 días) en setAll de proxy", async () => {
       let registeredSetAll: CookieSetAllFn | null = null;
-      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url, _key, options) => {
+      const spy = spyOn(ssr, "createServerClient").mockImplementation((_url: any, _key: any, options: any) => {
         if ("setAll" in options.cookies && typeof options.cookies.setAll === "function") {
           registeredSetAll = options.cookies.setAll as CookieSetAllFn;
         }
@@ -550,7 +574,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       } as unknown as Awaited<ReturnType<typeof nextHeaders.cookies>>);
 
       let registeredSetAll: CookieSetAllFn | null = null;
-      const spySsr = spyOn(ssr, "createServerClient").mockImplementation((_url, _key, options) => {
+      const spySsr = spyOn(ssr, "createServerClient").mockImplementation((_url: any, _key: any, options: any) => {
         if ("setAll" in options.cookies && typeof options.cookies.setAll === "function") {
           registeredSetAll = options.cookies.setAll as CookieSetAllFn;
         }

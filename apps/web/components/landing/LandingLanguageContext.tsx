@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useSyncExternalStore } from "react";
 import { Language, landingCopy } from "@/lib/landing-i18n";
 
 interface LandingLanguageContextType {
@@ -18,21 +18,26 @@ export function LandingLanguageProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [lang, setLangState] = useState<Language>("es");
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("agendur_lang") as Language | null;
-      if (saved === "es" || saved === "en") {
-        setLangState(saved);
-      }
-    } catch {}
-  }, []);
+  const lang = useSyncExternalStore<Language>(
+    (onChange) => {
+      window.addEventListener("storage", onChange);
+      window.addEventListener("agendur-language", onChange);
+      return () => {
+        window.removeEventListener("storage", onChange);
+        window.removeEventListener("agendur-language", onChange);
+      };
+    },
+    () => {
+      const saved = localStorage.getItem("agendur_lang");
+      return saved === "en" ? "en" : "es";
+    },
+    () => "es",
+  );
 
   const setLang = (newLang: Language) => {
-    setLangState(newLang);
     try {
       localStorage.setItem("agendur_lang", newLang);
+      window.dispatchEvent(new Event("agendur-language"));
     } catch {}
   };
 

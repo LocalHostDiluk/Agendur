@@ -14,10 +14,12 @@ export default function AuthLayout({
         {/* Left Column - Form */}
         <div className="flex-1 lg:w-1/2 flex flex-col bg-[#F7F5EF] dark:bg-[#17121B] transition-colors duration-200">
           <header className="px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="flex items-center group">
-              <span className="font-bricolage font-semibold text-[32px] tracking-tight text-text-primary">
-                Agendur
-              </span>
+            <Link
+              href="/"
+              className="brand-mark text-text-primary tracking-tight group"
+              aria-label="Agendur"
+            >
+              <span className="transition-transform duration-150 group-hover:scale-[1.03]">A</span><span>gendur</span>
             </Link>
 
             <div className="flex items-center gap-3">

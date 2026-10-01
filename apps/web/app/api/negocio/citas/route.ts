@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription } from "@/lib/payments/guards";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 import type { EstadoCita } from "@/lib/types";
+import {
+  NegocioAccessError,
+  requireNegocioAccess,
+  type NegocioAccess,
+  type NegocioCapability,
+} from "@/lib/auth/negocio-access";
 
 const ESTADOS_CITA: readonly EstadoCita[] = [
   "pendiente_pago",
@@ -22,45 +27,48 @@ const ESTADOS_PATCH_PERMITIDOS = [
 
 type EstadoPatch = (typeof ESTADOS_PATCH_PERMITIDOS)[number];
 
+type CitaApiRow = Record<string, unknown> & {
+  cliente?: {
+    nombre: string;
+    apellido: string | null;
+    telefono: string | null;
+    email: string | null;
+  } | null;
+};
+
+const CITA_SELECT =
+  "*, cliente:clientes!citas_cliente_negocio_fkey(nombre, apellido, telefono, email)";
+
+function citaConContratoLegacy({ cliente, ...cita }: CitaApiRow) {
+  return {
+    ...cita,
+    cliente_nombre: cliente?.nombre ?? "",
+    cliente_apellido: cliente?.apellido ?? "",
+    cliente_telefono: cliente?.telefono ?? null,
+    cliente_email: cliente?.email ?? null,
+    hora_fin: cita.hora_fin_servicio,
+    precio_total: cita.precio_servicio_snapshot,
+  };
+}
+
 /**
  * Valida autenticación del usuario, existencia del negocio y vigencia de la suscripción.
  */
-async function getAuthenticatedNegocio(): Promise<
-  | { error: NextResponse }
-  | { user: { id: string; email?: string }; negocio: { id: string }; admin: ReturnType<typeof createAdminClient> }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+async function getAuthenticatedNegocio(capability: NegocioCapability): Promise<{
+  access: NegocioAccess;
+  admin: ReturnType<typeof createAdminClient>;
+}> {
+  const access = await requireNegocioAccess(capability);
+  await assertActiveSubscription(access.negocioId);
+  return { access, admin: createAdminClient() };
+}
 
-  if (authError || !user) {
-    return {
-      error: apiError("No autorizado. Sesión requerida.", undefined, {
-        status: 401,
-      }),
-    };
-  }
-
-  const admin = createAdminClient();
-  const { data: negocio, error: negError } = await admin
-    .from("negocios")
-    .select("id")
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (negError || !negocio) {
-    return {
-      error: apiError("No se encontró un negocio para esta cuenta.", undefined, {
-        status: 404,
-      }),
-    };
-  }
-
-  await assertActiveSubscription(negocio.id);
-
-  return { user, negocio, admin };
+function accessFailure(error: unknown): NextResponse | null {
+  if (!(error instanceof NegocioAccessError)) return null;
+  return apiError(error.message, undefined, {
+    status: error.status,
+    code: error.code,
+  });
 }
 
 /**
@@ -69,17 +77,21 @@ async function getAuthenticatedNegocio(): Promise<
  */
 export async function GET(request: NextRequest | Request): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if ("error" in auth) {
-      return auth.error;
-    }
-    const { negocio, admin } = auth;
+    const { access, admin } = await getAuthenticatedNegocio("appointments:read");
 
     const url = new URL(request.url);
     const sucursalId = url.searchParams.get("sucursalId");
     const fechaInicio = url.searchParams.get("fechaInicio");
     const fechaFin = url.searchParams.get("fechaFin");
     const estado = url.searchParams.get("estado");
+
+    const branches = access.sucursalIds ?? (access.sucursalId ? [access.sucursalId] : null);
+    if (branches && sucursalId && !branches.includes(sucursalId)) {
+      return apiError("No tienes acceso a esa sucursal.", undefined, {
+        status: 403,
+        code: "BUSINESS_ACCESS_DENIED",
+      });
+    }
 
     if (estado && !ESTADOS_CITA.includes(estado as EstadoCita)) {
       return apiError("Estado de cita inválido.", undefined, {
@@ -104,11 +116,15 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
 
     let query = admin
       .from("citas")
-      .select("*")
-      .eq("negocio_id", negocio.id);
+      .select(CITA_SELECT)
+      .eq("negocio_id", access.negocioId);
 
-    if (sucursalId) {
-      query = query.eq("sucursal_id", sucursalId);
+    const scopedBranch = access.profesionalIds ? sucursalId : access.sucursalId ?? sucursalId;
+    if (scopedBranch) query = query.eq("sucursal_id", scopedBranch);
+    if (access.profesionalIds) {
+      query = query.in("profesional_id", access.profesionalIds);
+    } else if (access.profesionalId) {
+      query = query.eq("profesional_id", access.profesionalId);
     }
     if (fechaInicio) {
       query = query.gte("fecha", fechaInicio);
@@ -130,8 +146,12 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
       });
     }
 
-    return apiSuccess({ citas: citas || [] });
+    return apiSuccess({
+      citas: (citas || []).map((cita) => citaConContratoLegacy(cita as CitaApiRow)),
+    });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error al obtener las citas del negocio.", {
       extra: { route: "GET /api/negocio/citas" },
     });
@@ -144,11 +164,7 @@ export async function GET(request: NextRequest | Request): Promise<NextResponse>
  */
 export async function PATCH(request: NextRequest | Request): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if ("error" in auth) {
-      return auth.error;
-    }
-    const { negocio, admin } = auth;
+    const { access, admin } = await getAuthenticatedNegocio("appointments:write");
 
     const body = await request.json().catch(() => ({}));
     const { citaId, nuevoEstado } = body;
@@ -176,14 +192,19 @@ export async function PATCH(request: NextRequest | Request): Promise<NextRespons
     }
 
     // Validar pertenencia de la cita al negocio
-    const { data: citaExistente, error: citaError } = await admin
+    let existingQuery = admin
       .from("citas")
       .select("id")
       .eq("id", citaId)
-      .eq("negocio_id", negocio.id)
-      .maybeSingle();
+      .eq("negocio_id", access.negocioId);
 
-    if (citaError || !citaExistente) {
+    if (access.sucursalId) {
+      existingQuery = existingQuery.eq("sucursal_id", access.sucursalId);
+    }
+    const { data: foundCita, error: citaError } =
+      await existingQuery.maybeSingle();
+
+    if (citaError || !foundCita) {
       return apiError(
         "Cita no encontrada o no pertenece a este negocio.",
         undefined,
@@ -195,25 +216,32 @@ export async function PATCH(request: NextRequest | Request): Promise<NextRespons
     }
 
     // Actualizar el estado de la cita en PostgreSQL
-    const { data: citaActualizada, error: updateError } = await admin
+    let updateQuery = admin
       .from("citas")
       .update({
         estado: nuevoEstado,
         updated_at: new Date().toISOString(),
       })
       .eq("id", citaId)
-      .eq("negocio_id", negocio.id)
-      .select()
+      .eq("negocio_id", access.negocioId);
+
+    if (access.sucursalId) {
+      updateQuery = updateQuery.eq("sucursal_id", access.sucursalId);
+    }
+    const { data: updatedCita, error: updateError } = await updateQuery
+      .select(CITA_SELECT)
       .single();
 
-    if (updateError || !citaActualizada) {
+    if (updateError || !updatedCita) {
       return apiError(updateError, "Error al actualizar el estado de la cita.", {
         extra: { route: "PATCH /api/negocio/citas", citaId },
       });
     }
 
-    return apiSuccess({ cita: citaActualizada });
+    return apiSuccess({ cita: citaConContratoLegacy(updatedCita as CitaApiRow) });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error al actualizar la cita.", {
       extra: { route: "PATCH /api/negocio/citas" },
     });

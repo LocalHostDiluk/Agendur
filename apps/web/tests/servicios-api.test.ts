@@ -2,9 +2,11 @@ import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET, POST, PATCH } from "@/app/api/negocio/servicios/route";
 import * as supabaseServer from "@/lib/supabase/server";
+import * as negocioAccess from "@/lib/auth/negocio-access";
 import * as supabaseAdmin from "@/lib/supabase/admin";
 
 describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
+  let accessSpy: ReturnType<typeof spyOn>;
   let createClientSpy: ReturnType<typeof spyOn>;
   let getAdminClientSpy: ReturnType<typeof spyOn>;
 
@@ -100,6 +102,12 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
   let queryBuilders: MockQueryBuilder[] = [];
 
   beforeEach(() => {
+    accessSpy = spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => {
+      if (!mockUser || mockAuthError) throw new negocioAccess.NegocioAccessError(401, "AUTH_REQUIRED", "No autorizado.");
+      if (mockNegocioError) throw new negocioAccess.NegocioAccessError(503, "ACCESS_LOOKUP_FAILED", "Acceso no disponible.");
+      if (!mockNegocio) throw new negocioAccess.NegocioAccessError(403, "BUSINESS_ACCESS_DENIED", "Esta cuenta no tiene acceso activo al negocio.");
+      return { user: mockUser, negocioId: mockNegocio.id, role: "owner", sucursalId: null, profesionalId: null };
+    });
     mockUser = { id: "user-123", email: "owner@test.com" };
     mockAuthError = null;
     mockNegocio = { id: "neg-456" };
@@ -110,6 +118,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
         negocio_id: "neg-456",
         nombre: "Corte Clásico",
         duracion_minutos: 30,
+        buffer_minutos: 0,
         precio: 250,
         descripcion: "Corte de cabello con lavado",
         activo: true,
@@ -119,6 +128,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
         negocio_id: "neg-456",
         nombre: "Perfilado de Barba",
         duracion_minutos: 20,
+        buffer_minutos: 10,
         precio: 150,
         descripcion: null,
         activo: true,
@@ -171,6 +181,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
   });
 
   afterEach(() => {
+    accessSpy.mockRestore();
     createClientSpy.mockRestore();
     getAdminClientSpy.mockRestore();
   });
@@ -228,14 +239,14 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       expect(json.error).toContain("No autorizado");
     });
 
-    it("GET /api/negocio/servicios debe retornar 404 si el usuario no tiene negocio", async () => {
+    it("GET /api/negocio/servicios debe retornar 403 si el usuario no tiene negocio", async () => {
       mockNegocio = null;
       const res = await GET();
       const json = await res.json();
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
       expect(json.success).toBe(false);
-      expect(json.error).toContain("No se encontró un negocio");
+      expect(json.error).toContain("no tiene acceso");
     });
   });
 
@@ -362,6 +373,24 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       }
     });
 
+    it("debe retornar 400 si buffer_minutos no es un entero mayor o igual a 0", async () => {
+      for (const buffer_minutos of [-1, 1.5, "10"]) {
+        const req = new NextRequest("http://localhost:3000/api/negocio/servicios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: "Corte",
+            duracion_minutos: 30,
+            precio: 200,
+            buffer_minutos,
+          }),
+        });
+
+        const res = await POST(req);
+        expect(res.status).toBe(400);
+      }
+    });
+
     it("debe insertar en servicios y retornar 201 con el nuevo servicio cuando los datos son válidos", async () => {
       const payloadValido = {
         nombre: "Corte Clásico",
@@ -385,6 +414,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       expect(json.servicio).toBeDefined();
       expect(json.servicio.nombre).toBe("Corte Clásico");
       expect(json.servicio.duracion_minutos).toBe(45);
+      expect(json.servicio.buffer_minutos).toBe(0);
       expect(json.servicio.precio).toBe(350);
       expect(json.servicio.descripcion).toBe("Incluye lavado y peinado");
       expect(json.servicio.activo).toBe(true);
@@ -516,6 +546,7 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
           id: "11111111-1111-1111-1111-111111111111",
           nombre: "Corte Premium Exclusivo",
           duracion_minutos: 60,
+          buffer_minutos: 15,
           precio: 500,
           descripcion: "Servicio VIP con tratamiento completo",
         }),
@@ -528,8 +559,25 @@ describe("Endpoints de Gestión de Servicios - /api/negocio/servicios", () => {
       expect(json.success).toBe(true);
       expect(json.servicio.nombre).toBe("Corte Premium Exclusivo");
       expect(json.servicio.duracion_minutos).toBe(60);
+      expect(json.servicio.buffer_minutos).toBe(15);
       expect(json.servicio.precio).toBe(500);
       expect(json.servicio.descripcion).toBe("Servicio VIP con tratamiento completo");
+    });
+
+    it("debe rechazar buffer_minutos inválido en PATCH", async () => {
+      const req = new NextRequest("http://localhost:3000/api/negocio/servicios", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "11111111-1111-1111-1111-111111111111",
+          buffer_minutos: -1,
+        }),
+      });
+
+      const res = await PATCH(req);
+      const json = await res.json();
+      expect(res.status).toBe(400);
+      expect(json.error).toContain("buffer_minutos");
     });
   });
 

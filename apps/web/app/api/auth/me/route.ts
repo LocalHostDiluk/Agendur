@@ -1,111 +1,141 @@
 import * as Sentry from "@sentry/nextjs";
-import { createClient } from "@/lib/supabase/server";
+import {
+  hasCapability,
+  listNegocioAccess,
+  NegocioAccessError,
+  resolveNegocioAccess,
+  ROLE_CAPABILITIES,
+} from "@/lib/auth/negocio-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-
-    // 1. Obtener usuario de la sesión actual
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return apiError("No autorizado. No existe sesión activa.", undefined, {
-        status: 401,
-      });
-    }
-
-    // 2. Obtener datos del negocio
+    const access = await resolveNegocioAccess();
     const admin = createAdminClient();
+
     const { data: negocio, error: negocioError } = await admin
       .from("negocios")
       .select("*")
-      .eq("owner_id", user.id)
+      .eq("id", access.negocioId)
       .maybeSingle();
-
-    if (negocioError) {
-      return apiError(negocioError, "No se pudo consultar el negocio.", { status: 503 });
+    if (negocioError || !negocio) {
+      return apiError(
+        negocioError || "No se encontró el negocio.",
+        "No se pudo consultar el negocio.",
+        { status: negocioError ? 503 : 403 },
+      );
     }
 
-    // El perfil puede faltar en cuentas anteriores a Puerta 1. La tabla puede
-    // no existir aún en una instalación donde la migración se aplica a mano.
     const { data: perfil, error: perfilError } = await admin
       .from("perfiles_usuario")
       .select("nombres, apellidos, telefono, locale")
-      .eq("usuario_id", user.id)
+      .eq("usuario_id", access.user.id)
       .maybeSingle();
     if (perfilError && !["42P01", "PGRST205"].includes(perfilError.code)) {
-      return apiError(perfilError, "No se pudo consultar el perfil.", { status: 503 });
+      return apiError(perfilError, "No se pudo consultar el perfil.", {
+        status: 503,
+      });
     }
 
     let sucursalesCount = 0;
-    if (negocio?.id) {
-      const { count, error: sucursalesError } = await admin
-        .from("sucursales")
-        .select("id", { count: "exact", head: true })
-        .eq("negocio_id", negocio.id);
-      if (sucursalesError || typeof count !== "number") {
-        return apiError(sucursalesError || "No se pudo contar sucursales.", "No se pudo consultar las sucursales.", { status: 503 });
-      }
-      sucursalesCount = count;
+    let sucursalesActivasCount = 0;
+    let totalQuery = admin
+      .from("sucursales")
+      .select("id", { count: "exact", head: true })
+      .eq("negocio_id", access.negocioId);
+    let activasQuery = admin
+      .from("sucursales")
+      .select("id", { count: "exact", head: true })
+      .eq("negocio_id", access.negocioId)
+      .eq("activa", true);
+    if (access.sucursalIds) {
+      totalQuery = totalQuery.in("id", access.sucursalIds);
+      activasQuery = activasQuery.in("id", access.sucursalIds);
+    } else if (access.sucursalId) {
+      totalQuery = totalQuery.eq("id", access.sucursalId);
+      activasQuery = activasQuery.eq("id", access.sucursalId);
     }
+    const [total, activas] = await Promise.all([totalQuery, activasQuery]);
+    if (
+      total.error ||
+      activas.error ||
+      typeof total.count !== "number" ||
+      typeof activas.count !== "number"
+    ) {
+      return apiError(
+        total.error || activas.error || "No se pudo contar sucursales.",
+        "No se pudo consultar las sucursales.",
+        { status: 503 },
+      );
+    }
+    sucursalesCount = total.count;
+    sucursalesActivasCount = activas.count;
 
-    // 3. Obtener suscripción
     let suscripcion = null;
-    if (negocio?.id) {
-      const { data: subData, error: subError } = await admin
+    if (hasCapability(access, "billing:read")) {
+      const { data, error } = await admin
         .from("suscripciones")
         .select(
           "plan_nombre, estado, current_period_end, limite_sucursales, limite_profesionales, pasarela",
         )
-        .eq("negocio_id", negocio.id)
+        .eq("negocio_id", access.negocioId)
         .maybeSingle();
-
-      if (subError) {
-        Sentry.captureException(subError);
-      }
-      suscripcion = subData;
+      if (error) Sentry.captureException(error);
+      suscripcion = data;
     }
 
-    const negocioPayload = negocio
-      ? {
-          id: negocio.id,
-          nombreComercial: negocio.nombre_comercial,
-          nombre_comercial: negocio.nombre_comercial,
-          slug: negocio.slug,
-          giroComercial: negocio.giro_comercial,
-          giro_comercial: negocio.giro_comercial,
-          logoUrl: negocio.logo_url,
-          logo_url: negocio.logo_url,
-          monedaPrincipal: negocio.moneda_principal,
-          moneda_principal: negocio.moneda_principal,
-          pais: negocio.pais ?? null,
-          zona_horaria: negocio.zona_horaria ?? null,
-        }
-      : null;
+    const negocioPayload = {
+      id: negocio.id,
+      nombreComercial: negocio.nombre_comercial,
+      nombre_comercial: negocio.nombre_comercial,
+      slug: negocio.slug,
+      giroComercial: negocio.giro_comercial,
+      giro_comercial: negocio.giro_comercial,
+      ciudad: negocio.ciudad ?? null,
+      sucursalesEstimadas: negocio.sucursales_estimadas ?? null,
+      sucursales_estimadas: negocio.sucursales_estimadas ?? null,
+      logoUrl: negocio.logo_url,
+      logo_url: negocio.logo_url,
+      monedaPrincipal: negocio.moneda_principal,
+      moneda_principal: negocio.moneda_principal,
+      pais: negocio.pais ?? null,
+      zona_horaria: negocio.zona_horaria ?? null,
+    };
 
     const responseData = {
       user: {
-        id: user.id,
-        email: user.email,
-        createdAt: user.created_at,
+        id: access.user.id,
+        email: access.user.email,
       },
       negocio: negocioPayload,
+      access: {
+        role: access.role,
+        sucursalId: access.sucursalId,
+        profesionalId: access.profesionalId,
+        profesionalIds: access.profesionalIds,
+        sucursalIds: access.sucursalIds,
+        capabilities: ROLE_CAPABILITIES[access.role],
+      },
+      availableBusinesses: (await listNegocioAccess(access.user)).map(({ negocioId, nombre, role }) => ({ id: negocioId, nombre, role })),
       suscripcion,
       perfil: perfilError ? null : perfil,
       sucursalesCount,
-      onboardingStatus: negocio && sucursalesCount > 0 ? "complete" : "required",
+      sucursalesActivasCount,
+      onboardingStatus:
+        access.role === "owner" && sucursalesCount === 0
+          ? "required"
+          : "complete",
     };
 
-    return apiSuccess({
-      data: responseData,
-      ...responseData,
-    });
+    return apiSuccess({ data: responseData, ...responseData });
   } catch (error) {
+    if (error instanceof NegocioAccessError) {
+      return apiError(error.message, undefined, {
+        status: error.status,
+        code: error.code,
+      });
+    }
     return apiError(error, "Error al obtener sesión.");
   }
 }

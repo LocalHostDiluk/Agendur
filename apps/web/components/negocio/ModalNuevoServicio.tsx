@@ -23,12 +23,14 @@ export function ModalNuevoServicio({
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [duracionMinutos, setDuracionMinutos] = useState<number | string>(30);
+  const [bufferMinutos, setBufferMinutos] = useState<number | string>(0);
   const [precio, setPrecio] = useState<number | string>("");
 
   const resetForm = () => {
     setNombre("");
     setDescripcion("");
     setDuracionMinutos(30);
+    setBufferMinutos(0);
     setPrecio("");
   };
 
@@ -82,10 +84,24 @@ export function ModalNuevoServicio({
       return;
     }
 
+    const buffer = Number(bufferMinutos);
+    if (
+      bufferMinutos === "" ||
+      !Number.isInteger(buffer) ||
+      buffer < 0
+    ) {
+      notify.warning(
+        "Tiempo entre citas inválido",
+        "El tiempo entre citas debe ser un entero mayor o igual a 0 minutos.",
+      );
+      return;
+    }
+
     try {
       await createServicio.mutateAsync({
         nombre: nombre.trim(),
         duracion_minutos: duracion,
+        buffer_minutos: buffer,
         precio: numPrecio,
         descripcion: descripcion.trim() || undefined,
       });
@@ -238,6 +254,32 @@ export function ModalNuevoServicio({
                 onChange={(e) => setDuracionMinutos(e.target.value)}
                 disabled={isSubmitting}
                 className="w-full px-3.5 py-2 pr-12 rounded-md bg-surface border border-border text-sm font-mono text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50"
+              />
+              <span className="absolute right-3.5 text-xs font-mono text-text-muted pointer-events-none select-none">
+                min
+              </span>
+            </div>
+          </div>
+
+          {/* Buffer posterior */}
+          <div>
+            <label
+              htmlFor="servicio-buffer"
+              className="block text-xs font-medium text-text-secondary mb-1.5"
+            >
+              Tiempo entre citas
+            </label>
+            <div className="relative flex items-center">
+              <input
+                id="servicio-buffer"
+                type="number"
+                min={0}
+                step={1}
+                required
+                value={bufferMinutos}
+                onChange={(e) => setBufferMinutos(e.target.value)}
+                disabled={isSubmitting}
+                className="w-full px-3.5 py-2 pr-12 rounded-md bg-surface border border-border text-sm font-mono text-text-primary focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50"
               />
               <span className="absolute right-3.5 text-xs font-mono text-text-muted pointer-events-none select-none">
                 min

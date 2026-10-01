@@ -4,6 +4,9 @@ import type {
   Cita,
   EstadoCita,
   NegocioConfig,
+  Profesional,
+  CreateProfesionalPayload,
+  UpdateProfesionalPayload,
   Servicio,
   Sucursal,
 } from "@/lib/types";
@@ -16,6 +19,24 @@ export interface CitasFiltros {
   estado?: EstadoCita;
 }
 
+export interface SpecialSchedule {
+  id: string;
+  fecha: string;
+  cerrado: boolean;
+  inicio: string | null;
+  fin: string | null;
+  motivo: string | null;
+}
+
+export interface SaveSpecialScheduleInput {
+  tipo: "sucursal" | "profesional";
+  recursoId: string;
+  fecha: string;
+  cerrado: boolean;
+  motivo?: string;
+  bloques: { inicio: string; fin: string }[];
+}
+
 export function useSucursales() {
   return useQuery({
     queryKey: ["negocio", "sucursales"],
@@ -25,8 +46,54 @@ export function useSucursales() {
   });
 }
 
-export function useSuscripcion() {
+export function useSpecialSchedules(
+  tipo: SaveSpecialScheduleInput["tipo"],
+  recursoId?: string,
+) {
   return useQuery({
+    queryKey: ["negocio", "horarios-especiales", tipo, recursoId],
+    queryFn: () => apiFetch<{ excepciones: SpecialSchedule[] }>(
+      `/api/negocio/horarios-especiales?tipo=${tipo}&recursoId=${encodeURIComponent(recursoId!)}`,
+    ),
+    enabled: Boolean(recursoId),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useSaveSpecialSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveSpecialScheduleInput) =>
+      apiFetch<{ excepciones: SpecialSchedule[] }>("/api/negocio/horarios-especiales", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "horarios-especiales", input.tipo, input.recursoId] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "disponibilidad"] });
+    },
+  });
+}
+
+export function useDeleteSpecialSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Pick<SaveSpecialScheduleInput, "tipo" | "recursoId" | "fecha">) =>
+      apiFetch<{ deleted: boolean }>(
+        `/api/negocio/horarios-especiales?tipo=${input.tipo}&recursoId=${encodeURIComponent(input.recursoId)}&fecha=${input.fecha}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "horarios-especiales", input.tipo, input.recursoId] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "disponibilidad"] });
+    },
+  });
+}
+
+export function useSuscripcion(enabled = true) {
+  return useQuery({
+    enabled,
     queryKey: ["negocio", "suscripcion"],
     queryFn: () =>
       apiFetch<{ data: SubscriptionUsageStats }>("/api/negocio/suscripcion"),
@@ -34,8 +101,9 @@ export function useSuscripcion() {
   });
 }
 
-export function useConfiguracion() {
+export function useConfiguracion(enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ["negocio", "configuracion"],
     queryFn: () =>
       apiFetch<{
@@ -162,6 +230,7 @@ export function useCreateServicio() {
     mutationFn: (nuevoServicio: {
       nombre: string;
       duracion_minutos: number;
+      buffer_minutos?: number;
       precio: number;
       descripcion?: string;
     }) =>
@@ -190,3 +259,82 @@ export function useUpdateServicio() {
     },
   });
 }
+
+export function useProfesionales(filtros?: { sucursalId?: string; activo?: boolean }) {
+  return useQuery({
+    queryKey: ["negocio", "profesionales", filtros],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (filtros?.sucursalId && filtros.sucursalId !== "todas") {
+        searchParams.set("sucursalId", filtros.sucursalId);
+      }
+      if (filtros?.activo !== undefined) {
+        searchParams.set("activo", String(filtros.activo));
+      }
+      const qs = searchParams.toString();
+      return apiFetch<{ profesionales: (Profesional & { serviciosIds: string[] })[] }>(
+        `/api/negocio/profesionales${qs ? `?${qs}` : ""}`,
+      );
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCreateProfesional() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (nuevoProfesional: CreateProfesionalPayload) =>
+      apiFetch<{ profesional: Profesional & { serviciosIds: string[] } }>(
+        "/api/negocio/profesionales",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(nuevoProfesional),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["negocio", "suscripcion"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+
+export function useUpdateProfesional() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cambios: UpdateProfesionalPayload) =>
+      apiFetch<{ profesional: Profesional & { serviciosIds: string[] } }>(
+        "/api/negocio/profesionales",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cambios),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["negocio", "suscripcion"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+
+export function useDeleteProfesional() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ success: boolean; id: string }>(
+        `/api/negocio/profesionales?id=${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["negocio", "profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["negocio", "suscripcion"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+

@@ -1,46 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
+import {
+  NegocioAccessError,
+  requireNegocioAccess,
+  type NegocioAccess,
+  type NegocioCapability,
+} from "@/lib/auth/negocio-access";
 
 /**
  * Autentica al usuario y obtiene el negocio asociado (owner_id = user.id).
  */
-async function getAuthenticatedNegocio(): Promise<
-  | { ok: false; error: NextResponse }
-  | { ok: true; user: { id: string; email?: string }; negocio: { id: string } }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+async function getAuthenticatedNegocio(
+  capability: NegocioCapability,
+): Promise<NegocioAccess> {
+  return requireNegocioAccess(capability);
+}
 
-  if (authError || !user) {
-    return {
-      ok: false,
-      error: apiError("No autorizado", undefined, { status: 401 }),
-    };
-  }
-
-  const { data: negocio, error: negError } = await supabase
-    .from("negocios")
-    .select("id")
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (negError || !negocio) {
-    return {
-      ok: false,
-      error: apiError(
-        "No se encontró un negocio para esta cuenta.",
-        undefined,
-        { status: 404 },
-      ),
-    };
-  }
-
-  return { ok: true, user, negocio };
+function accessFailure(error: unknown): NextResponse | null {
+  if (!(error instanceof NegocioAccessError)) return null;
+  return apiError(error.message, undefined, { status: error.status, code: error.code });
 }
 
 /**
@@ -49,18 +28,25 @@ async function getAuthenticatedNegocio(): Promise<
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
+    const access = await getAuthenticatedNegocio("services:read");
+
+    let allowedServiceIds: string[] | null = null;
+    if (access.profesionalId) {
+      const { data: assignments, error: assignmentError } = await adminClient
+        .from("profesional_servicios")
+        .select("servicio_id")
+        .in("profesional_id", access.profesionalIds ?? [access.profesionalId]);
+      if (assignmentError) throw assignmentError;
+      allowedServiceIds = (assignments ?? []).map((item) => item.servicio_id);
+      if (allowedServiceIds.length === 0) return apiSuccess({ servicios: [] });
     }
 
-    const { negocio } = auth;
-
-    const { data: servicios, error } = await adminClient
+    let query = adminClient
       .from("servicios")
       .select("*")
-      .eq("negocio_id", negocio.id)
-      .order("nombre", { ascending: true });
+      .eq("negocio_id", access.negocioId);
+    if (allowedServiceIds) query = query.in("id", allowedServiceIds);
+    const { data: servicios, error } = await query.order("nombre", { ascending: true });
 
     if (error) {
       throw error;
@@ -68,6 +54,8 @@ export async function GET(): Promise<NextResponse> {
 
     return apiSuccess({ servicios: servicios || [] });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al consultar servicios.", {
       extra: { route: "GET /api/negocio/servicios" },
     });
@@ -80,12 +68,7 @@ export async function GET(): Promise<NextResponse> {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
-    }
-
-    const { negocio } = auth;
+    const access = await getAuthenticatedNegocio("services:write");
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -96,10 +79,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { nombre, duracion_minutos, precio, descripcion } = body as Record<
-      string,
-      unknown
-    >;
+    const {
+      nombre,
+      duracion_minutos,
+      buffer_minutos = 0,
+      precio,
+      descripcion,
+    } = body as Record<string, unknown>;
 
     // Validar nombre (string no vacío, max 120 caracteres)
     if (
@@ -136,6 +122,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    if (
+      typeof buffer_minutos !== "number" ||
+      !Number.isInteger(buffer_minutos) ||
+      buffer_minutos < 0
+    ) {
+      return apiError(
+        "Campos inválidos: buffer_minutos debe ser un entero mayor o igual a 0.",
+        undefined,
+        { status: 400 },
+      );
+    }
+
     // descripcion opcional (string o null)
     if (
       descripcion !== undefined &&
@@ -155,9 +153,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { data: nuevoServicio, error: insertError } = await adminClient
       .from("servicios")
       .insert({
-        negocio_id: negocio.id,
+        negocio_id: access.negocioId,
         nombre: nombre.trim(),
         duracion_minutos,
+        buffer_minutos,
         precio,
         descripcion: cleanDescripcion,
         activo: true,
@@ -171,6 +170,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return apiSuccess({ servicio: nuevoServicio }, 201);
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al crear el servicio.", {
       extra: { route: "POST /api/negocio/servicios" },
     });
@@ -183,12 +184,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await getAuthenticatedNegocio();
-    if (!auth.ok) {
-      return auth.error;
-    }
-
-    const { negocio } = auth;
+    const access = await getAuthenticatedNegocio("services:write");
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -199,8 +195,15 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { id, nombre, duracion_minutos, precio, descripcion, activo } =
-      body as Record<string, unknown>;
+    const {
+      id,
+      nombre,
+      duracion_minutos,
+      buffer_minutos,
+      precio,
+      descripcion,
+      activo,
+    } = body as Record<string, unknown>;
 
     // Extraer y validar id (UUID requerido)
     if (!id || typeof id !== "string" || !id.trim()) {
@@ -214,7 +217,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .from("servicios")
       .select("id")
       .eq("id", servicioId)
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .maybeSingle();
 
     if (findError || !servicioExistente) {
@@ -228,6 +231,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const updates: {
       nombre?: string;
       duracion_minutos?: number;
+      buffer_minutos?: number;
       precio?: number;
       descripcion?: string | null;
       activo?: boolean;
@@ -261,6 +265,21 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         );
       }
       updates.duracion_minutos = duracion_minutos;
+    }
+
+    if (buffer_minutos !== undefined) {
+      if (
+        typeof buffer_minutos !== "number" ||
+        !Number.isInteger(buffer_minutos) ||
+        buffer_minutos < 0
+      ) {
+        return apiError(
+          "Campos inválidos: buffer_minutos debe ser un entero mayor o igual a 0.",
+          undefined,
+          { status: 400 },
+        );
+      }
+      updates.buffer_minutos = buffer_minutos;
     }
 
     if (precio !== undefined) {
@@ -309,7 +328,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .from("servicios")
       .update(updates)
       .eq("id", servicioId)
-      .eq("negocio_id", negocio.id)
+      .eq("negocio_id", access.negocioId)
       .select()
       .single();
 
@@ -319,8 +338,61 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return apiSuccess({ servicio: updatedServicio });
   } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
     return apiError(error, "Error interno al actualizar el servicio.", {
       extra: { route: "PATCH /api/negocio/servicios" },
+    });
+  }
+}
+
+/**
+ * DELETE /api/negocio/servicios
+ * Elimina un servicio perteneciente al negocio del usuario autenticado.
+ */
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const access = await getAuthenticatedNegocio("services:write");
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id || typeof id !== "string" || !id.trim()) {
+      return apiError("ID de servicio requerido.", undefined, { status: 400 });
+    }
+
+    const servicioId = id.trim();
+
+    const { data: servicioExistente, error: findError } = await adminClient
+      .from("servicios")
+      .select("id")
+      .eq("id", servicioId)
+      .eq("negocio_id", access.negocioId)
+      .maybeSingle();
+
+    if (findError || !servicioExistente) {
+      return apiError(
+        "Servicio no encontrado o no pertenece a este negocio.",
+        undefined,
+        { status: 404 },
+      );
+    }
+
+    const { error: delError } = await adminClient
+      .from("servicios")
+      .delete()
+      .eq("id", servicioId)
+      .eq("negocio_id", access.negocioId);
+
+    if (delError) {
+      throw delError;
+    }
+
+    return apiSuccess({ deleted: true });
+  } catch (error: unknown) {
+    const denied = accessFailure(error);
+    if (denied) return denied;
+    return apiError(error, "Error interno al eliminar el servicio.", {
+      extra: { route: "DELETE /api/negocio/servicios" },
     });
   }
 }

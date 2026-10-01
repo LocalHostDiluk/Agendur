@@ -1,4 +1,5 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn, beforeEach, afterEach } from "bun:test";
+import * as negocioAccess from "@/lib/auth/negocio-access";
 import { GET as getMe } from "@/app/api/auth/me/route";
 import { PUT as putProfile } from "@/app/api/auth/profile/route";
 import { POST as postSucursal } from "@/app/api/negocio/sucursales/route";
@@ -14,6 +15,17 @@ const profileRequest = (body: unknown) => new Request("http://localhost/api/auth
 });
 
 describe("Oleada 2 B: identidad autenticada", () => {
+  let access: negocioAccess.NegocioAccess;
+  let accessSpies: ReturnType<typeof spyOn>[];
+  beforeEach(() => {
+    access = { user: { id: "owner-1", email: "ana@example.com" }, negocioId: "neg-1", role: "owner", sucursalId: null, profesionalId: null };
+    accessSpies = [
+      spyOn(negocioAccess, "resolveNegocioAccess").mockImplementation(async () => access),
+      spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => access),
+      spyOn(negocioAccess, "listNegocioAccess").mockImplementation(async () => [{ ...access, nombre: "Mi negocio" }]),
+    ];
+  });
+  afterEach(() => accessSpies.forEach(spy => spy.mockRestore()));
   it("rechaza cambios de perfil sin sesión", async () => {
     const server = spyOn(supabaseServer, "createClient").mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null }, error: null }) },
@@ -51,11 +63,11 @@ describe("Oleada 2 B: identidad autenticada", () => {
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const admin = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
       from: (table: string) => ({
-        select: () => ({ eq: () => ({
-          maybeSingle: async () => ({ data: table === "negocios" ? { id: "neg-1", nombre_comercial: "Mi negocio", slug: "mi-negocio", giro_comercial: "Salón", logo_url: null, moneda_principal: "MXN" } : table === "perfiles_usuario" ? { nombres: "Ana", apellidos: "López", telefono: null, locale: "es-MX" } : { plan_nombre: "starter", estado: "trialing" }, error: null }),
-          count: 0,
-          error: null,
-        }) }),
+        select: () => ({ eq: () => table === "sucursales"
+          ? ({ count: 0, error: null, eq: () => ({ count: 0, error: null }) })
+          : ({
+              maybeSingle: async () => ({ data: table === "negocios" ? { id: "neg-1", nombre_comercial: "Mi negocio", slug: "mi-negocio", giro_comercial: "Salón", logo_url: null, moneda_principal: "MXN" } : table === "perfiles_usuario" ? { nombres: "Ana", apellidos: "López", telefono: null, rol: "Dueño", locale: "es-MX" } : { plan_nombre: "starter", estado: "trialing" }, error: null }),
+            }) }),
       }),
     }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
     try {
@@ -65,6 +77,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       expect(json.perfil).toMatchObject({ nombres: "Ana", apellidos: "López" });
       expect(json.onboardingStatus).toBe("required");
       expect(json.sucursalesCount).toBe(0);
+      expect(json.sucursalesActivasCount).toBe(0);
       expect(json.negocio.id).toBe("neg-1");
     } finally {
       admin.mockRestore();
@@ -73,16 +86,18 @@ describe("Oleada 2 B: identidad autenticada", () => {
   });
 
   it("conserva el acceso de un negocio existente aunque aún no exista la tabla de perfiles", async () => {
+    access.negocioId = "legacy-business";
     const server = spyOn(supabaseServer, "createClient").mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: { id: "legacy-owner", email: "legacy@example.com", created_at: "before" } }, error: null }) },
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const admin = spyOn(supabaseAdmin, "createAdminClient").mockImplementation(() => ({
-      from: (table: string) => ({ select: () => ({ eq: () => ({
-        maybeSingle: async () => table === "perfiles_usuario"
-          ? { data: null, error: { code: "PGRST205" } }
-          : { data: table === "negocios" ? { id: "legacy-business", nombre_comercial: "Antiguo", slug: "antiguo", giro_comercial: "Barbería" } : { plan_nombre: "pro" }, error: null },
-        count: 1, error: null,
-      }) }) }),
+      from: (table: string) => ({ select: () => ({ eq: () => table === "sucursales"
+        ? ({ count: 1, error: null, eq: () => ({ count: 1, error: null }) })
+        : ({
+            maybeSingle: async () => table === "perfiles_usuario"
+              ? { data: null, error: { code: "PGRST205" } }
+              : { data: table === "negocios" ? { id: "legacy-business", nombre_comercial: "Antiguo", slug: "antiguo", giro_comercial: "Barbería" } : { plan_nombre: "pro" }, error: null },
+          }) }) }),
     }) as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
     try {
       const response = await getMe();
@@ -91,6 +106,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       expect(json.perfil).toBeNull();
       expect(json.onboardingStatus).toBe("complete");
       expect(json.sucursalesCount).toBe(1);
+      expect(json.sucursalesActivasCount).toBe(1);
     } finally {
       admin.mockRestore();
       server.mockRestore();
@@ -114,6 +130,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       }),
     } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
     const client = supabaseAdmin.getAdminClient();
+    const configAdmin = spyOn(supabaseAdmin, "createAdminClient").mockReturnValue(await supabaseServer.createClient() as unknown as ReturnType<typeof supabaseAdmin.createAdminClient>);
     const originalFrom = client.from;
     (client as unknown as { from: unknown }).from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { estado: "active", plan_nombre: "starter", current_period_end: new Date(Date.now() + 86400000).toISOString() }, error: null }) }) }) });
     const request = (body: unknown) => new NextRequest("http://localhost/api/negocio/configuracion", {
@@ -145,6 +162,7 @@ describe("Oleada 2 B: identidad autenticada", () => {
       });
     } finally {
       (client as unknown as { from: unknown }).from = originalFrom;
+      configAdmin.mockRestore();
       server.mockRestore();
     }
   });
