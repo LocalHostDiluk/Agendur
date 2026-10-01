@@ -2,8 +2,6 @@
 
 import { useState, useMemo } from "react";
 import {
-  Store,
-  Sliders,
   Users,
   MessageSquare,
   CreditCard,
@@ -45,6 +43,10 @@ import {
   useSucursales,
 } from "@/lib/hooks";
 import { ConfiguracionLoading } from "./loading";
+import {
+  ConfiguracionHeader,
+  ConfiguracionTabsNav,
+} from "@/components/negocio";
 import { Button, Badge, PendingBadge, SwitchToggle } from "@/components/ui";
 import {
   GIROS_FRECUENTES,
@@ -274,112 +276,17 @@ function ConfiguracionForm({
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bricolage font-bold text-text-primary tracking-tight">
-            Configuración
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Administra los parámetros comerciales, políticas de reserva, usuarios y
-            suscripción de tu negocio.
-          </p>
-        </div>
-
-        {/* Global Save Button */}
-        <Button
-          variant="primary"
-          onClick={() => handleSave()}
-          isLoading={updateConfiguracion.isPending}
-          disabled={!isFormValid}
-          className="shrink-0"
-        >
-          <Save className="w-4 h-4" />
-          <span>Guardar cambios</span>
-        </Button>
-      </div>
+      <ConfiguracionHeader
+        onSave={() => handleSave()}
+        isSaving={updateConfiguracion.isPending}
+        isFormValid={isFormValid}
+      />
 
       {/* Pill Tabs Switcher (5 tabs as per §10) */}
-      <div
-        className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-full overflow-x-auto"
-        role="tablist"
-        aria-label="Pestañas de configuración"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "perfil"}
-          onClick={() => setActiveTab("perfil")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] shrink-0 ${
-            activeTab === "perfil"
-              ? "bg-grape text-white shadow-xs"
-              : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-          }`}
-        >
-          <Store className="w-4 h-4" />
-          <span>Perfil Comercial</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "politicas"}
-          onClick={() => setActiveTab("politicas")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] shrink-0 ${
-            activeTab === "politicas"
-              ? "bg-grape text-white shadow-xs"
-              : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-          }`}
-        >
-          <Sliders className="w-4 h-4" />
-          <span>Políticas y Reservas</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "usuarios"}
-          onClick={() => setActiveTab("usuarios")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] shrink-0 ${
-            activeTab === "usuarios"
-              ? "bg-grape text-white shadow-xs"
-              : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Usuarios y roles</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "plantillas"}
-          onClick={() => setActiveTab("plantillas")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] shrink-0 ${
-            activeTab === "plantillas"
-              ? "bg-grape text-white shadow-xs"
-              : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-          }`}
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>Plantillas de recordatorios</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "suscripcion"}
-          onClick={() => setActiveTab("suscripcion")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] shrink-0 ${
-            activeTab === "suscripcion"
-              ? "bg-grape text-white shadow-xs"
-              : "text-text-secondary hover:text-text-primary hover:bg-surface-alt"
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>Plan y facturación</span>
-          <span className="sr-only"> (Plan y Suscripción)</span>
-        </button>
-      </div>
+      <ConfiguracionTabsNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* =========================================================================
