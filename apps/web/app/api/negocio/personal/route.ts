@@ -332,6 +332,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const denied = accessFailure(error);
     if (denied) return denied;
     if (error instanceof SubscriptionExpiredError) return apiError(error.message, undefined, { status: 402, code: error.code });
+    if (typeof (error as { message?: unknown })?.message === "string" &&
+        (error as { message: string }).message.includes("BRANCH_SCHEDULE_REQUIRED")) {
+      return apiError("La sucursal debe tener un horario semanal antes de agregar profesionales.", undefined, {
+        status: 409,
+        code: "BRANCH_SCHEDULE_REQUIRED",
+      });
+    }
     return apiError(error, "No se pudo crear el personal.", {
       extra: { route: "POST /api/negocio/personal" },
     });
