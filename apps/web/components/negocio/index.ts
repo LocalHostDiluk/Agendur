@@ -53,3 +53,7 @@ export * from "./PersonalLoading";
 export * from "./PersonalColaboradorCard";
 export * from "./PersonalColaboradorRow";
 export * from "./PersonalDirectorio";
+export * from "./PersonalAvatar";
+export * from "./PersonalHorarioCell";
+export * from "./PersonalHorarioRow";
+export * from "./PersonalHorarios";

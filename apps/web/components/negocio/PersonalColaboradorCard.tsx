@@ -2,6 +2,7 @@ import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import type { ReactNode } from "react";
 import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
 import type { getPersonalColaboradorDetails } from "@/lib/utils/personal-colaboradores";
+import { PersonalAvatar } from "./PersonalAvatar";
 import { PersonalRolBadge } from "./PersonalRolBadge";
 import { PersonalEstadoBadge } from "./PersonalEstadoBadge";
 import { PersonalServicioBadge } from "./PersonalServicioBadge";
@@ -20,10 +21,7 @@ export function PersonalColaboradorCard({ colab, sucursal, serviciosDelColab, ci
     >
       {/* Avatar + Nombre + Badges */}
       <div className="flex items-start gap-3">
-        <div className="size-11 rounded-lg bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-base shrink-0">
-          {colab.nombre[0]}
-          {(colab.apellido || "")[0] || ""}
-        </div>
+        <PersonalAvatar nombre={colab.nombre} apellido={colab.apellido} className="size-11 rounded-lg bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-base shrink-0" />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1.5">
