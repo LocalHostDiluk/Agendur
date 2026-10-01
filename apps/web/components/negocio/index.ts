@@ -59,3 +59,5 @@ export * from "./PersonalHorarioRow";
 export * from "./PersonalHorarios";
 export * from "./PersonalHeader";
 export * from "./PersonalControls";
+export * from "./PersonalError";
+export * from "./PersonalEmpty";
