@@ -1,5 +1,6 @@
 /** Opt-in integration check: bun --env-file=.env.local scripts/verify-wave3-remote.ts */
 import assert from "node:assert/strict";
+import { closeSync, openSync, unlinkSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const project = "dolpnpuycjfppflcqexe";
@@ -18,13 +19,20 @@ const password = `${crypto.randomUUID()}Aa1!`;
 const users: { id: string; email: string; cookie: string; client: typeof admin }[] = [];
 const businessIds: string[] = [];
 const uploaded: { bucket: string; path: string }[] = [];
+const fixtureIds = new Map<string, Set<string>>();
 let assertions = 0;
 
 function ok(value: unknown, message: string) { assert.ok(value, message); assertions++; }
+function track(table: string, rows: { id?: string }[]) {
+  const ids = fixtureIds.get(table) ?? new Set<string>();
+  for (const row of rows) if (row.id) ids.add(row.id);
+  if (ids.size) fixtureIds.set(table, ids);
+}
 async function insert(table: string, rows: Record<string, unknown> | Record<string, unknown>[]) {
   const { data, error } = await admin.from(table).insert(rows).select();
   assert.ifError(error);
   assert.ok(data?.length, `Insert ${table}`);
+  track(table, data!);
   return data!;
 }
 async function api(index: number | null, path: string, status: number, method = "GET", body?: unknown) {
@@ -47,6 +55,9 @@ async function api(index: number | null, path: string, status: number, method = 
   return payload;
 }
 
+// ponytail: this lock serializes runs on one host; use a DB advisory lock for multiple runners.
+const lockPath = `/tmp/citasync-wave3-${project}.lock`;
+const lock = openSync(lockPath, "wx", 0o600);
 try {
   for (const role of ["owner", "manager", "receptionist", "professional", "outsider"]) {
     const email = `${tag}-${role}@example.com`;
@@ -62,7 +73,7 @@ try {
     const auth = await client.auth.signInWithPassword({ email, password });
     assert.ifError(auth.error);
   }
-  const [business] = await insert("negocios", { owner_id: users[0].id, nombre_comercial: tag, slug: tag, giro_comercial: "Prueba", ciudad: "Monterrey", sucursales_estimadas: "2–3" });
+  const [business] = await insert("negocios", { owner_id: users[0].id, nombre_comercial: tag, slug: tag, giro_comercial: "Prueba", ciudad: "Monterrey", sucursales_estimadas: "2–3", telefono_cliente_requerido: false, email_cliente_requerido: true });
   businessIds.push(business.id);
   await insert("perfiles_usuario", { usuario_id: users[0].id, nombres: "Fixture", apellidos: "Owner", telefono: "+521234567890" });
   await insert("consentimientos_usuario", [{ usuario_id: users[0].id, documento: "terminos_servicio", version: "fixture-v1" }, { usuario_id: users[0].id, documento: "aviso_privacidad", version: "fixture-v1" }]);
@@ -75,26 +86,64 @@ try {
   const branches = await insert("sucursales", [1, 2].map((n) => ({ negocio_id: business.id, nombre: `${tag}-${n}`, direccion: "Fixture", ciudad: "Fixture", estado_provincia: "Fixture", codigo_postal: "00000", telefono: "+521234567890" })));
   const [otherBranch] = await insert("sucursales", { negocio_id: foreign.id, nombre: tag, direccion: "Fixture", ciudad: "Fixture", estado_provincia: "Fixture", codigo_postal: "00000", telefono: "+521234567890" });
   const [service] = await insert("servicios", { negocio_id: business.id, nombre: tag, duracion_minutos: 30, precio: 100, buffer_minutos: 10 });
-  const professionals = await insert("profesionales", branches.map((branch, n) => ({ sucursal_id: branch.id, nombre: tag, apellido: "Fixture", email: users[n === 0 ? 3 : 0].email, usuario_id: users[n === 0 ? 3 : 0].id })));
-  const [secondProfessional] = await insert("profesionales", { sucursal_id: branches[1].id, nombre: tag, apellido: "Multi-sede", usuario_id: users[3].id });
-  await insert("profesional_servicios", professionals.map((professional) => ({ profesional_id: professional.id, servicio_id: service.id })));
-
   const bookingDay = new Date();
   bookingDay.setUTCDate(bookingDay.getUTCDate() + 14);
   const bookingDate = bookingDay.toISOString().slice(0, 10);
   const weekday = bookingDay.getUTCDay();
-  await insert("horarios_sucursal", {
-    sucursal_id: branches[0].id, dia_semana: weekday,
-    hora_apertura: "09:00", hora_cierre: "17:00", es_laborable: true,
+  const branchSchedules = [
+    { dia_semana: weekday, hora_apertura: "08:30", hora_cierre: "17:00" },
+    { dia_semana: (weekday + 1) % 7, hora_apertura: "10:30", hora_cierre: "16:00" },
+  ].sort((a, b) => a.dia_semana - b.dia_semana);
+  const expectedInherited = branchSchedules.map(({ dia_semana, hora_apertura, hora_cierre }) => ({
+    dia_semana, hora_inicio: `${hora_apertura}:00`, hora_fin: `${hora_cierre}:00`,
+  }));
+  for (const branch of branches) {
+    await api(0, "/api/negocio/sucursales/horarios", 200, "PUT", { sucursalId: branch.id, horarios: branchSchedules });
+    const stored = await api(0, `/api/negocio/sucursales/horarios?sucursalId=${branch.id}`, 200);
+    assert.deepEqual(stored.horarios, branchSchedules.map(schedule => ({
+      ...schedule, hora_apertura: `${schedule.hora_apertura}:00`, hora_cierre: `${schedule.hora_cierre}:00`,
+    })), "Branch schedule round trip");
+    assertions++;
+  }
+  const createdProfessional = await api(0, "/api/negocio/profesionales", 201, "POST", {
+    sucursal_id: branches[0].id, nombre: tag, apellido: "Fixture", email: users[3].email,
+    serviciosIds: [service.id],
   });
-  await insert("horarios_profesional", {
-    profesional_id: professionals[0].id, dia_semana: weekday,
-    hora_inicio: "09:00", hora_fin: "17:00", es_laborable: true,
+  track("profesionales", [createdProfessional.profesional]);
+  assert.deepEqual(createdProfessional.profesional.horarios, expectedInherited, "Professional POST reports inherited branch schedule");
+  assertions++;
+  const inherited = await api(0, `/api/negocio/profesionales/horarios?profesionalId=${createdProfessional.profesional.id}`, 200);
+  assert.deepEqual(inherited.horarios, expectedInherited, "New professional inherits exact branch hours without fallback");
+  assertions++;
+  // Linking an existing account is fixture preparation; the professional itself was created through the API.
+  const linked = await admin.from("profesionales").update({ usuario_id: users[3].id }).eq("id", createdProfessional.profesional.id);
+  assert.ifError(linked.error);
+  const [otherProfessional] = await insert("profesionales", { sucursal_id: branches[1].id, nombre: tag, apellido: "Fixture", email: users[0].email, usuario_id: users[0].id });
+  const professionals = [createdProfessional.profesional, otherProfessional];
+  const [secondProfessional] = await insert("profesionales", { sucursal_id: branches[1].id, nombre: tag, apellido: "Multi-sede", usuario_id: users[3].id });
+  await insert("profesional_servicios", { profesional_id: otherProfessional.id, servicio_id: service.id });
+  const professionalSchedules = [
+    { dia_semana: weekday, hora_inicio: "10:00", hora_fin: "16:00" },
+    { dia_semana: (weekday + 1) % 7, hora_inicio: "11:00", hora_fin: "15:00" },
+  ].sort((a, b) => a.dia_semana - b.dia_semana);
+  await api(0, "/api/negocio/profesionales/horarios", 200, "PUT", {
+    profesionalId: professionals[0].id, horarios: professionalSchedules,
   });
+  const modified = await api(0, `/api/negocio/profesionales/horarios?profesionalId=${professionals[0].id}`, 200);
+  assert.deepEqual(modified.horarios, professionalSchedules.map(schedule => ({
+    ...schedule, hora_inicio: `${schedule.hora_inicio}:00`, hora_fin: `${schedule.hora_fin}:00`,
+  })), "Professional schedule update round trip");
+  assertions++;
+  const availabilityPath = `/api/cliente/disponibilidad?sucursalId=${branches[0].id}&servicioId=${service.id}&profesionalId=${professionals[0].id}&fecha=${bookingDate}`;
+  const availability = await api(null, availabilityPath, 200);
+  const toMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  ok(Array.isArray(availability.horarios) && availability.horarios.length > 0, "Real availability offers slots");
+  ok(availability.horarios.every((time: string) => toMinutes(time) >= 600 && toMinutes(time) + 40 <= 960), "Weekly availability respects saved professional hours and buffer");
+  const selectedSlot: string = availability.horarios[0];
   const specialProfessional = await api(0, "/api/negocio/horarios-especiales", 200, "PUT", {
     tipo: "profesional", recursoId: professionals[0].id, fecha: bookingDate,
     cerrado: false, motivo: "wave3 remote check",
-    bloques: [{ inicio: "09:00", fin: "12:00" }, { inicio: "14:00", fin: "17:00" }],
+    bloques: [{ inicio: "10:00", fin: "12:00" }, { inicio: "14:00", fin: "16:00" }],
   });
   ok(specialProfessional.excepciones?.length === 2, "Special schedule stores multiple professional blocks");
   const specialBranch = await api(0, "/api/negocio/horarios-especiales", 200, "PUT", {
@@ -102,8 +151,13 @@ try {
     cerrado: true, motivo: "wave3 remote close", bloques: [],
   });
   ok(specialBranch.excepciones?.length === 1 && specialBranch.excepciones[0].cerrado, "Special schedule stores a full branch closure");
+  const closedAvailability = await api(null, `/api/cliente/disponibilidad?sucursalId=${branches[1].id}&servicioId=${service.id}&profesionalId=${professionals[1].id}&fecha=${bookingDate}`, 200);
+  ok(closedAvailability.horarios.length === 0, "Full branch closure removes all availability");
   const listedSpecial = await api(0, `/api/negocio/horarios-especiales?tipo=profesional&recursoId=${professionals[0].id}`, 200);
   ok(listedSpecial.excepciones?.length === 2, "Special schedules can be listed");
+  const specialAvailability = await api(null, availabilityPath, 200);
+  ok(specialAvailability.horarios.every((time: string) => (toMinutes(time) >= 600 && toMinutes(time) + 40 <= 720) || (toMinutes(time) >= 840 && toMinutes(time) + 40 <= 960)), "Special availability respects both blocks");
+  ok(specialAvailability.horarios.includes(selectedSlot), "Selected real slot remains available in special schedule");
   await api(0, `/api/negocio/horarios-especiales?tipo=sucursal&recursoId=${branches[1].id}&fecha=${bookingDate}`, 200, "DELETE");
   const bookingBody = {
     sucursalId: branches[0].id,
@@ -111,10 +165,10 @@ try {
     profesionalId: professionals[0].id,
     clienteNombre: "Reserva",
     clienteApellido: "Remota",
-    clientePhone: "+528112345678",
+    clientePhone: null,
     clienteEmail: `${tag}-booking@example.com`,
     fecha: bookingDate,
-    hora: "10:00",
+    hora: selectedSlot,
     aceptaPrivacidad: true,
   };
   const book = () => fetch(`${origin}/api/cliente/reservas`, {
@@ -128,16 +182,23 @@ try {
   ok(concurrentPayloads.some((payload) => payload.code === "SLOT_UNAVAILABLE"), "Concurrent conflict uses SLOT_UNAVAILABLE");
   const bookedClients = await admin.from("clientes").select("id").eq("negocio_id", business.id).eq("email_normalizado", `${tag}-booking@example.com`);
   assert.ifError(bookedClients.error);
+  track("clientes", bookedClients.data ?? []);
   ok(bookedClients.data?.length === 1, "Concurrent booking reuses one customer");
-  const bookedAppointments = await admin.from("citas").select("id, cliente_id, duracion_minutos_snapshot, precio_servicio_snapshot, buffer_minutos_snapshot, hora_fin_buffer").eq("negocio_id", business.id).eq("fecha", bookingDate);
+  const bookedAppointments = await admin.from("citas").select("id, cliente_id, duracion_minutos_snapshot, precio_servicio_snapshot, buffer_minutos_snapshot, hora_inicio, hora_fin_servicio, hora_fin_buffer").eq("negocio_id", business.id).eq("fecha", bookingDate);
   assert.ifError(bookedAppointments.error);
+  track("citas", bookedAppointments.data ?? []);
   ok(bookedAppointments.data?.length === 1, "Concurrent booking creates one appointment");
   ok(bookedAppointments.data?.[0].cliente_id === bookedClients.data?.[0].id, "Appointment links the resolved customer");
-  ok(bookedAppointments.data?.[0].duracion_minutos_snapshot === 30 && bookedAppointments.data?.[0].precio_servicio_snapshot === 100 && bookedAppointments.data?.[0].buffer_minutos_snapshot === 10 && bookedAppointments.data?.[0].hora_fin_buffer === "10:40:00", "Booking stores immutable snapshots and buffer end");
+  const booked = bookedAppointments.data![0];
+  ok(booked.duracion_minutos_snapshot === 30 && booked.precio_servicio_snapshot === 100 && booked.buffer_minutos_snapshot === 10 && toMinutes(booked.hora_inicio) === toMinutes(selectedSlot) && toMinutes(booked.hora_fin_servicio) === toMinutes(selectedSlot) + 30 && toMinutes(booked.hora_fin_buffer) === toMinutes(selectedSlot) + 40, "Booking stores immutable snapshots and both interval ends");
+  const afterBooking = await api(null, availabilityPath, 200);
+  ok(!afterBooking.horarios.includes(selectedSlot) && afterBooking.horarios.every((time: string) => toMinutes(time) >= toMinutes(selectedSlot) + 40 || toMinutes(time) + 40 <= toMinutes(selectedSlot)), "Availability excludes the service and its buffer");
+  const identified = await admin.from("clientes").update({ telefono: "+12025550101" }).eq("id", bookedClients.data![0].id);
+  assert.ifError(identified.error);
   const conflictingIdentity = await fetch(`${origin}/api/cliente/reservas`, {
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json" },
-    body: JSON.stringify({ ...bookingBody, hora: "14:00", clientePhone: "+528187654321" }),
+    body: JSON.stringify({ ...bookingBody, hora: "14:00", clientePhone: "+12025550102" }),
   });
   const conflictingPayload = await conflictingIdentity.json();
   ok(conflictingIdentity.status === 400 && conflictingPayload.code === "INVALID_BOOKING_DATA", "Conflicting customer identity is rejected");
@@ -155,8 +216,11 @@ try {
   await api(2, "/api/negocio/citas", 403);
   await api(0, "/api/negocio/personal", 200, "PATCH", { id: staff.personal.id, kind: "collaborator", activo: true });
   const clients = await insert("clientes", branches.map((_, n) => ({ negocio_id: business.id, nombre: tag, apellido: "Fixture", email: `${tag}-client${n}@example.com` })));
-  const appointments = await insert("citas", branches.map((branch, n) => ({ negocio_id: business.id, sucursal_id: branch.id, profesional_id: professionals[n].id, servicio_id: service.id, cliente_id: clients[n].id, fecha: "2030-01-15", hora_inicio: "10:00" })));
-  await insert("citas", { negocio_id: business.id, sucursal_id: branches[1].id, profesional_id: secondProfessional.id, servicio_id: service.id, cliente_id: clients[1].id, fecha: "2030-01-15", hora_inicio: "10:00" });
+  const fixtureDay = new Date(bookingDay);
+  fixtureDay.setUTCDate(fixtureDay.getUTCDate() + 7);
+  const fixtureDate = fixtureDay.toISOString().slice(0, 10);
+  const appointments = await insert("citas", branches.map((branch, n) => ({ negocio_id: business.id, sucursal_id: branch.id, profesional_id: professionals[n].id, servicio_id: service.id, cliente_id: clients[n].id, fecha: fixtureDate, hora_inicio: "10:00" })));
+  await insert("citas", { negocio_id: business.id, sucursal_id: branches[1].id, profesional_id: secondProfessional.id, servicio_id: service.id, cliente_id: clients[1].id, fecha: fixtureDate, hora_inicio: "10:00" });
 
   for (const [index, role, count] of [[0, "owner", 3], [1, "manager", 3], [2, "receptionist", 1], [3, "professional", 2]] as const) {
     const me = await api(index, "/api/auth/me", 200);
@@ -200,18 +264,20 @@ try {
 
   const image = new Uint8Array(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jrZkAAAAASUVORK5CYII=", "base64"));
   const avatarPath = `${branches[0].id}/${tag}.png`;
+  uploaded.push({ bucket: "avatars-profesionales", path: avatarPath });
   const avatar = await users[1].client.storage.from("avatars-profesionales").upload(avatarPath, image, { contentType: "image/png" });
   assert.ifError(avatar.error);
-  uploaded.push({ bucket: "avatars-profesionales", path: avatarPath });
   ok(Boolean(avatar.data), "Manager avatar upload allowed");
   const logoPath = `${business.id}/${tag}.png`;
+  uploaded.push({ bucket: "logos-negocios", path: logoPath });
   const logo = await users[0].client.storage.from("logos-negocios").upload(logoPath, image, { contentType: "image/png" });
   assert.ifError(logo.error);
-  uploaded.push({ bucket: "logos-negocios", path: logoPath });
   ok(Boolean(logo.data), "Owner logo upload allowed");
-  const deniedLogo = await users[1].client.storage.from("logos-negocios").upload(`${business.id}/${tag}-denied.png`, image, { contentType: "image/png" });
+  uploaded.push({ bucket: "logos-negocios", path: `${business.id}/${tag}-denied.png` });
+  const deniedLogo = await users[1].client.storage.from("logos-negocios").upload(uploaded.at(-1)!.path, image, { contentType: "image/png" });
   ok(Boolean(deniedLogo.error), "Manager logo write denied");
-  const deniedAvatar = await users[2].client.storage.from("avatars-profesionales").upload(`${branches[0].id}/${tag}-denied.png`, image, { contentType: "image/png" });
+  uploaded.push({ bucket: "avatars-profesionales", path: `${branches[0].id}/${tag}-denied.png` });
+  const deniedAvatar = await users[2].client.storage.from("avatars-profesionales").upload(uploaded.at(-1)!.path, image, { contentType: "image/png" });
   ok(Boolean(deniedAvatar.error), "Receptionist avatar write denied");
 
   if (process.env.WAVE3_BROWSER === "1") {
@@ -283,21 +349,70 @@ try {
   const formerOwner = await users[0].client.from("citas").select("id").eq("negocio_id", business.id);
   assert.ifError(formerOwner.error);
   ok(formerOwner.data?.length === 0, "Deleted owner JWT cannot read retained history");
-  console.log(`Wave3 remote: ${assertions} checks passed`);
 } finally {
-  const cleanupErrors: string[] = [];
-  for (const { bucket, path } of uploaded) {
-    const { error } = await admin.storage.from(bucket).remove([path]);
-    if (error) cleanupErrors.push(`Storage ${bucket}: ${error.message}`);
+  try {
+    const cleanupErrors: string[] = [];
+    const branchIds = [...(fixtureIds.get("sucursales") ?? [])];
+    // Discover API-created rows even if their HTTP response failed before IDs were tracked.
+    const scopes: [string, string, string[]][] = [
+      ...["citas", "clientes", "colaboradores", "servicios", "suscripciones", "sucursales"].map(table => [table, "negocio_id", businessIds] as [string, string, string[]]),
+      ["profesionales", "sucursal_id", branchIds],
+    ];
+    for (const [table, column, ids] of scopes) {
+      if (!ids.length) continue;
+      const { data, error } = await admin.from(table).select("id").in(column, ids);
+      if (error) cleanupErrors.push(`Discover ${table}: ${error.message}`);
+      else track(table, data ?? []);
+    }
+    for (const { bucket, path } of uploaded) {
+      const { error } = await admin.storage.from(bucket).remove([path]);
+      if (error) cleanupErrors.push(`Storage ${bucket}: ${error.message}`);
+    }
+    // Delete restrictive FK dependents first; schedules/assignments cascade from their parents.
+    for (const table of ["citas", "clientes", "colaboradores", "profesionales", "servicios", "sucursales", "suscripciones", "negocios"]) {
+      const ids = [...(fixtureIds.get(table) ?? [])];
+      if (!ids.length) continue;
+      const { error } = await admin.from(table).delete().in("id", ids);
+      if (error) cleanupErrors.push(`Delete ${table}: ${error.message}`);
+    }
+    for (const user of users) {
+      const { error } = await admin.auth.admin.deleteUser(user.id);
+      if (error && error.status !== 404) cleanupErrors.push(`User ${user.id}: ${error.message}`);
+    }
+    const userIds = users.map(user => user.id);
+    const professionalIds = [...(fixtureIds.get("profesionales") ?? [])];
+    const remainingScopes: [string, string, string[]][] = [
+      ...scopes,
+      ["horarios_sucursal", "sucursal_id", branchIds],
+      ["excepciones_horario_sucursal", "sucursal_id", branchIds],
+      ["horarios_profesional", "profesional_id", professionalIds],
+      ["excepciones_horario_profesional", "profesional_id", professionalIds],
+      ["profesional_servicios", "profesional_id", professionalIds],
+      ["perfiles_usuario", "usuario_id", userIds],
+      ["consentimientos_usuario", "usuario_id", userIds],
+      ...[...fixtureIds].map(([table, ids]) => [table, "id", [...ids]] as [string, string, string[]]),
+    ];
+    for (const [table, column, ids] of remainingScopes) {
+      if (!ids.length) continue;
+      const { count, error } = await admin.from(table).select(column, { count: "exact", head: true }).in(column, ids);
+      if (error || count !== 0) cleanupErrors.push(`Remaining ${table}: ${error?.message ?? count}`);
+    }
+    const tagged = await admin.from("negocios").select("id", { count: "exact", head: true }).like("slug", `${tag}%`);
+    if (tagged.error || tagged.count !== 0) cleanupErrors.push(`Remaining tag: ${tagged.error?.message ?? tagged.count}`);
+    for (const user of users) {
+      const { data, error } = await admin.auth.admin.getUserById(user.id);
+      if (data.user || error?.status !== 404) cleanupErrors.push(`Remaining auth user ${user.id}: ${error?.message ?? "present"}`);
+    }
+    for (const { bucket, path } of uploaded) {
+      const filename = path.slice(path.lastIndexOf("/") + 1);
+      const { data, error } = await admin.storage.from(bucket).list(path.slice(0, path.lastIndexOf("/")), { search: filename });
+      if (error || data?.some(file => file.name === filename)) cleanupErrors.push(`Remaining storage ${bucket}/${path}: ${error?.message ?? "present"}`);
+    }
+    assert.equal(cleanupErrors.length, 0, cleanupErrors.join("\n"));
+    console.log(`Verified zero fixtures remaining for ${tag}`);
+  } finally {
+    closeSync(lock);
+    unlinkSync(lockPath);
   }
-  for (const id of businessIds) {
-    const { error } = await admin.from("negocios").delete().eq("id", id);
-    if (error) cleanupErrors.push(`Business ${id}: ${error.message}`);
-  }
-  for (const user of users) {
-    const { error } = await admin.auth.admin.deleteUser(user.id);
-    if (error && error.status !== 404) cleanupErrors.push(`User ${user.id}: ${error.message}`);
-  }
-  assert.equal(cleanupErrors.length, 0, cleanupErrors.join("\n"));
-  console.log(`Cleaned fixtures ${tag}`);
 }
+console.log(`Wave3 remote: ${assertions} checks passed; cleanup verified`);
