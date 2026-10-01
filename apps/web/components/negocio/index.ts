@@ -39,3 +39,4 @@ export * from "./DashboardCitasChart";
 export * from "./DashboardIngresosChart";
 export * from "./DashboardGraficas";
 export * from "./AgendasManualButton";
+export * from "./AgendasViewTab";

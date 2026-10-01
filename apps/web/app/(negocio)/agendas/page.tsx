@@ -20,7 +20,7 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 import { getTodayString, parseYMD, formatYMD, addDaysYMD, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agendas-date";
-import { AgendasManualButton } from "@/components/negocio";
+import { AgendasManualButton, AgendasViewTab } from "@/components/negocio";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
@@ -243,49 +243,17 @@ export default function AgendasPage() {
               aria-label="Modo de visualización"
               className="inline-flex items-center p-1 bg-surface-alt rounded-xl border border-border text-xs font-medium"
             >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "cronograma"}
-                onClick={() => setViewMode("cronograma")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-100 ease-out cursor-pointer min-h-[32px] ${
-                  viewMode === "cronograma"
-                    ? "bg-surface text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
+              <AgendasViewTab selected={viewMode === "cronograma"} onClick={() => setViewMode("cronograma")}>
                 <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
                 <span>Día (Cronograma)</span>
-              </button>
+              </AgendasViewTab>
 
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "semanal"}
-                onClick={() => setViewMode("semanal")}
-                title="Semanal"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-100 ease-out cursor-pointer min-h-[32px] ${
-                  viewMode === "semanal"
-                    ? "bg-surface text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
+              <AgendasViewTab selected={viewMode === "semanal"} onClick={() => setViewMode("semanal")} title="Semanal">
                 <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
                 <span>Semana</span>
-              </button>
+              </AgendasViewTab>
 
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "mensual"}
-                onClick={() => setViewMode("mensual")}
-                title="Mensual"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-100 ease-out cursor-pointer min-h-[32px] ${
-                  viewMode === "mensual"
-                    ? "bg-surface text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
+              <AgendasViewTab selected={viewMode === "mensual"} onClick={() => setViewMode("mensual")} title="Mensual">
                 <CalendarIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
                 <span>Mes</span>
                 <PendingBadge
@@ -293,7 +261,7 @@ export default function AgendasPage() {
                   tooltip="Vista mensual con arrastrar y soltar en desarrollo"
                   className="ml-0.5"
                 />
-              </button>
+              </AgendasViewTab>
             </div>
 
             {/* Filtro por Sucursal */}
