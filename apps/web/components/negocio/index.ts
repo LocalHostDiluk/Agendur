@@ -45,3 +45,6 @@ export * from "./AgendasCitaSkeletonRow";
 export * from "./AgendasSemanaSkeletonDia";
 export * from "./AgendasCitaRow";
 export * from "./AgendasCronograma";
+export * from "./AgendasSemanaCita";
+export * from "./AgendasSemanaDia";
+export * from "./AgendasSemanal";
