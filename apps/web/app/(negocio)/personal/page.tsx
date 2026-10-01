@@ -6,10 +6,6 @@ import {
   Calendar,
   UserPlus,
   Search,
-  MapPin,
-  Clock,
-  Phone,
-  Mail,
   AlertCircle,
   RefreshCw,
   ShieldCheck,
@@ -28,7 +24,7 @@ import {
   usePersonalActions,
 } from "@/lib/hooks";
 import {
-  PersonalRolBadge, PersonalEstadoBadge, PersonalServicioBadge, PersonalColaboradorActions,
+  PersonalDirectorio,
   PersonalRolesModal, PersonalLoading,
   ModalNuevoColaborador,
   ModalEditarColaborador,
@@ -37,7 +33,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import type { Profesional } from "@/lib/types";
-import { mergePersonalColaboradores, filterPersonalColaboradores, getPersonalColaboradorDetails } from "@/lib/utils/personal-colaboradores";
+import { mergePersonalColaboradores, filterPersonalColaboradores } from "@/lib/utils/personal-colaboradores";
 export { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
 
 const DIAS_SEMANA_HEADERS = [
@@ -368,228 +364,7 @@ export default function PersonalPage({
         <>
           {/* VISTA 1: DIRECTORIO DE COLABORADORES */}
           {activeTab === "directorio" && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* MOBILE VIEW (<640px): Tarjetas limpias apiladas (§8) */}
-              <div
-                className="sm:hidden space-y-3.5"
-                data-testid="colaboradores-mobile-list"
-              >
-                {colaboradoresFiltrados.map((colab) => {
-                  const { sucursal, serviciosDelColab, citasAsignadas, esActivo } = getPersonalColaboradorDetails(colab, sucursales, servicios, citas);
-
-                  return (
-                    <div
-                      key={`mob-${colab.id}`}
-                      className={`bg-surface border rounded-xl p-4 space-y-3 shadow-xs ${
-                        esActivo
-                          ? "border-border"
-                          : "border-border/60 opacity-85"
-                      }`}
-                    >
-                      {/* Avatar + Nombre + Badges */}
-                      <div className="flex items-start gap-3">
-                        <div className="size-11 rounded-lg bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-base shrink-0">
-                          {colab.nombre[0]}
-                          {(colab.apellido || "")[0] || ""}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <h3 className="font-bricolage font-bold text-sm text-text-primary truncate">
-                              {colab.nombre} {colab.apellido ?? ""}
-                            </h3>
-<PersonalEstadoBadge esActivo={esActivo} />
-                          </div>
-
-                          <div className="mt-1 flex items-center gap-2">
-<PersonalRolBadge rol={colab.rol} />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Sucursal y Contacto */}
-                      <div className="space-y-1.5 text-xs text-text-secondary border-t border-border pt-2.5">
-                        {sucursal && (
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                            <span className="font-medium text-text-primary">
-                              {sucursal.nombre}
-                            </span>
-                          </div>
-                        )}
-                        {colab.telefono && (
-                          <div className="flex items-center gap-1.5 font-mono tabular-nums">
-                            <Phone className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                            <span>{colab.telefono}</span>
-                          </div>
-                        )}
-                        {colab.email && (
-                          <div className="flex items-center gap-1.5 truncate">
-                            <Mail className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                            <span className="truncate">{colab.email}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Especialidades */}
-                      {serviciosDelColab.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {serviciosDelColab.map((serv) => (
-<PersonalServicioBadge key={serv.id} serv={serv} />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Footer: Métricas y Botones de acción */}
-                      <div className="border-t border-border pt-2.5 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                          <Clock className="w-3.5 h-3.5 text-grape" />
-                          <span className="font-mono tabular-nums font-bold text-text-primary">
-                            {citasAsignadas.length}
-                          </span>
-                          <span>
-                            {citasAsignadas.length === 1 ? "cita" : "citas"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          {canWriteStaff && <>
-<PersonalColaboradorActions colab={colab} esActivo={esActivo} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />
-                          </>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* DESKTOP / TABLET VIEW (>=640px): Tabla completa (§5.5, §8) */}
-              <div className="hidden sm:block bg-surface border border-border rounded-2xl overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className="border-b border-border bg-surface-alt text-secondary text-xs font-medium">
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
-                          Colaborador
-                        </th>
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
-                          Rol
-                        </th>
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
-                          Sucursal
-                        </th>
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
-                          Especialidades
-                        </th>
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px] text-center">
-                          Citas
-                        </th>
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px]">
-                          Estado
-                        </th>
-                        <th className="p-3.5 text-text-secondary font-medium uppercase tracking-wider text-[11px] text-right">
-                          Acciones
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {colaboradoresFiltrados.map((colab) => {
-                        const { sucursal, serviciosDelColab, citasAsignadas, esActivo } = getPersonalColaboradorDetails(colab, sucursales, servicios, citas);
-
-                        return (
-                          <tr
-                            key={`desk-${colab.id}`}
-                            className="hover:bg-surface-alt transition-colors min-h-[48px]"
-                          >
-                            {/* Colaborador */}
-                            <td className="p-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className="size-9 rounded-lg bg-gradient-to-br from-grape/20 to-grape/10 border border-grape/30 flex items-center justify-center text-grape font-bricolage font-bold text-sm shrink-0">
-                                  {colab.nombre[0]}
-                                  {(colab.apellido || "")[0] || ""}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-bricolage font-bold text-sm text-text-primary truncate">
-                                    {colab.nombre} {colab.apellido ?? ""}
-                                  </p>
-                                  {colab.email && (
-                                    <p className="text-xs text-text-muted truncate">
-                                      {colab.email}
-                                    </p>
-                                  )}
-                                  {colab.telefono && (
-                                    <p className="text-[11px] font-mono tabular-nums text-text-muted truncate">
-                                      {colab.telefono}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Rol */}
-                            <td className="p-3.5">
-<PersonalRolBadge rol={colab.rol} />
-                            </td>
-
-                            {/* Sucursal */}
-                            <td className="p-3.5">
-                              {sucursal ? (
-                                <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                                  <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                                  <span className="truncate">
-                                    {sucursal.nombre}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-text-muted italic">
-                                  Sin sucursal
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Especialidades */}
-                            <td className="p-3.5">
-                              {serviciosDelColab.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 max-w-xs">
-                                  {serviciosDelColab.map((serv) => (
-<PersonalServicioBadge key={serv.id} serv={serv} />
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-text-muted italic">
-                                  Sin servicios asignados
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Citas */}
-                            <td className="p-3.5 text-center">
-                              <span className="font-mono tabular-nums text-xs font-bold text-text-primary">
-                                {citasAsignadas.length}
-                              </span>
-                            </td>
-
-                            {/* Estado */}
-                            <td className="p-3.5">
-<PersonalEstadoBadge esActivo={esActivo} />
-                            </td>
-
-                            {/* Acciones */}
-                            <td className="p-3.5 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {canWriteStaff && <>
-<PersonalColaboradorActions colab={colab} esActivo={esActivo} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />
-                                </>}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <PersonalDirectorio colaboradoresFiltrados={colaboradoresFiltrados} sucursales={sucursales} servicios={servicios} citas={citas} canWriteStaff={canWriteStaff} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />
           )}
 
           {/* VISTA 2: MATRIZ DE HORARIOS SEMANALES */}

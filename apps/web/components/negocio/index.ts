@@ -50,3 +50,6 @@ export * from "./PersonalRolesModal";
 export * from "./PersonalSkeletonBlock";
 export * from "./PersonalSkeletonCard";
 export * from "./PersonalLoading";
+export * from "./PersonalColaboradorCard";
+export * from "./PersonalColaboradorRow";
+export * from "./PersonalDirectorio";
