@@ -56,11 +56,20 @@ export function Navbar() {
   const links = [
     [t.nav.product, "#como-funciona"],
     [t.nav.pricing, "#precios"],
+    [t.nav.benefits, "/beneficios"],
     [t.nav.forBusiness, "#diferenciadores"],
     [t.nav.contact, "#contacto"],
   ] as const;
 
   const closeMenu = () => setMobileMenuOpen(false);
+  /*
+  {links.map(([label, href]) => (
+    <a key={href} href={href} className="nav-link">
+      {label}
+    </a>
+    
+  ))}
+  */
 
   return (
     <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper text-ink">
@@ -73,11 +82,17 @@ export function Navbar() {
           className="hidden items-center gap-7 lg:flex"
           aria-label="Navegación principal"
         >
-          {links.map(([label, href]) => (
-            <a key={href} href={href} className="nav-link">
-              {label}
-            </a>
-          ))}
+        {links.map(([label, href]) =>
+            href.startsWith("/") ? (
+              <Link key={href} href={href} className="nav-link">
+                {label}
+              </Link>
+            ) : (
+              <a key={href} href={href} className="nav-link">
+                {label}
+              </a>
+            ),
+          )}
         </nav>
 
         <div className="hidden items-center gap-3 sm:flex">
