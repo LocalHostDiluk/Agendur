@@ -47,3 +47,6 @@ export * from "./PersonalPermiso";
 export * from "./PersonalRolCard";
 export * from "./PersonalRolesHeader";
 export * from "./PersonalRolesModal";
+export * from "./PersonalSkeletonBlock";
+export * from "./PersonalSkeletonCard";
+export * from "./PersonalLoading";

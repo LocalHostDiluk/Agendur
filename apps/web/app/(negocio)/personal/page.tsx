@@ -29,7 +29,7 @@ import {
 } from "@/lib/hooks";
 import {
   PersonalRolBadge, PersonalEstadoBadge, PersonalServicioBadge, PersonalColaboradorActions,
-  PersonalRolesModal,
+  PersonalRolesModal, PersonalLoading,
   ModalNuevoColaborador,
   ModalEditarColaborador,
   HorariosEspecialesPanel,
@@ -39,18 +39,6 @@ import { Button } from "@/components/ui/Button";
 import type { Profesional } from "@/lib/types";
 import { mergePersonalColaboradores, filterPersonalColaboradores, getPersonalColaboradorDetails } from "@/lib/utils/personal-colaboradores";
 export { getRoleBadgeVariant, formatRoleLabel } from "@/lib/utils/personal-role";
-
-function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`bg-surface-alt rounded ${className}`} />;
-}
-
-function SkeletonText({ className = "" }: { className?: string }) {
-  return <SkeletonBlock className={className} />;
-}
-
-function SkeletonCircle({ className = "" }: { className?: string }) {
-  return <SkeletonBlock className={`rounded-full ${className}`} />;
-}
 
 const DIAS_SEMANA_HEADERS = [
   { dia: 1, nombre: "Lunes", corto: "Lun" },
@@ -307,42 +295,7 @@ export default function PersonalPage({
 
       {/* STATE 1: LOADING */}
       {isLoading && (
-        <div className="space-y-4 animate-pulse" data-testid="personal-loading">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="bg-surface border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-xs"
-              >
-                <div className="space-y-3.5">
-                  <div className="flex items-start gap-3.5">
-                    <SkeletonCircle className="w-12 h-12 shrink-0" />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <SkeletonText className="h-4 w-32" />
-                        <SkeletonBlock className="h-4 w-12 rounded-full" />
-                      </div>
-                      <SkeletonText className="h-3 w-20" />
-                      <SkeletonText className="h-3 w-28" />
-                    </div>
-                  </div>
-                  <div className="space-y-2 pt-1">
-                    <SkeletonText className="h-3 w-24" />
-                    <div className="flex flex-wrap gap-1.5">
-                      <SkeletonBlock className="h-6 w-20 rounded-md" />
-                      <SkeletonBlock className="h-6 w-24 rounded-md" />
-                      <SkeletonBlock className="h-6 w-16 rounded-md" />
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-border flex items-center justify-between">
-                  <SkeletonText className="h-3 w-20" />
-                  <SkeletonBlock className="h-4 w-14 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <PersonalLoading />
       )}
 
       {/* STATE 2: ERROR */}
