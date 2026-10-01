@@ -36,6 +36,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
   let mockServiciosList: Array<{ id: string; negocio_id: string }> = [];
   let mockDbError: Error | null = null;
   let mockScheduleRpcPayload: Record<string, unknown> | null = null;
+  let mockBranchScheduleRequired = false;
 
   beforeEach(() => {
     accessSpy = spyOn(negocioAccess, "requireNegocioAccess").mockImplementation(async () => {
@@ -50,6 +51,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
     mockNegocioError = null;
     mockDbError = null;
     mockScheduleRpcPayload = null;
+    mockBranchScheduleRequired = false;
 
     mockSucursalesList = [
       { id: "suc-1", negocio_id: "neg-456" },
@@ -219,6 +221,15 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
                   }
                   return Promise.resolve({ data: list, error: null }).then(resolve, reject);
                 }
+                if (table === "horarios_profesional") {
+                  return Promise.resolve({
+                    data: [
+                      { dia_semana: 1, hora_inicio: "08:30:00", hora_fin: "17:00:00" },
+                      { dia_semana: 5, hora_inicio: "09:00:00", hora_fin: "14:00:00" },
+                    ],
+                    error: null,
+                  }).then(resolve, reject);
+                }
 
                 return Promise.resolve({ data: [], error: null }).then(resolve, reject);
               },
@@ -230,6 +241,12 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
             return {
               select: () => ({
                 single: async () => {
+                  if (table === "profesionales" && mockBranchScheduleRequired) {
+                    return {
+                      data: null,
+                      error: new Error("BRANCH_SCHEDULE_REQUIRED"),
+                    };
+                  }
                   const p = inserted[0];
                   const created = {
                     id: "new-prof-id",
@@ -388,7 +405,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
       expect(json.code).toBe("LIMIT_EXCEEDED");
     });
 
-    it("debe crear un profesional exitosamente con cargo y servicios asignados", async () => {
+    it("crea el profesional con el horario heredado aunque reciba el campo legado", async () => {
       const req = new NextRequest("http://localhost/api/negocio/profesionales", {
         method: "POST",
         body: JSON.stringify({
@@ -415,13 +432,30 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
       expect(json.profesional.cargo).toBe("Colorista Experta");
       expect(json.profesional.serviciosIds).toEqual(["serv-1", "serv-2"]);
       expect(json.profesional.horarios).toHaveLength(2);
-      expect(mockScheduleRpcPayload).toEqual({
-        p_profesional_id: "new-prof-id",
-        p_horarios: [
-          { dia_semana: 1, hora_inicio: "10:00", hora_fin: "17:00" },
-          { dia_semana: 4, hora_inicio: "10:00", hora_fin: "17:00" },
-        ],
+      expect(json.profesional.horarios[0]).toEqual({
+        dia_semana: 1,
+        hora_inicio: "08:30:00",
+        hora_fin: "17:00:00",
       });
+      expect(mockScheduleRpcPayload).toBeNull();
+    });
+
+    it("devuelve 409 si la sucursal todavía no tiene horario", async () => {
+      mockBranchScheduleRequired = true;
+      const response = await POST(new NextRequest(
+        "http://localhost/api/negocio/profesionales",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            nombre: "Elena",
+            apellido: "Ríos",
+            sucursal_id: "suc-1",
+          }),
+        },
+      ));
+
+      expect(response.status).toBe(409);
+      expect((await response.json()).code).toBe("BRANCH_SCHEDULE_REQUIRED");
     });
   });
 

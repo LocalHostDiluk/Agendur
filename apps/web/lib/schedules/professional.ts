@@ -35,6 +35,26 @@ export function parseProfessionalSchedule(
   return schedules.sort((a, b) => a.dia_semana - b.dia_semana);
 }
 
+export function parseBranchSchedule(value: unknown) {
+  if (!Array.isArray(value) || value.length === 0) return null;
+
+  const schedules = parseProfessionalSchedule(value.map((row) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return row;
+    const candidate = row as Record<string, unknown>;
+    return {
+      dia_semana: candidate.dia_semana,
+      hora_inicio: candidate.hora_apertura,
+      hora_fin: candidate.hora_cierre,
+    };
+  }));
+
+  return schedules?.map(({ dia_semana, hora_inicio, hora_fin }) => ({
+    dia_semana,
+    hora_apertura: hora_inicio,
+    hora_cierre: hora_fin,
+  })) ?? null;
+}
+
 export function buildUniformProfessionalSchedule(
   days: number[],
   start: string,

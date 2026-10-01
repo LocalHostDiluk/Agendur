@@ -146,10 +146,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       horarios,
     } = body as Record<string, unknown>;
 
-    const cleanHorarios = horarios === undefined
-      ? null
-      : parseProfessionalSchedule(horarios);
-    if (horarios !== undefined && !cleanHorarios) {
+    if (horarios !== undefined && !parseProfessionalSchedule(horarios)) {
       return apiError("Horario semanal inválido.", undefined, {
         status: 400,
         code: "INVALID_WEEKLY_SCHEDULE",
@@ -301,6 +298,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .select()
       .single();
 
+    if (insertError?.message?.includes("BRANCH_SCHEDULE_REQUIRED")) {
+      return apiError("La sucursal debe tener un horario semanal antes de agregar profesionales.", undefined, {
+        status: 409,
+        code: "BRANCH_SCHEDULE_REQUIRED",
+      });
+    }
     if (insertError || !nuevoProfesional) {
       throw insertError || new Error("Error al guardar el profesional.");
     }
@@ -322,28 +325,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    let horariosGuardados = null;
-    if (cleanHorarios) {
-      const { data, error: horarioError } = await adminClient.rpc(
-        "replace_professional_schedule",
-        {
-          p_profesional_id: nuevoProfesional.id,
-          p_horarios: cleanHorarios,
-        },
-      );
-      if (horarioError) {
-        await adminClient.from("profesionales").delete().eq("id", nuevoProfesional.id);
-        throw horarioError;
-      }
-      horariosGuardados = data;
-    }
+    const { data: horariosGuardados, error: horarioError } = await adminClient
+      .from("horarios_profesional")
+      .select("dia_semana, hora_inicio, hora_fin")
+      .eq("profesional_id", nuevoProfesional.id)
+      .order("dia_semana", { ascending: true });
+    if (horarioError) throw horarioError;
 
     return apiSuccess(
       {
         profesional: {
           ...nuevoProfesional,
           serviciosIds: cleanServiciosIds,
-          horarios: horariosGuardados ?? undefined,
+          horarios: horariosGuardados ?? [],
         },
       },
       201,
