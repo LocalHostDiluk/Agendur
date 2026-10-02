@@ -4,12 +4,13 @@ Plataforma SaaS multiempresa para gestionar citas y publicar portales de reserva
 
 El repositorio contiene una aplicación **full-stack con Next.js**, organizada como **monolito modular dentro de un monorepo**. Supabase proporciona autenticación y persistencia; Stripe integra la facturación de suscripciones.
 
+El esquema vigente, los contratos de horarios/reservas, la matriz de roles y el procedimiento de operación remota están en [Backend y Supabase remoto](docs/BACKEND_SUPABASE.md), documento canónico del backend.
 
 ## Mejoras prioritarias del sistema
 
-Auditoría técnica del frontend, backend y proyecto Supabase activo `Citas`, realizada sobre el estado actual del workspace. Esta sección conserva el backlog de remediación; las correcciones remotas aplicadas se registran explícitamente para no confundir hallazgos históricos con pendientes.
+Auditoría histórica del frontend, backend y proyecto Supabase activo `Citas`. Las tablas de esta sección conservan hallazgos y criterios originales, no una lista de fallos actuales: contrastar los puntos de backend con el documento canónico y los [planes históricos](docs/planes/).
 
-**Estado Supabase al 26 de septiembre de 2026:** Oleadas 0 y 1 aplicadas. El ledger remoto está reconciliado, `anon` no tiene grants ni policies sobre tablas `public`, las funciones públicas no son invocables por roles de API, `stripe_webhook_events` existe con acceso exclusivo de `service_role` y los advisors no muestran alertas de seguridad o rendimiento relacionadas con los objetos modificados. Queda activar en Dashboard la protección de contraseñas filtradas y ejecutar las pruebas reales de reserva y webhook señaladas al final del documento.
+**Estado backend al 1 de octubre de 2026:** 25 migraciones remotas verificadas, 16 tablas `public` con RLS, sin grants de tabla/columna para `anon`; RPC privilegiadas sólo servidor. Horarios semanales, herencia profesional, excepciones, reservas con snapshots/buffer y prueba HTTP concurrente contra PostgreSQL están implementados y verificados. Storage conserva lectura pública intencional de imágenes. Pendientes: protección de contraseñas filtradas en Dashboard y validación integral con Stripe real; ver evidencia y límites en el documento canónico.
 
 Prioridades:
 
@@ -78,7 +79,7 @@ Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seg
 
 **Aceptación técnica global:** build, tests, lint, typecheck y auditoría de dependencias en verde; ningún secreto versionado. Los textos legales requieren aprobación profesional y no se consideran validados únicamente por una prueba automatizada.
 
-### Interfaces y orden de ejecución
+### Interfaces y orden de ejecución originales (histórico)
 
 - Campos propuestos: `citas.notas_internas` y `profesionales.cargo`.
 - Contratos a completar: `PATCH /api/negocio/citas`, `GET/POST/PATCH /api/negocio/profesionales` y `PATCH /api/negocio/sucursales`.
@@ -113,12 +114,13 @@ Cada bloque tiene un único responsable principal. **Tú** coordinas Datos y seg
 | Sesión | Login, logout, consulta del usuario e intercambio del código de confirmación de correo mediante Supabase Auth. |
 | Onboarding | Formulario conectado para actualizar perfil, configurar país y zona horaria del negocio y crear la primera sucursal. El registro inicial no crea una sucursal automáticamente. |
 | Portal público | `/reserva/[negocioSlug]` consume catálogo, disponibilidad y creación de reservas mediante hooks de TanStack Query. Incluye calendario propio, skeletons de carga, confeti de confirmación y descarga del evento en `.ics`. |
-| Disponibilidad | Combina horarios de sucursal y profesional, duración del servicio y citas existentes. |
+| Disponibilidad | Intersecta horarios semanales/excepciones de sucursal y profesional; incluye duración, buffer y ocupación activa. |
 | Reservas | Valida selección, contacto y consentimientos; persiste la cita y maneja conflictos de horario con respuesta `409`. |
 | Dashboard | Consulta usuario, citas y suscripción; calcula indicadores y gráficas a partir de las citas recibidas. |
 | Agendas | Página conectada a `/api/negocio/citas` con vistas de cronograma y semanal, navegación por fecha, filtros por sucursal y estado, panel de detalle de cita y alta manual de citas. |
 | Servicios y sucursales | Página conectada con pestañas de sucursales y servicios, alta mediante modal y activación/pausa de servicios contra la API. |
 | Personal | Página conectada que gestiona profesionales mediante `/api/negocio/profesionales` con filtros por sucursal y búsqueda. Soporta alta, edición y activación/desactivación de colaboradores persistidos en la base de datos. |
+| Horarios backend | GET/PUT semanales de sucursal y profesional; excepciones por fecha. Nuevos profesionales heredan el horario laborable guardado de su sede, sin fallback de alta 09:00–18:00. |
 | Configuración | Página conectada con pestañas de perfil del negocio, políticas de reserva y suscripción, incluida la apertura del Customer Portal de Stripe. |
 | Suscripciones | Adaptadores Stripe y manual; consulta de uso y límites, Checkout, Customer Portal y procesamiento de webhooks. |
 | Errores | Páginas dedicadas de 404, 403, error de servidor y negocio no encontrado, con componentes visuales y fondos propios. |
@@ -213,7 +215,7 @@ También se usan **guardas de negocio**, como `assertActiveSubscription()`, y **
 | `apps/web/app/403/`, `not-found.tsx`, `error.tsx`, `global-error.tsx` | Páginas y límites de error de la aplicación. |
 | `apps/web/components/` | Componentes por área: `negocio`, `cliente`, `landing`, `auth`, `errors`, `ui`, `providers`, `theme` y `security`. |
 | `apps/web/lib/` | Dominio, pagos, Supabase, hooks, consultas, tipos y utilidades. |
-| `apps/web/tests/` | Pruebas con Bun (30 archivos). |
+| `apps/web/tests/` | Pruebas controladas con Bun. |
 | `apps/web/e2e/` | Escenario Playwright. |
 | `apps/web/proxy.ts` | Renovación de sesión y redirecciones de acceso. |
 | `supabase/migrations/00000000000000_remote_baseline.sql` | Baseline verificado del proyecto remoto; no se reaplica sobre la base actual. |
@@ -227,7 +229,7 @@ Los grupos de rutas entre paréntesis organizan el código y no forman parte de 
 
 ## Modelo de datos
 
-El esquema define **11 tablas de aplicación** en `public`:
+El remoto tiene **16 tablas de aplicación** en `public`, todas con RLS. Relaciones, snapshots y restricciones vigentes en [Modelo vigente](docs/BACKEND_SUPABASE.md#modelo-vigente).
 
 | Tabla | Función y relaciones principales |
 | --- | --- |
@@ -238,14 +240,18 @@ El esquema define **11 tablas de aplicación** en `public`:
 | `servicios` | Catálogo del negocio con precio y duración. |
 | `profesionales` | Personal asociado a sucursales. |
 | `profesional_servicios` | Relación muchos a muchos entre profesionales y servicios. |
+| `colaboradores` | Membresías de gerente/recepción por negocio y sede. |
 | `horarios_sucursal` | Horarios semanales de apertura. |
 | `horarios_profesional` | Horarios semanales del profesional. |
-| `citas` | Reserva, relaciones de negocio, contacto, precio, estado y consentimientos. |
+| `excepciones_horario_sucursal`, `excepciones_horario_profesional` | Bloques especiales o cierre por fecha. |
+| `clientes` | Contacto normalizado y único por negocio. |
+| `citas` | Reserva vinculada a cliente, claves de tenant consistentes, snapshots, buffer, estado y consentimientos. |
 | `suscripciones` | Plan, pasarela, periodo, estado y límites del negocio. |
+| `stripe_webhook_events` | Ledger de eventos del webhook, sólo servidor. |
 
 La vista `profesionales_publicos` expone campos del catálogo sin email ni teléfono y utiliza `security_invoker`. El snapshot también define los buckets públicos `logos-negocios` y `avatars-profesionales`, junto con políticas de Storage.
 
-Las citas pueden estar en `pendiente_pago`, `confirmada`, `completada`, `cancelada` o `no_asistio`. La restricción `citas_profesional_horario_excl` usa GiST y `btree_gist` para impedir intervalos solapados del mismo profesional cuando el estado es `pendiente_pago` o `confirmada`. Los intervalos son semiabiertos `[inicio, fin)`, permitiendo citas consecutivas.
+Las citas pueden estar en `pendiente_pago`, `confirmada`, `completada`, `cancelada` o `no_asistio`. `citas_profesional_buffer_excl` usa GiST y `btree_gist` para impedir ocupación solapada del mismo profesional en `pendiente_pago` o `confirmada`. El intervalo semiabierto termina en `hora_fin_buffer`, no al terminar sólo el servicio.
 
 ## Flujo de reservas
 
@@ -295,10 +301,13 @@ Páginas principales: `/`, `/login`, `/register`, `/onboarding`, `/dashboard`, `
 | GET | `/api/cliente/catalogo?slug=...` | Catálogo público del negocio. |
 | GET | `/api/cliente/disponibilidad` | Horarios por `sucursalId`, `servicioId`, `fecha` y `profesionalId` opcional. |
 | POST | `/api/cliente/reservas` | Crear una reserva pública. |
-| GET / PATCH | `/api/negocio/citas` | Consultar citas con filtros de sucursal, rango de fechas y estado, y actualizar su estado o notas. |
+| GET / PATCH | `/api/negocio/citas` | Consultar citas con filtros de sucursal, rango de fechas y estado, y actualizar su estado. |
 | GET / POST | `/api/negocio/sucursales` | Consultar y crear sucursales. |
 | GET / POST / PATCH | `/api/negocio/servicios` | Listar, crear y actualizar servicios del negocio autenticado. |
 | GET / POST / PATCH | `/api/negocio/profesionales` | Listar, crear, actualizar y desactivar profesionales del negocio autenticado, con asignación de servicios y control de límites del plan. |
+| GET / PUT | `/api/negocio/sucursales/horarios` | Consultar y reemplazar horario semanal de sucursal. |
+| GET / PUT | `/api/negocio/profesionales/horarios` | Consultar y reemplazar horario semanal profesional. |
+| GET / PUT / DELETE | `/api/negocio/horarios-especiales` | Bloques especiales o cierre por recurso y fecha. |
 | GET / PUT | `/api/negocio/configuracion` | Consultar y actualizar configuración. |
 | GET / POST | `/api/negocio/suscripcion` | Consultar suscripción o iniciar el flujo de contratación. |
 | POST | `/api/negocio/suscripcion/portal` | Crear sesión del Customer Portal de Stripe. |
@@ -340,8 +349,9 @@ fuente de verdad operativa. No se inicia una base Supabase local.
   el mismo archivo SQL y versión en `supabase/migrations/`.
 - Antes de cada cambio se verifican precondiciones, respaldo, RLS, grants y
   asesores. Si una precondición falla, la migración se aborta sin modificar datos.
-- El ledger remoto contiene el baseline, el respaldo de Oleada 0 y las cinco
-  migraciones de Oleada 1 con versiones `20260926214630` a `20260926214859`.
+- El ledger remoto y los 25 archivos actuales coinciden; el último es
+  `20261002031613_close_global_function_execute.sql`. Procedimiento y alcance
+  de respaldos en el [documento canónico](docs/BACKEND_SUPABASE.md#operación-y-verificación).
 - El snapshot lógico previo a cambios vive en el esquema privado remoto
   `backup_wave0_20260924`; es una ayuda de reversión del mismo proyecto, no un
   reemplazo de un respaldo externo.
@@ -413,7 +423,7 @@ Para producción, configura las variables en el entorno de ejecución y las vari
 
 Registra y confirma la cuenta cuando Auth lo requiera, completa el onboarding y crea la primera sucursal. Asegúrate de que existan servicios activos, profesionales activos, relaciones `profesional_servicios` y horarios de apertura. La suscripción debe estar vigente.
 
-Las pantallas actuales permiten crear sucursales y servicios, pero **no** dan de alta profesionales, sus relaciones con servicios ni los horarios: esos datos deben cargarse directamente en la base mientras no exista la API correspondiente.
+El alta de profesionales y sus servicios está persistida por API. Antes del alta configura el horario semanal de la sucursal mediante su API; luego el profesional lo hereda y puede modificarlo mediante su API semanal. No cargar un horario inventado directamente en la base: consultar los [contratos de horarios](docs/BACKEND_SUPABASE.md#horario-semanal-de-sucursal).
 
 ### Integración Stripe
 
@@ -423,13 +433,15 @@ El pago manual registra una solicitud en estado `paused`; la activación exige c
 
 ## Pruebas y calidad
 
-La suite de `apps/web/tests/` reúne **30 archivos y 298 pruebas**. Cubre autenticación, identidad y onboarding, reservas, disponibilidad, fechas del negocio, pagos, seguridad, hooks, infraestructura de consultas, Realtime, páginas del panel (agendas, personal, configuración, sucursales y servicios), la API de servicios, los modales del negocio, el panel de detalle de cita, los skeletons, el overlay de proceso, el diálogo de confirmación y las páginas de error. Varias pruebas utilizan mocks o inspección de código: no equivalen a validar servicios externos reales.
+La suite de `apps/web/tests/` cubre autenticación, identidad, onboarding, reservas, disponibilidad, pagos, seguridad, horarios, hooks y páginas/componentes del panel. Varias pruebas utilizan mocks o inspección de código: no equivalen a validar proveedores externos reales.
 
 ```bash
 bun run test
 ```
 
-> **Estado actual: 296 pruebas pasan y 2 fallan.** Los dos fallos están en `apps/web/tests/agendas.test.tsx` («renderiza citas en vista de cronograma…» y «renderiza estado vacío…»). El helper del test siembra la caché de React Query con la fecha fija `2026-09-17`, mientras que la página calcula el día actual con el reloj del sistema. Cuando ambas fechas no coinciden, la clave de consulta no acierta, `useCitasNegocio` queda en estado de carga y la página renderiza el skeleton en lugar de las citas. Es una dependencia de fecha en la prueba, no un fallo de la página. **`bun run test` falla en CI mientras no se corrija.**
+**Verificación del 1 de octubre de 2026:** 428 pruebas aprobadas en 46 archivos, cero fallos; `bunx tsc --noEmit` desde `apps/web` termina correctamente. Son resultados de esa ejecución, no una garantía permanente. La antigua dependencia de fecha de agenda ya no es un fallo vigente.
+
+El [recorrido backend remoto](apps/web/scripts/verify-wave3-remote.ts) verificó herencia de horarios, disponibilidad y conflicto concurrente `201/409`, con 109 checks y limpieza confirmada en el punto 2. La [matriz SQL](supabase/tests/wave3_role_matrix_rollback.sql) pasó con `ROLLBACK` en el punto 3. Estas pruebas no se vuelven a ejecutar por editar documentación; su procedimiento está en [Operación y verificación](docs/BACKEND_SUPABASE.md#operación-y-verificación).
 
 Existe un escenario en `apps/web/e2e/booking.pw.ts` que recorre registro, onboarding y reserva después de un conflicto. **Intercepta todas las API**, por lo que no comprueba concurrencia real contra PostgreSQL ni la entrega de correos o mensajes.
 
@@ -458,7 +470,7 @@ El pipeline fija Bun 1.3.14. Playwright no forma parte de esas etapas. Turborepo
 ## Seguridad y operación
 
 - Clientes Supabase separados para navegador, servidor con cookies y operaciones administrativas. Las claves `service_role`, Stripe, Turnstile y el token de Redis deben permanecer en servidor.
-- Comprobación de sesión en endpoints privados, autorización por negocio y RLS en las 11 tablas del snapshot.
+- Comprobación de sesión/capacidades en endpoints privados, autorización por negocio/sede/profesional y RLS en las 16 tablas actuales; RPC privilegiadas sólo servidor. Lectura pública de imágenes Storage intencional.
 - `proxy.ts` renueva la sesión y protege por redirección `/dashboard`, `/agendas`, `/onboarding` y `/sucursales`. **`/personal` y `/configuracion` todavía no figuran en esa lista**, por lo que su protección depende de la comprobación de sesión de sus endpoints; conviene añadirlas al proxy.
 - Cookies de sesión configuradas como `HttpOnly`, `SameSite=Lax` y `Secure` en producción; saneamiento de destinos de redirección.
 - Rate limit en login, registro y creación de reservas. Sin Upstash se utiliza memoria local del proceso, que no comparte contadores entre instancias.
@@ -471,18 +483,16 @@ Consulta el [baseline remoto](supabase/migrations/00000000000000_remote_baseline
 
 ## Limitaciones y próximos pasos
 
-- Corregir la dependencia de fecha de `agendas.test.tsx` para que `bun run test` vuelva a pasar por completo.
-- Crear la API de profesionales y persistir el alta de colaboradores de `/personal`, que hoy solo vive en el estado de la sesión.
-- Completar la administración de horarios y de relaciones `profesional_servicios` desde la UI.
+- Mantener cobertura de roles, horarios y reservas; sus APIs y persistencia ya están implementadas. La integración visual que falte queda fuera de estas fases backend.
 - Añadir `/personal` y `/configuracion` a las rutas protegidas de `proxy.ts`.
 - Habilitar los módulos «Pagos y facturación» y «Reportes» del sidebar, hoy deshabilitados.
 - Permitir elegir el profesional en el alta manual de citas, en lugar de la selección automática del primero elegible.
 - Integrar los canales Realtime y de presencia en las pantallas.
 - Sustituir el stub de WhatsApp por un proveedor real y definir su operación.
 - Completar el cobro de anticipos de citas; Stripe actualmente cubre suscripciones del negocio.
-- Validar dos reservas HTTP simultáneas contra una base controlada: la exclusión SQL y el manejo de `409` están implementados, pero la auditoría del repositorio deja pendiente esa prueba real.
+- Activar protección de contraseñas filtradas en Dashboard y validar el recorrido completo con Stripe real; la concurrencia de reservas HTTP contra el Supabase remoto ya fue verificada.
 - Completar los documentos legales y su configuración de versiones.
-- Añadir `.env.example` y un flujo reproducible de preparación de datos y migraciones por entorno.
+- Añadir `.env.example` sin secretos; mantener el procedimiento remoto y respaldos externos. No se crea una base paralela ni se reaplica el baseline.
 
 ## Contribución y documentación
 
@@ -490,10 +500,11 @@ Para proponer cambios, trabaja en una rama, conserva `bun.lock` y ejecuta lint, 
 
 Documentación complementaria:
 
+- [Backend y Supabase remoto: esquema, contratos y operación](docs/BACKEND_SUPABASE.md).
 - [Baseline y migraciones Supabase](supabase/migrations/).
 - [Baseline remoto verificado](supabase/migrations/00000000000000_remote_baseline.sql).
 - [Sistema de diseño unificado: dashboard, autenticación, reservas, errores, carga y confirmaciones](docs/diseño/Design-system.md).
-- [Plan de ejecución](docs/PLAN.md) y [plan de soluciones backend](docs/PLAN_SOLUCIONES_BACKEND.md).
+- [Plan de ejecución histórico](docs/planes/PLAN.md), [plan de soluciones backend histórico](docs/planes/PLAN_SOLUCIONES_BACKEND.md) y [cierre de Oleada 3](docs/planes/SUPABASE_OLEADA3_CIERRE.md).
 - [Manifiesto de la aplicación](apps/web/package.json).
 
 **Licencia:** el repositorio revisado no contiene un archivo `LICENSE`. No se declara una licencia de distribución en este README.
