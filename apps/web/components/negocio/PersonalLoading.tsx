@@ -1,4 +1,4 @@
-import { PersonalSkeletonCard } from "./PersonalSkeletonCard";
+import { PersonalSkeletonCard } from "./PersonalSkeletonCard";
 export function PersonalLoading() {
   return (
     <div className="space-y-4 animate-pulse" data-testid="personal-loading">

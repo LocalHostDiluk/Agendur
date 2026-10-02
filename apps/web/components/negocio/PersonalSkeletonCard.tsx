@@ -1,4 +1,4 @@
-import { PersonalSkeletonBlock } from "./PersonalSkeletonBlock";
+import { PersonalSkeletonBlock } from "./PersonalSkeletonBlock";
 export function PersonalSkeletonCard() {
   return (
     <div

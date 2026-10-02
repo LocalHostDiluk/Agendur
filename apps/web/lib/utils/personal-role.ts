@@ -16,4 +16,3 @@ export function formatRoleLabel(rol?: string): string {
   if (r.includes("especialista")) return "Especialista";
   return rol;
 }
-
