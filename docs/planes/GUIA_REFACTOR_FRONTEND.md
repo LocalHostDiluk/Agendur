@@ -1,7 +1,9 @@
-# Plan de refactorización de archivos — Frontend
+# Plan/Guía de refactorización de archivos — Frontend
 
 Ámbito: `apps/web`. Primer archivo: `apps/web/app/(negocio)/dashboard/page.tsx`.
 Objetivo: dividir archivos grandes en archivos pequeños (componentes, hooks, utilidades). La pantalla debe verse y funcionar IGUAL que antes.
+
+# Plan de refactorización de archivos — Frontend
 
 ## 0. Reglas que no se rompen
 
@@ -38,7 +40,7 @@ Un componente por archivo.
 2. Lee el documento de estilo: `docs/diseño/`.
 3. Lee `components/negocio/index.ts`, `components/ui/index.ts`, `lib/hooks/index.ts`.
 4. Ejecuta `git status`. Si hay cambios sin commit, detente y avisa al usuario.
-5. Crea rama: `git switch -c refactor/front-dashboard`.
+5. Crea rama: `git switch -c refactor/front-(pagina a rediseñar)`.
 6. Lee `apps/web/package.json`. Ejecuta los scripts de tipos, lint y tests que existan. Anota el resultado. Si algo ya falla antes de tocar código, NO lo arregles; solo anótalo. No ejecutes e2e.
 
 ## 3. Inventario de `page.tsx` (sin editar nada)
