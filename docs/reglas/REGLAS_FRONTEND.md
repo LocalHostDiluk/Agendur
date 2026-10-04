@@ -1,7 +1,8 @@
 # Reglas de construcción — Frontend (`apps/web`)
 
 Estas reglas son obligatorias para todo código nuevo o modificado de frontend.
-Alcance actual: solo frontend. Las reglas de backend se agregarán después.
+Alcance de este archivo: solo frontend. El servidor se rige por las
+[reglas de construcción backend](REGLAS_BACKEND.md).
 
 ## 0. Antes de escribir código
 
