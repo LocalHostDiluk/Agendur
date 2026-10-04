@@ -50,4 +50,13 @@ describe("Módulo de Notificaciones y Mapeo de Errores Humanos (Toast)", () => {
     expect(res.title).toBe("Error");
     expect(res.description).toContain("Ocurrió un problema inesperado");
   });
+
+  it("debería traducir errores de eliminación de sucursal con citas pendientes a un mensaje claro", () => {
+    const res = getHumanErrorMessage(
+      "No se puede eliminar la sucursal porque tiene citas pendientes o registradas. Desactívala para archivarla lógicamente sin perder historial.",
+    );
+    expect(res.title).toBe("No se puede eliminar la sucursal");
+    expect(res.description).toContain("citas pendientes o registradas");
+  });
 });
+
