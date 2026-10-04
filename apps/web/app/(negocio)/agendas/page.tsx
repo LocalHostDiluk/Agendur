@@ -33,41 +33,12 @@ import {
 } from "@/components/ui";
 import { formatDisplayDate, formatDisplayWeek, formatDisplayMonth } from "@/lib/utils/agenda-display-date";
 import { getMonthDaysGrid } from "@/lib/utils/agenda-month-grid";
+import { getEstadoBadgeProps } from "@/lib/utils/agenda-estado";
 import type { Cita, EstadoCita } from "@/lib/types";
 
 // ==============================================================================
 // Utilidades de Fechas (UTC-safe y limpias)
 // ==============================================================================
-
-// Mapeo seguro a tokens de Badge según §5.12
-function getEstadoBadgeProps(estado: EstadoCita): {
-  variant: "success" | "warning" | "grape" | "danger";
-  label: string;
-  shortLabel: string;
-} {
-  switch (estado) {
-    case "confirmada":
-      return { variant: "success", label: "CONFIRMADA", shortLabel: "CONF" };
-    case "pendiente_pago":
-      return {
-        variant: "warning",
-        label: "PENDIENTE PAGO",
-        shortLabel: "PEND",
-      };
-    case "completada":
-      return { variant: "grape", label: "COMPLETADA", shortLabel: "COMP" };
-    case "cancelada":
-      return { variant: "danger", label: "CANCELADA", shortLabel: "CANC" };
-    case "no_asistio":
-      return { variant: "danger", label: "NO ASISTIÓ", shortLabel: "NO ASIS" };
-    default:
-      return {
-        variant: "warning",
-        label: String(estado).toUpperCase(),
-        shortLabel: String(estado).slice(0, 4).toUpperCase(),
-      };
-  }
-}
 
 // ==============================================================================
 // Componente Principal
