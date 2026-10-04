@@ -102,7 +102,7 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
           error: mockAuthError as any,
         }),
       },
-      from: (table: string) => {
+      from: (_table: string) => {
         return {
           select: () => ({
             eq: () => ({
@@ -220,6 +220,19 @@ describe("Endpoints de Gestión de Profesionales - /api/negocio/profesionales", 
                     list = list.filter((s) => inFilter.includes(s.id));
                   }
                   return Promise.resolve({ data: list, error: null }).then(resolve, reject);
+                }
+                if (table === "horarios_sucursal") {
+                  if (mockBranchScheduleRequired) {
+                    return Promise.resolve({ data: [], error: null }).then(resolve, reject);
+                  }
+                  return Promise.resolve({
+                    data: [
+                      { dia_semana: 1, hora_apertura: "08:00:00", hora_cierre: "18:00:00", es_laborable: true },
+                      { dia_semana: 4, hora_apertura: "08:00:00", hora_cierre: "18:00:00", es_laborable: true },
+                      { dia_semana: 5, hora_apertura: "08:00:00", hora_cierre: "18:00:00", es_laborable: true },
+                    ],
+                    error: null,
+                  }).then(resolve, reject);
                 }
                 if (table === "horarios_profesional") {
                   return Promise.resolve({

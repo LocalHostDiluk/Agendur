@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, UserPlus, Clock, Store, Sparkles, Check, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { X, UserPlus, Clock, Store, Sparkles, Check, Loader2, AlertCircle } from "lucide-react";
 import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
-import { useCreateProfesional } from "@/lib/hooks";
+import { useCreateProfesional, useHorariosSucursal } from "@/lib/hooks";
 import { PendingBadge } from "@/components/ui/PendingBadge";
 import { buildUniformProfessionalSchedule } from "@/lib/schedules/professional";
 
@@ -20,6 +20,7 @@ export interface ColaboradorCreadoPayload {
   hora_inicio: string;
   hora_fin: string;
   dias_laborables: number[];
+  horarios?: Array<{ dia_semana: number; hora_inicio: string; hora_fin: string }>;
   activo: boolean;
 }
 
@@ -67,16 +68,45 @@ export function ModalNuevoColaborador({
   const [apellido, setApellido] = useState("");
   const defaultSucursalId =
     sucursales.find((s) => s.es_matriz)?.id || sucursales[0]?.id || "";
-  const [sucursalId, setSucursalId] = useState(defaultSucursalId);
+  const [sucursalId, setSucursalId] = useState("");
+  const effectiveSucursalId =
+    sucursalId && sucursales.some((s) => s.id === sucursalId)
+      ? sucursalId
+      : defaultSucursalId;
+
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [rol, setRol] = useState("Especialista");
   const [selectedServicios, setSelectedServicios] = useState<string[]>([]);
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("18:00");
-  const [diasLaborables, setDiasLaborables] = useState<number[]>([1, 2, 3, 4, 5, 6]);
+  const [userDiasLaborables, setUserDiasLaborables] = useState<number[] | null>(null);
 
   const createProfesional = useCreateProfesional();
+  const { data: sucursalHorariosData, isLoading: isLoadingHorarios } =
+    useHorariosSucursal(effectiveSucursalId);
+  const horariosSucursal = useMemo(
+    () => sucursalHorariosData?.horarios ?? [],
+    [sucursalHorariosData?.horarios],
+  );
+  const hasBranchSchedule = horariosSucursal.length > 0;
+
+  const activeBranchDays = useMemo(
+    () => horariosSucursal.map((h) => h.dia_semana),
+    [horariosSucursal],
+  );
+
+  const diasLaborables = useMemo(() => {
+    if (userDiasLaborables !== null) {
+      if (hasBranchSchedule) {
+        return userDiasLaborables.filter((d) => activeBranchDays.includes(d));
+      }
+      return userDiasLaborables;
+    }
+    return hasBranchSchedule && activeBranchDays.length > 0
+      ? activeBranchDays
+      : [1, 2, 3, 4, 5, 6];
+  }, [userDiasLaborables, hasBranchSchedule, activeBranchDays]);
 
   // Accessibility: escape key and body scroll lock
   useEffect(() => {
@@ -107,9 +137,22 @@ export function ModalNuevoColaborador({
   };
 
   const toggleDia = (dia: number) => {
-    setDiasLaborables((prev) =>
-      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia],
-    );
+    const isActivating = !diasLaborables.includes(dia);
+    if (isActivating && horariosSucursal.length > 0) {
+      const match = horariosSucursal.find((h) => h.dia_semana === dia);
+      if (!match) {
+        const diaNombre = DIAS_SEMANA.find((d) => d.dia === dia)?.label || "Este día";
+        notify.warning(
+          "Día no laborable en la sucursal",
+          `${diaNombre} no tiene horario configurado en esta sucursal. Configura el horario de la sucursal primero si deseas asignarlo.`,
+        );
+        return;
+      }
+    }
+    const next = diasLaborables.includes(dia)
+      ? diasLaborables.filter((d) => d !== dia)
+      : [...diasLaborables, dia];
+    setUserDiasLaborables(next);
   };
 
   const selectAllServicios = () => {
@@ -129,7 +172,7 @@ export function ModalNuevoColaborador({
     setSelectedServicios([]);
     setHoraInicio("09:00");
     setHoraFin("18:00");
-    setDiasLaborables([1, 2, 3, 4, 5, 6]);
+    setUserDiasLaborables(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,8 +188,16 @@ export function ModalNuevoColaborador({
       return;
     }
 
-    if (!sucursalId) {
+    if (!effectiveSucursalId) {
       notify.warning("Campo requerido", "Selecciona una sucursal para el colaborador.");
+      return;
+    }
+
+    if (!isLoadingHorarios && effectiveSucursalId && !hasBranchSchedule) {
+      notify.warning(
+        "Sucursal sin horario",
+        "La sucursal seleccionada no tiene un horario semanal configurado. Configura su horario en Sucursales antes de agregar personal.",
+      );
       return;
     }
 
@@ -160,11 +211,34 @@ export function ModalNuevoColaborador({
       return;
     }
 
+    if (horariosSucursal.length > 0) {
+      for (const dia of diasLaborables) {
+        const branchDay = horariosSucursal.find((h) => h.dia_semana === dia);
+        const diaNombre = DIAS_SEMANA.find((d) => d.dia === dia)?.label || `Día ${dia}`;
+        if (!branchDay) {
+          notify.warning(
+            "Horario fuera de lo establecido",
+            `No hay horario ese día (${diaNombre}) en la sucursal seleccionada.`,
+          );
+          return;
+        }
+        const ap = branchDay.hora_apertura.slice(0, 5);
+        const ci = branchDay.hora_cierre.slice(0, 5);
+        if (horaInicio < ap || horaFin > ci) {
+          notify.warning(
+            "Horario fuera de lo establecido",
+            `El horario de ${diaNombre} debe estar dentro de la jornada de la sucursal (${ap} a ${ci}).`,
+          );
+          return;
+        }
+      }
+    }
+
     try {
       const response = await createProfesional.mutateAsync({
         nombre: nombre.trim(),
         apellido: apellido.trim(),
-        sucursal_id: sucursalId,
+        sucursal_id: effectiveSucursalId,
         cargo: rol,
         email: email.trim() || null,
         telefono: telefono.trim() || null,
@@ -187,7 +261,7 @@ export function ModalNuevoColaborador({
         id: prof.id,
         nombre: prof.nombre,
         apellido: prof.apellido ?? "",
-        sucursal_id: prof.sucursal_id ?? sucursalId,
+        sucursal_id: prof.sucursal_id ?? effectiveSucursalId,
         email: prof.email || "",
         telefono: prof.telefono || "",
         serviciosIds: prof.serviciosIds ?? selectedServicios,
@@ -195,15 +269,14 @@ export function ModalNuevoColaborador({
         hora_inicio: horaInicio,
         hora_fin: horaFin,
         dias_laborables: diasLaborables,
+        horarios: prof.horarios || [],
         activo: true,
       });
 
       resetForm();
       onClose();
     } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Error al registrar colaborador.";
-      notify.error("No se pudo registrar", errorMsg);
+      notify.error(err, "Error al registrar colaborador.");
     }
   };
 
@@ -305,8 +378,11 @@ export function ModalNuevoColaborador({
               <select
                 id="colaborador-sucursal"
                 required
-                value={sucursalId}
-                onChange={(e) => setSucursalId(e.target.value)}
+                value={effectiveSucursalId}
+                onChange={(e) => {
+                  setSucursalId(e.target.value);
+                  setUserDiasLaborables(null);
+                }}
                 className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
               >
                 {sucursales.map((s) => (
@@ -315,6 +391,27 @@ export function ModalNuevoColaborador({
                   </option>
                 ))}
               </select>
+
+              {!isLoadingHorarios && effectiveSucursalId && !hasBranchSchedule && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs mt-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-text-primary">
+                      Esta sucursal no tiene horario semanal configurado.
+                    </p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      Debes configurar su horario de atención en{" "}
+                      <a
+                        href="/sucursales"
+                        className="underline font-semibold text-grape hover:text-grape-light"
+                      >
+                        Sucursales &rarr; Horario
+                      </a>{" "}
+                      antes de poder asignarle colaboradores.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -393,74 +490,94 @@ export function ModalNuevoColaborador({
               </span>
             </div>
 
-            {/* Días laborables chips */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-text-secondary mr-1">Días:</span>
-              {DIAS_SEMANA.map((d) => {
-                const isSelected = diasLaborables.includes(d.dia);
-                return (
-                  <button
-                    key={d.dia}
-                    type="button"
-                    onClick={() => toggleDia(d.dia)}
-                    aria-pressed={isSelected}
-                    aria-label={`${d.label}: ${isSelected ? "laborable" : "no laborable"}`}
-                    className={`size-8 rounded-lg text-xs font-semibold transition-all ${
-                      isSelected
-                        ? "bg-grape text-white shadow-xs"
-                        : "bg-surface border border-border text-text-muted hover:text-text-primary"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Franja horaria */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <label
-                  htmlFor="colaborador-entrada"
-                  className="text-[11px] text-text-secondary block mb-1"
+            {!isLoadingHorarios && effectiveSucursalId && !hasBranchSchedule ? (
+              <div className="p-3.5 rounded-lg bg-surface border border-border text-center text-xs text-text-muted">
+                La sucursal seleccionada no tiene días u horas de atención configurados. Para poder programar el turno del colaborador, primero debes registrar el horario semanal en{" "}
+                <a
+                  href="/sucursales"
+                  className="underline font-semibold text-grape hover:text-grape-light"
                 >
-                  Hora Entrada
-                </label>
-                <select
-                  id="colaborador-entrada"
-                  value={horaInicio}
-                  onChange={(e) => setHoraInicio(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-                >
-                  {HORAS_OPCIONES.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  Sucursales
+                </a>.
               </div>
+            ) : (
+              <>
+                {/* Días laborables chips */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-text-secondary mr-1">Días:</span>
+                  {DIAS_SEMANA.map((d) => {
+                    const isSelected = diasLaborables.includes(d.dia);
+                    const isOpenInBranch =
+                      horariosSucursal.length === 0 ||
+                      horariosSucursal.some((h) => h.dia_semana === d.dia);
+                    return (
+                      <button
+                        key={d.dia}
+                        type="button"
+                        onClick={() => toggleDia(d.dia)}
+                        aria-pressed={isSelected}
+                        aria-label={`${d.label}: ${isSelected ? "laborable" : "no laborable"}`}
+                        title={isOpenInBranch ? undefined : "Sin horario de atención en esta sucursal"}
+                        className={`size-8 rounded-lg text-xs font-semibold transition-all ${
+                          isSelected
+                            ? "bg-grape text-white shadow-xs"
+                            : isOpenInBranch
+                              ? "bg-surface border border-border text-text-muted hover:text-text-primary"
+                              : "bg-surface/50 border border-border/50 text-text-muted/40 cursor-not-allowed"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              <div>
-                <label
-                  htmlFor="colaborador-salida"
-                  className="text-[11px] text-text-secondary block mb-1"
-                >
-                  Hora Salida
-                </label>
-                <select
-                  id="colaborador-salida"
-                  value={horaFin}
-                  onChange={(e) => setHoraFin(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
-                >
-                  {HORAS_OPCIONES.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                {/* Franja horaria */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label
+                      htmlFor="colaborador-entrada"
+                      className="text-[11px] text-text-secondary block mb-1"
+                    >
+                      Hora Entrada
+                    </label>
+                    <select
+                      id="colaborador-entrada"
+                      value={horaInicio}
+                      onChange={(e) => setHoraInicio(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+                    >
+                      {HORAS_OPCIONES.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="colaborador-salida"
+                      className="text-[11px] text-text-secondary block mb-1"
+                    >
+                      Hora Salida
+                    </label>
+                    <select
+                      id="colaborador-salida"
+                      value={horaFin}
+                      onChange={(e) => setHoraFin(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+                    >
+                      {HORAS_OPCIONES.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Servicios Asignados (Multi-selector) */}

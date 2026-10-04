@@ -146,7 +146,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       horarios,
     } = body as Record<string, unknown>;
 
-    if (horarios !== undefined && !parseProfessionalSchedule(horarios)) {
+    const parsedHorarios =
+      horarios !== undefined ? parseProfessionalSchedule(horarios) : null;
+    if (horarios !== undefined && !parsedHorarios) {
       return apiError("Horario semanal inválido.", undefined, {
         status: 400,
         code: "INVALID_WEEKLY_SCHEDULE",
@@ -204,6 +206,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         undefined,
         { status: 400 },
       );
+    }
+
+    // Validar horario de la sucursal
+    const { data: sucursalHorarios, error: sucHorariosErr } = await adminClient
+      .from("horarios_sucursal")
+      .select("dia_semana, hora_apertura, hora_cierre, es_laborable")
+      .eq("sucursal_id", cleanSucursalId)
+      .eq("es_laborable", true);
+
+    if (sucHorariosErr) throw sucHorariosErr;
+
+    if (!sucursalHorarios || sucursalHorarios.length === 0) {
+      return apiError(
+        "La sucursal debe tener un horario semanal antes de agregar profesionales.",
+        undefined,
+        { status: 409, code: "BRANCH_SCHEDULE_REQUIRED" },
+      );
+    }
+
+    if (parsedHorarios && parsedHorarios.length > 0) {
+      for (const h of parsedHorarios) {
+        const branchDay = sucursalHorarios.find((b) => b.dia_semana === h.dia_semana);
+        if (!branchDay) {
+          return apiError(
+            `La sucursal no tiene horario de atención configurado para el día seleccionado (${h.dia_semana}).`,
+            undefined,
+            { status: 400, code: "BRANCH_DAY_NOT_AVAILABLE" },
+          );
+        }
+        const ap = branchDay.hora_apertura.slice(0, 5);
+        const ci = branchDay.hora_cierre.slice(0, 5);
+        if (h.hora_inicio < ap || h.hora_fin > ci) {
+          return apiError(
+            `El horario (${h.hora_inicio} a ${h.hora_fin}) excede la jornada de la sucursal (${ap} a ${ci}).`,
+            undefined,
+            { status: 400, code: "SCHEDULE_OUT_OF_BOUNDS" },
+          );
+        }
+      }
     }
 
     // Validar suscripción activa

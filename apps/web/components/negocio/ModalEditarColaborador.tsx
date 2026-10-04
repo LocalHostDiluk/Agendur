@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, UserCheck, Store, Sparkles, Check, Loader2 } from "lucide-react";
+import { X, UserCheck, Store, Sparkles, Check, Loader2, AlertCircle, Clock } from "lucide-react";
 import type { Sucursal, Servicio } from "@/lib/types";
 import { notify } from "@/lib/utils/toast";
-import { useUpdateProfesional } from "@/lib/hooks";
+import { useUpdateProfesional, useHorariosSucursal } from "@/lib/hooks";
 import { PendingBadge } from "@/components/ui/PendingBadge";
 import { ImageUploadButton } from "@/components/negocio/ImageUploadButton";
 import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
@@ -16,6 +16,7 @@ export interface ModalEditarColaboradorProps {
   sucursales: Sucursal[];
   servicios: Servicio[];
   onColaboradorActualizado?: (colaborador: UnifiedColaborador) => void;
+  onOpenHorarios?: () => void;
 }
 
 const ROLES = [
@@ -32,12 +33,22 @@ export function ModalEditarColaborador({
   sucursales,
   servicios,
   onColaboradorActualizado,
+  onOpenHorarios,
 }: ModalEditarColaboradorProps) {
   const [nombre, setNombre] = useState(colaborador.nombre || "");
   const [apellido, setApellido] = useState(colaborador.apellido || "");
-  const [sucursalId, setSucursalId] = useState(
-    colaborador.sucursal_id || sucursales[0]?.id || "",
-  );
+  const defaultSucursalId =
+    colaborador.sucursal_id || sucursales[0]?.id || "";
+  const [sucursalId, setSucursalId] = useState(defaultSucursalId);
+  const effectiveSucursalId =
+    sucursalId && sucursales.some((s) => s.id === sucursalId)
+      ? sucursalId
+      : defaultSucursalId;
+
+  const { data: sucursalHorariosData, isLoading: isLoadingHorarios } =
+    useHorariosSucursal(effectiveSucursalId);
+  const horariosSucursal = sucursalHorariosData?.horarios ?? [];
+  const hasBranchSchedule = horariosSucursal.length > 0;
   const [email, setEmail] = useState(colaborador.email || "");
   const [telefono, setTelefono] = useState(colaborador.telefono || "");
   const [avatarUrl, setAvatarUrl] = useState(
@@ -102,8 +113,16 @@ export function ModalEditarColaborador({
       return;
     }
 
-    if (!sucursalId) {
+    if (!effectiveSucursalId) {
       notify.warning("Campo requerido", "Selecciona una sucursal para el colaborador.");
+      return;
+    }
+
+    if (!isLoadingHorarios && effectiveSucursalId && !hasBranchSchedule) {
+      notify.warning(
+        "Sucursal sin horario",
+        "La sucursal seleccionada no tiene un horario semanal configurado. Configura su horario en Sucursales antes de asignar personal.",
+      );
       return;
     }
 
@@ -112,7 +131,7 @@ export function ModalEditarColaborador({
         id: colaborador.id,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
-        sucursal_id: sucursalId,
+        sucursal_id: effectiveSucursalId,
         cargo: rol,
         email: email.trim() || null,
         telefono: telefono.trim() || null,
@@ -131,7 +150,7 @@ export function ModalEditarColaborador({
         ...colaborador,
         nombre: updated.nombre,
         apellido: updated.apellido ?? "",
-        sucursal_id: updated.sucursal_id ?? sucursalId,
+        sucursal_id: updated.sucursal_id ?? effectiveSucursalId,
         email: updated.email || null,
         telefono: updated.telefono || null,
         avatar_url: updated.avatar_url || null,
@@ -143,9 +162,7 @@ export function ModalEditarColaborador({
 
       onClose();
     } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Error al actualizar colaborador.";
-      notify.error("No se pudo actualizar", errorMsg);
+      notify.error(err, "Error al actualizar colaborador.");
     }
   };
 
@@ -266,7 +283,7 @@ export function ModalEditarColaborador({
               <select
                 id="edit-colaborador-sucursal"
                 required
-                value={sucursalId}
+                value={effectiveSucursalId}
                 onChange={(e) => setSucursalId(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
               >
@@ -276,6 +293,27 @@ export function ModalEditarColaborador({
                   </option>
                 ))}
               </select>
+
+              {!isLoadingHorarios && effectiveSucursalId && !hasBranchSchedule && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs mt-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-text-primary">
+                      Esta sucursal no tiene horario semanal configurado.
+                    </p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      Debes configurar su horario de atención en{" "}
+                      <a
+                        href="/sucursales"
+                        className="underline font-semibold text-grape hover:text-grape-light"
+                      >
+                        Sucursales &rarr; Horario
+                      </a>{" "}
+                      antes de poder asignarle colaboradores.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -362,6 +400,27 @@ export function ModalEditarColaborador({
               />
               <div className="w-11 h-6 bg-border peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-mint"></div>
             </label>
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 bg-surface-alt border border-border rounded-xl">
+            <div>
+              <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-grape" />
+                <span>Horarios y Turnos Laborales</span>
+              </p>
+              <p className="text-[11px] text-text-secondary">
+                Configura los días que labora y los rangos de entrada y salida semanales.
+              </p>
+            </div>
+            {onOpenHorarios && (
+              <button
+                type="button"
+                onClick={onOpenHorarios}
+                className="px-3 py-1.5 text-xs font-medium bg-grape/10 text-grape hover:bg-grape/20 border border-grape/30 rounded-lg transition-colors cursor-pointer shrink-0"
+              >
+                Modificar Horario
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
