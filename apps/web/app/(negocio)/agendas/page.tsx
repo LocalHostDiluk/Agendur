@@ -4,7 +4,7 @@
 import {
 
 
-  Clock,
+
 
 
 
@@ -26,6 +26,7 @@ import {
 
 
 
+import { AgendaWeek } from "@/components/negocio/AgendaWeek";
 import { AgendaCronograma } from "@/components/negocio/AgendaCronograma";
 import { AgendaLoading } from "@/components/negocio/AgendaLoading";
 import { AgendaDateNavigation } from "@/components/negocio/AgendaDateNavigation";
@@ -36,7 +37,7 @@ import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
   Button,
-  Badge,
+
   PendingBadge,
 
 
@@ -200,121 +201,7 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 4. CON DATOS — VISTA 2: SEMANAL           */}
       {/* ======================================================================= */}
-      {!loadingCitas &&
-        !errorCitas &&
-        citas.length > 0 &&
-        viewMode === "semanal" && (
-          <div className="space-y-3">
-            <div className="text-xs font-semibold text-text-secondary flex justify-between items-center px-1">
-              <span>
-                {citas.length}{" "}
-                {citas.length === 1
-                  ? "cita en la semana"
-                  : "citas en la semana"}
-              </span>
-              <span className="font-mono text-text-muted">7 días</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-              {weekDays.map((day) => {
-                const dayCitas = citasByDay[day.ymd] ?? [];
-
-                return (
-                  <div
-                    key={day.ymd}
-                    className={`rounded-[var(--radius-lg)] border flex flex-col min-h-[320px] transition-all duration-100 ease-out ${
-                      day.isToday
-                        ? "bg-surface border-grape/40 shadow-xs ring-1 ring-grape/20"
-                        : "bg-surface border-border"
-                    }`}
-                  >
-                    {/* Encabezado del Día */}
-                    <div
-                      className={`p-3 border-b text-center rounded-t-[var(--radius-lg)] ${
-                        day.isToday
-                          ? "bg-grape-soft/40 border-grape/30"
-                          : "bg-surface-alt/70 border-border"
-                      }`}
-                    >
-                      <span className="text-[11px] font-mono font-semibold text-text-secondary block">
-                        {day.dayName}
-                      </span>
-                      <span
-                        className={`text-lg font-bricolage font-bold ${
-                          day.isToday ? "text-grape" : "text-text-primary"
-                        }`}
-                      >
-                        {day.dayNumber}
-                      </span>
-                      <span className="text-[10px] font-mono text-text-muted block mt-0.5">
-                        {dayCitas.length}{" "}
-                        {dayCitas.length === 1 ? "cita" : "citas"}
-                      </span>
-                    </div>
-
-                    {/* Lista de citas de ese día */}
-                    <div className="p-2 space-y-2 flex-1 overflow-y-auto">
-                      {dayCitas.length === 0 ? (
-                        <div className="h-full flex items-center justify-center p-4 text-center">
-                          <span className="text-[11px] text-text-muted font-mono">
-                            Sin citas
-                          </span>
-                        </div>
-                      ) : (
-                        dayCitas.map((c) => {
-                          const folio = c.id
-                            ? `#AG-${c.id.slice(0, 6).toUpperCase()}`
-                            : "#AG-000000";
-                          const cliente = `${c.cliente_nombre ?? c.clienteNombre ?? "Cliente"}`;
-                          const serv = servicios.find(
-                            (s) => s.id === c.servicio_id,
-                          );
-                          const hora = c.hora_inicio ?? c.hora ?? "";
-                          const badgeInfo = getEstadoBadgeProps(c.estado);
-
-                          return (
-                            <div
-                              key={c.id}
-                              onClick={() => setSelectedCita(c)}
-                              className="p-2.5 rounded-xl border border-border bg-surface-alt/40 hover:bg-surface-alt hover:border-grape/40 transition-all duration-100 ease-out cursor-pointer space-y-1.5 group"
-                            >
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="font-mono text-xs tabular-nums font-bold text-text-primary flex items-center gap-1">
-                                  <Clock
-                                    className="w-3 h-3 text-grape shrink-0"
-                                    strokeWidth={1.75}
-                                  />
-                                  {hora}
-                                </span>
-                                <Badge
-                                  variant={badgeInfo.variant}
-                                  dot
-                                  size="sm"
-                                  className="text-[9px] px-1.5 py-0"
-                                >
-                                  {badgeInfo.shortLabel}
-                                </Badge>
-                              </div>
-                              <span className="font-mono text-[11px] text-text-secondary block truncate">
-                                {folio}
-                              </span>
-                              <p className="text-xs font-bold text-text-primary truncate">
-                                {cliente}
-                              </p>
-                              <p className="text-[10px] text-text-secondary truncate">
-                                {serv?.nombre ?? "Servicio"}
-                              </p>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+      <AgendaWeek loadingCitas={loadingCitas} errorCitas={errorCitas} citas={citas} viewMode={viewMode} weekDays={weekDays} citasByDay={citasByDay} servicios={servicios} setSelectedCita={setSelectedCita} />
 
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 4. CON DATOS — VISTA 3: MENSUAL           */}
