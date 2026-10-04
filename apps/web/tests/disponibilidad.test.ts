@@ -4,7 +4,7 @@ import {
   timeToMinutes,
   minutesToTime,
   getDiaSemana,
-} from "@/lib/backend/reserva-service";
+} from "@/lib/backend/reservas/calculo-disponibilidad";
 import { GET as disponibilidadHandler } from "@/app/api/cliente/disponibilidad/route";
 import { GET as catalogoHandler } from "@/app/api/cliente/catalogo/route";
 

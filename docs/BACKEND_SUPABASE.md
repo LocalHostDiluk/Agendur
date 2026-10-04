@@ -11,6 +11,13 @@ implementa sus hallazgos funcionales. El inventario registra la baseline nueva,
 incluidos cuatro errores TypeScript preexistentes que aparecen al regenerar tipos
 Next; los resultados anteriores no sustituyen esa comprobación.
 
+La tarea B del **4 de octubre de 2026** parte de `main` en
+`6c58f51457548b0d4782d2222357c7984f1205d3`, tras el merge de A (PR #37).
+El mapa siguiente refleja la extracción de reservas y del parser de horarios
+especiales. Contratos, SQL, permisos y reglas de disponibilidad se conservan;
+el [estado y evidencia de B](INVENTARIO_BACKEND.md#tarea-b-reservas-disponibilidad-y-horarios)
+se distinguen de la auditoría histórica de A.
+
 ## Fuente de verdad
 
 - Proyecto de desarrollo: `Citas`, referencia `dolpnpuycjfppflcqexe`, hostname
@@ -36,7 +43,9 @@ la tarea correspondiente, después del merge humano de la tarea previa.
 | Responsabilidad | Ubicación vigente | Destino / tarea posterior |
 |---|---|---|
 | Contrato HTTP, autenticación de petición, cookies y respuesta | [`app/api/`](../apps/web/app/api/) | Conservar rutas y exports HTTP admitidos por Next |
-| Reservas y disponibilidad | [`lib/backend/reserva-service.ts`](../apps/web/lib/backend/reserva-service.ts) | `lib/backend/reservas/`, B |
+| Cálculo temporal y ventanas de reserva | [`reservas/calculo-disponibilidad.ts`](../apps/web/lib/backend/reservas/calculo-disponibilidad.ts) | B: puro, minutos/día, excepciones/intersecciones y slots completos |
+| Consulta de disponibilidad | [`reservas/disponibilidad.ts`](../apps/web/lib/backend/reservas/disponibilidad.ts) | B: consultas y orquestación; cliente sólo consume HTTP |
+| Validación y creación de reserva | [`reservas/crear-reserva.ts`](../apps/web/lib/backend/reservas/crear-reserva.ts) | B: selección/configuración y una RPC cliente+cita; WhatsApp posterior |
 | Sucursales | [`lib/backend/sucursal-service.ts`](../apps/web/lib/backend/sucursal-service.ts) + [`api/negocio/sucursales`](../apps/web/app/api/negocio/sucursales/route.ts) | `lib/backend/sucursales/`, C |
 | Profesionales y asignaciones | [`api/negocio/profesionales`](../apps/web/app/api/negocio/profesionales/route.ts) | `lib/backend/profesionales/`, C |
 | Colaboradores y directorio | [`api/negocio/personal`](../apps/web/app/api/negocio/personal/route.ts) | `lib/backend/personal/`, C |
@@ -47,7 +56,7 @@ la tarea correspondiente, después del merge humano de la tarea previa.
 | Notificación WhatsApp simulada | [`lib/backend/whatsapp-service.ts`](../apps/web/lib/backend/whatsapp-service.ts) | `lib/backend/notificaciones/`, D; sigue simulada |
 | Supabase, seguridad, instrumentación | [`lib/supabase/`](../apps/web/lib/supabase/), [`lib/security/`](../apps/web/lib/security/), [`instrumentation.ts`](../apps/web/instrumentation.ts) | Mantener ubicaciones coherentes, D |
 | Storage y Realtime | Políticas SQL, [`ImageUploadButton`](../apps/web/components/negocio/ImageUploadButton.tsx), [`lib/realtime/`](../apps/web/lib/realtime/) | Inventariar frontera browser/SSR; no mover frontend |
-| Validadores y tipos compartidos | [`lib/schedules/professional.ts`](../apps/web/lib/schedules/professional.ts), [`business-date.ts`](../apps/web/lib/utils/business-date.ts), [`lib/types/`](../apps/web/lib/types/) | Mantener compartidos y puros |
+| Validadores y tipos compartidos | [`lib/schedules/professional.ts`](../apps/web/lib/schedules/professional.ts), [`special.ts`](../apps/web/lib/schedules/special.ts), [`business-date.ts`](../apps/web/lib/utils/business-date.ts), [`lib/types/`](../apps/web/lib/types/) | Mantener compartidos y puros; B extrae special literalmente desde la ruta |
 | Pruebas y script remoto | [`tests/`](../apps/web/tests/), [`verify-wave3-remote.ts`](../apps/web/scripts/verify-wave3-remote.ts), [`matriz SQL`](../supabase/tests/wave3_role_matrix_rollback.sql) | Reutilizar, actualizar imports/mocks en B–E |
 
 El [inventario](INVENTARIO_BACKEND.md) contiene contratos de todas las URLs,
@@ -418,7 +427,14 @@ bunx tsc --noEmit
   errores y 24 warnings. Con tipos Next regenerados, TypeScript y build webpack
   fallan por cuatro TS2344 preexistentes: props de configuración/personal y exports
   extra de personal/horarios especiales. Evidencia y separación de fallos actuales,
-  históricos y limitaciones en el [inventario](INVENTARIO_BACKEND.md#línea-base-de-esta-ejecución).
+  históricos y limitaciones en el [inventario](INVENTARIO_BACKEND.md#línea-base-de-a-histórica-anterior-a-la-extracción-b).
+- Tarea B del 4 de octubre: caracterización focal antes y después del movimiento,
+  25 aprobadas/0 fallos; suite completa 429/0 y lint 0 errores/24 warnings.
+  TypeScript con tipos Next regenerados conserva tres TS2344 de las páginas
+  configuración/personal; el export extra de la ruta desaparece al trasladar el
+  parser a su módulo puro, sin errores nuevos. Webpack compila JS y falla por
+  esos tres errores; no se afirma que el build esté verde. El análisis de imports
+  verifica ausencia de ciclos y de caminos cliente a módulos privilegiados.
 - Inventario remoto actual: PostgreSQL 17.6, cinco RPC cerradas a clientes, ningún crítico
   nuevo. Detección GiST `float4`/`float8`: cero índices afectados; no hubo REINDEX.
 - `stripe_webhook_events` tiene RLS sin policies: aceptable sólo mientras no tenga

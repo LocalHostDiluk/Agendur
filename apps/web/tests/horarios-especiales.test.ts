@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseSpecialSchedule } from "@/app/api/negocio/horarios-especiales/route";
+import { parseSpecialSchedule } from "@/lib/schedules/special";
 
 describe("horarios especiales", () => {
   it("acepta múltiples bloques y rechaza bloques solapados", () => {

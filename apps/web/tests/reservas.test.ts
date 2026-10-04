@@ -9,10 +9,12 @@ import {
   GET as getConfigHandler,
   PUT as putConfigHandler,
 } from "@/app/api/negocio/configuracion/route";
-import { obtenerDisponibilidad } from "@/lib/backend/reserva-service";
+import { obtenerDisponibilidad } from "@/lib/backend/reservas/disponibilidad";
 
 type AvailabilityScenario = {
   servicio?: Record<string, unknown>;
+  horarioSucursal?: Record<string, unknown>;
+  horarioProfesional?: Record<string, unknown> | null;
   excepcionesSucursal?: Array<Record<string, unknown>>;
   excepcionesProfesional?: Array<Record<string, unknown>>;
   citas?: Array<Record<string, unknown>>;
@@ -44,6 +46,7 @@ async function withAvailabilityScenario(
               hora_apertura: "09:00",
               hora_cierre: "17:00",
               es_laborable: true,
+              ...scenario.horarioSucursal,
             },
             servicios: {
               id: "serv-1",
@@ -58,10 +61,11 @@ async function withAvailabilityScenario(
               activo: true,
             },
             profesional_servicios: { servicio_id: "serv-1" },
-            horarios_profesional: {
+            horarios_profesional: scenario.horarioProfesional === null ? null : {
               hora_inicio: "09:00",
               hora_fin: "17:00",
               es_laborable: true,
+              ...scenario.horarioProfesional,
             },
           };
           return { data: rows[table] ?? null, error: null };
@@ -184,6 +188,18 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       );
     });
 
+    it("hereda el horario semanal de sucursal sin ofrecer un fin a medianoche", async () => {
+      await withAvailabilityScenario({
+        horarioSucursal: { hora_apertura: "23:00", hora_cierre: "24:00" },
+        horarioProfesional: null,
+      }, async () => {
+        expect(await obtenerDisponibilidad({
+          sucursalId: "suc-1", servicioId: "serv-1", profesionalId: "prof-1",
+          fecha: "2098-01-01",
+        })).toEqual(["23:00"]);
+      });
+    });
+
     it("bloquea citas hasta hora_fin_buffer", async () => {
       await withAvailabilityScenario(
         {
@@ -277,15 +293,21 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
       expect((await noConsent.json()).code).toBe("PRIVACY_CONSENT_REQUIRED");
     });
 
-    it("traduce la exclusión concurrente de PostgreSQL a SLOT_UNAVAILABLE", async () => {
+    it("conserva snapshots y alias de reserva y traduce los conflictos de PostgreSQL", async () => {
       const { getAdminClient } = await import("@/lib/supabase/admin");
       const client = getAdminClient();
       const originalFrom = client.from;
       const originalRpc = client.rpc;
-      let insertErrorCode = "23P01";
+      let insertErrorCode: string | null = "23P01";
       let politica: string | null = "Cancela con 24 horas de anticipación.";
       const rpcPayloads: Array<Record<string, unknown>> = [];
       const estadosFiltrados: string[][] = [];
+      const citaPersistida = {
+        id: "cita-1", cliente_id: "cliente-1", estado: "pendiente_pago",
+        hora_fin_servicio: "10:30:00", hora_fin_buffer: "11:00:00",
+        precio_servicio_snapshot: 125, duracion_minutos_snapshot: 30,
+        buffer_minutos_snapshot: 30,
+      };
       try {
         (client as unknown as Record<string, unknown>).rpc = async (
           name: string,
@@ -294,8 +316,8 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
           expect(name).toBe("create_booking_transactional");
           rpcPayloads.push(payload);
           return {
-            data: null,
-            error: { code: insertErrorCode, message: "constraint violation" },
+            data: insertErrorCode ? null : citaPersistida,
+            error: insertErrorCode ? { code: insertErrorCode, message: "constraint violation" } : null,
           };
         };
         (client as unknown as Record<string, unknown>).from = (table: string) => {
@@ -408,7 +430,35 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
         }));
         expect(checkViolation.status).toBe(400);
         expect((await checkViolation.json()).code).toBe("INVALID_BOOKING_DATA");
-        insertErrorCode = "23P01";
+        insertErrorCode = null;
+        const success = await reservasHandler(new NextRequest("http://localhost:3000/api/cliente/reservas", {
+          method: "POST",
+          body: JSON.stringify({
+            sucursalId: "suc-1", servicioId: "serv-1", profesionalId: "prof-1",
+            clienteNombre: " Juan ", clienteApellido: " Pérez ", clienteEmail: " juan@ejemplo.com ",
+            fecha: "2098-01-01", hora: "10:00", aceptaPrivacidad: true,
+            notasCliente: " Nota ",
+          }),
+        }));
+        expect(success.status).toBe(201);
+        const json = await success.json();
+        expect(json.success).toBe(true);
+        expect(json.cita).toEqual({
+          ...citaPersistida,
+          cliente_nombre: "Juan", cliente_apellido: "Pérez",
+          cliente_telefono: null, cliente_email: "juan@ejemplo.com",
+          hora_fin: "10:30:00", precio_total: 125,
+        });
+        expect(json.ok).toBe(true);
+        expect(Object.keys(json).sort()).toEqual(["cita", "ok", "success"]);
+        expect(rpcPayloads).toHaveLength(4);
+        expect(rpcPayloads[3]).toEqual({
+          p_negocio_id: "neg-1", p_sucursal_id: "suc-1", p_servicio_id: "serv-1", p_profesional_id: "prof-1",
+          p_cliente_nombre: "Juan", p_cliente_apellido: "Pérez", p_cliente_telefono: null,
+          p_cliente_email: "juan@ejemplo.com", p_fecha: "2098-01-01", p_hora_inicio: "10:00:00",
+          p_notas_cliente: "Nota", p_privacidad_aceptada_en: expect.any(String),
+          p_politica_cancelacion_aceptada_en: null,
+        });
 
       } finally {
         (client as unknown as Record<string, unknown>).from = originalFrom;
@@ -417,7 +467,7 @@ describe("Endpoints de Reservas y Negocio - Seguridad y Validaciones", () => {
     });
 
     it("debería rechazar la creación de reserva si la suscripción del negocio está vencida", async () => {
-      const { crearReservaCita } = await import("@/lib/backend/reserva-service");
+      const { crearReservaCita } = await import("@/lib/backend/reservas/crear-reserva");
       const { SubscriptionExpiredError } = await import("@/lib/payments/guards");
       const { getAdminClient } = await import("@/lib/supabase/admin");
 
