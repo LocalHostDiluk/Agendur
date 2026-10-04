@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { obtenerDisponibilidad } from "@/lib/backend/reserva-service";
+import { obtenerDisponibilidad } from "@/lib/backend/reservas/disponibilidad";
 import { isCalendarDate } from "@/lib/utils/business-date";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 

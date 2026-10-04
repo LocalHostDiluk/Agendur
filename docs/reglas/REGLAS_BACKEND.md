@@ -67,7 +67,7 @@ y documentación no reciben límites artificiales de líneas.
 | Responsabilidad | Ubicación |
 |---|---|
 | URL, método, petición, cookies y respuesta HTTP | `app/api/**/route.ts`; conservar ubicación |
-| Reservas y disponibilidad | `lib/backend/reservas/`, al extraer durante B |
+| Reservas y disponibilidad | `lib/backend/reservas/`: cálculo puro, consulta y creación extraídos en B |
 | Sucursales | `lib/backend/sucursales/`, al extraer durante C |
 | Profesionales y asignaciones | `lib/backend/profesionales/`, al extraer durante C |
 | Colaboradores | `lib/backend/personal/`, al extraer durante C |

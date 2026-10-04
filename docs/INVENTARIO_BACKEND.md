@@ -1,4 +1,4 @@
-# Inventario integral del backend — tarea A
+# Inventario integral del backend — tareas A y B
 
 Auditoría del **2 de octubre de 2026 (Monterrey)**, baseline de código
 `ae591563521cc06145deec2b7cc9fd197a5f15d7`, rama
@@ -9,14 +9,19 @@ las [reglas backend](reglas/REGLAS_BACKEND.md).
 A entrega inventario, reglas, evidencia y backlog. No mueve módulos, corrige
 comportamiento, reorganiza frontend, cambia SQL ni instala dependencias.
 Los puntos de entrada de Next conservan sus URLs. Las ubicaciones propuestas
-son tareas futuras; ninguna carpeta de dominio se creó por anticipado.
+eran tareas futuras; ninguna carpeta de dominio se creó por anticipado en A.
+La actualización B siguiente localiza el código vigente. **Las tablas, tamaños,
+líneas y observaciones de las secciones posteriores a B conservan la fotografía
+de A y su SHA**, incluida la ruta antigua del servicio como referencia histórica.
+Para reservas/horarios trasladados se usa el mapa B; sus hallazgos funcionales
+siguen pendientes, sin correcciones encubiertas por el movimiento.
 
 ## Estado de ejecución y control de alcance
 
 | Tarea | Rama | Estado al preparar esta entrega |
 |---|---|---|
-| A Inventario integral y reglas | `codex/backend-inventario-reglas` | Auditorías identidad/operaciones/infra, documentación y revisión independiente; cierre Git por verificación antes de la pausa |
-| B Reservas, disponibilidad y horarios | `codex/backend-organizacion-reservas` | Pendiente; comenzar sólo tras merge humano de A comprobado en main |
+| A Inventario integral y reglas | `codex/backend-inventario-reglas` | Publicada y merge humano PR #37 comprobado en main; commit A `4271b6b1ab52aa68ef7d9a406c675f14c67151cc` ancestro de la base B |
+| B Reservas, disponibilidad y horarios | `codex/backend-organizacion-reservas` | Caracterización y extracción implementadas, checks finales completados y revisión independiente aprobada sin cambios requeridos abiertos; cierre Git antes de la pausa para merge humano |
 | C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Pendiente; extracción por operación, contratos preservados |
 | D Identidad, pagos e infraestructura | `codex/backend-organizacion-integraciones` | Pendiente; proveedores y cookies preservados |
 | E Cierre y backlog | `codex/backend-cierre-organizacion` | Pendiente; verificación integral y tareas funcionales posteriores |
@@ -26,7 +31,8 @@ documentación independientemente; `backend-operaciones-audit` inventaría opera
 y realiza exclusivamente documentación de A; `backend-inventario-verification`
 inventaría infraestructura/remoto y realiza checks, integración, commit/push.
 Un solo escritor del checkout a la vez; el orquestador coordina. Tras publicación
-se pausa para merge del usuario; este documento no afirma que B–E estén ejecutadas.
+se pausa para merge del usuario. B mantiene esa separación: operaciones implementa,
+identidad audita/revisa y verificación comprueba e integra. C–E siguen pendientes.
 
 Evidencia distinguida: lectura actual de código y SQL local; baseline controlada
 actual; observación remota de sólo lectura; resultados históricos explícitos.
@@ -34,7 +40,72 @@ Un riesgo trazado no se convierte en reproducción remota ni una prueba con mock
 en validación del proveedor. Los hallazgos funcionales siguientes son backlog,
 no correcciones incluidas en A.
 
-## Línea base de esta ejecución
+## Tarea B: reservas, disponibilidad y horarios
+
+Fecha **4 de octubre de 2026**; base limpia `main`/`origin/main`
+`6c58f51457548b0d4782d2222357c7984f1205d3`, actualizada con fetch y pull ff-only
+tras comprobar el merge humano de A. Rama `codex/backend-organizacion-reservas`.
+El movimiento conserva las URLs, respuestas HTTP y cookies, las capacidades y
+alcances de negocio/sede/profesional, snapshots y buffer, horario heredado,
+excepciones y conflicto SQL. No modifica frontend, dependencias ni SQL.
+
+| Ubicación vigente relativa a apps/web | Responsabilidad y dependencias | Consumidores vigentes |
+|---|---|---|
+| `lib/backend/reservas/calculo-disponibilidad.ts` (83 líneas) | Puro: minutos/día, ventanas y excepciones, slots con duración+buffer, paso `min(30,duración)`, conflicto de intervalos y fin estrictamente anterior a medianoche. Sin imports privilegiados. | `disponibilidad.ts`, `crear-reserva.ts` (minutos) y `tests/disponibilidad.test.ts` |
+| `lib/backend/reservas/disponibilidad.ts` (209) | Consulta sucursal/servicio/profesionales y sus horarios/citas; conserva secuencia, retornos vacíos, herencia, fallback opcional de asignación, filtros de estado y captura Sentry. Importa admin y cálculo puro. | Import estático `app/api/cliente/disponibilidad/route.ts:2` y `tests/reservas.test.ts:12` |
+| `lib/backend/reservas/crear-reserva.ts` (237) | Input y errores locales; validación negocio/selección/configuración/consentimientos/fecha futura; disponibilidad; una llamada `create_booking_transactional`; traducción 23P01/23514; WhatsApp posterior y alias legacy. Importa admin/guards y los otros dos módulos. | Estático `app/api/cliente/reservas/route.ts:2`; dinámico de `tests/reservas.test.ts` para suscripción vencida. WhatsApp relativo ahora `../whatsapp-service` |
+| `lib/schedules/special.ts` (58) | Parser puro extraído literalmente de la ruta, tipos, UUID y validDate. **Conserva RangeError de fecha imposible OP-03**, no adopta aún isCalendarDate. | `app/api/negocio/horarios-especiales/route.ts` y `tests/horarios-especiales.test.ts`; ningún consumidor frontend nuevo |
+| `app/api/negocio/horarios-especiales/route.ts` (130) | Sólo exports HTTP GET/PUT/DELETE; conserva autenticación/capacidades, resolución y scopes de recurso, queryInput, acceso SQL/RPC y errores. Importa parser y validDate compartidos. | Los mismos hooks/paneles por HTTP; no cambios de permisos ni de contrato |
+
+El anterior `lib/backend/reserva-service.ts` se elimina; todos sus imports
+estáticos/dinámicos se actualizan. No había mocks de esa ruta de módulo; los
+mocks de admin/Supabase y hooks permanecen en sus ubicaciones. El grafo nuevo
+es acíclico: crear-reserva → disponibilidad → cálculo y crear-reserva → cálculo;
+special es puro. `lib/utils/business-date.ts` y `lib/schedules/professional.ts`
+siguen compartidos fuera del backend. Los consumidores UI usan HTTP, sin importar
+admin ni estos módulos de orquestación.
+
+Caracterización añadida **antes de mover el servicio original** y repetida tras
+extraerlo, reutilizando mocks existentes: horario semanal 23:00–24:00 y profesional
+sin fila semanal devuelve sólo 23:00 (el slot cuyo fin es 24:00 queda excluido);
+POST exitoso devuelve 201 con `{success,ok,cita}`, contactos limpios y aliases
+`hora_fin`/`precio_total`. El snapshot simulado de RPC (precio 125) se conserva
+aunque el catálogo consultado tenga precio 100; esto caracteriza traducción HTTP,
+no valida triggers remotos. El caso afirma payload de IDs/contacto/hora/notas,
+timestamp de privacidad, consentimiento de cancelación nulo sin política y una
+RPC adicional para el éxito. Los casos previos conservan buffer, múltiples bloques,
+cierre especial, negocios desactivados, 402 y traducción 23P01→409/23514→400.
+
+| Comprobación | Baseline B antes de cambios | Tras extracción, verificación focal |
+|---|---|---|
+| Suite completa | 428 aprobadas, 0 fallos; 46 archivos, 2040 expect | 429 aprobadas, 0 fallos; 46 archivos, 2049 expect |
+| Lint completo | 0 errores, 24 warnings | Mismo resultado: 0 errores, 24 warnings |
+| Caracterización focal reservas/disponibilidad/horarios-especiales | Servicio original con caracterización: 25 aprobadas, 0 fallos, 92 expect | Mismo resultado: 25/0/92 |
+| TypeScript | Cuatro TS2344 con tipos Next regenerados | Tres TS2344 de páginas configuración/personal tras regeneración; cero nuevos |
+| Build | Webpack compila JS y falla por cuatro TS2344; estándar limitado por Fonts/Turbopack EPERM | Webpack compila JS y falla por los mismos tres TS2344 restantes; no está verde |
+
+El verificador comparó los diagnósticos regenerados con la baseline: sólo
+desaparece el export extra `parseSpecialSchedule` de la ruta; los fallos de props
+y export helper de páginas configuración/personal quedan intactos. El análisis
+AST de imports sobre 236 fuentes y 97 raíces cliente no encuentra rutas a admin
+o reservas privilegiadas desde cliente, ni ciclos desde los módulos nuevos.
+Cálculo y special no tienen dependencias; búsqueda del path antiguo en apps/web
+y `git diff --check` pasan. Las pruebas son locales/controladas, sin fixtures ni
+mutaciones remotas durante B. La revisión independiente final está aprobada,
+sin cambios requeridos abiertos. Commit/push siguen siendo pasos separados de
+estos resultados; C no comienza antes del merge humano comprobado.
+
+Excepciones de tamaño sometidas a revisión independiente: archivos nuevos ≤250
+y rutas afectadas ≤150. `obtenerDisponibilidad` sigue en 22–209 (188 líneas) y
+`crearReservaCita` en 32–237 (206 líneas), por encima de 60. Se conservan sus
+secuencias de consultas/validación y traducción de errores durante este traslado
+para hacer comprobable la equivalencia; no se introducen helpers con contextos
+artificiales ni se fragmenta la RPC cliente+cita. El cálculo puro ya separado
+tiene funciones ≤60. Esto registra deuda de las orquestaciones, no un cumplimiento
+ficticio del objetivo. OP-03 se localiza ahora en `special.ts:16–19`; los demás
+hallazgos y decisiones de producto de A permanecen abiertos.
+
+## Línea base de A (histórica, anterior a la extracción B)
 
 | Comprobación | Resultado observado antes de editar documentación |
 |---|---|
