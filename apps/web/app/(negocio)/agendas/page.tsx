@@ -3,7 +3,7 @@
 
 import {
   Calendar as CalendarIcon,
-  CalendarDays,
+
   Clock,
 
   ChevronLeft,
@@ -24,6 +24,7 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 
+import { AgendaViewTabs } from "@/components/negocio/AgendaViewTabs";
 import { AgendaManualButton } from "@/components/negocio/AgendaManualButton";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
@@ -160,63 +161,7 @@ export default function AgendasPage() {
           {/* Alternador Canónico de 3 Vistas (§10) y Filtros */}
           <div className="flex items-center gap-3 flex-wrap justify-between lg:justify-end">
             {/* Switcher 3 Pestañas: Día (Cronograma) / Semana / Mes */}
-            <div
-              role="tablist"
-              aria-label="Modo de visualización"
-              className="inline-flex items-center p-1 bg-surface-alt rounded-xl border border-border text-xs font-medium"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "cronograma"}
-                onClick={() => setViewMode("cronograma")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-100 ease-out cursor-pointer min-h-[32px] ${
-                  viewMode === "cronograma"
-                    ? "bg-surface text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>Día (Cronograma)</span>
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "semanal"}
-                onClick={() => setViewMode("semanal")}
-                title="Semanal"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-100 ease-out cursor-pointer min-h-[32px] ${
-                  viewMode === "semanal"
-                    ? "bg-surface text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>Semana</span>
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "mensual"}
-                onClick={() => setViewMode("mensual")}
-                title="Mensual"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-100 ease-out cursor-pointer min-h-[32px] ${
-                  viewMode === "mensual"
-                    ? "bg-surface text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <CalendarIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>Mes</span>
-                <PendingBadge
-                  label="Próximamente"
-                  tooltip="Vista mensual con arrastrar y soltar en desarrollo"
-                  className="ml-0.5"
-                />
-              </button>
-            </div>
+            <AgendaViewTabs viewMode={viewMode} setViewMode={setViewMode} />
 
             {/* Filtro por Sucursal */}
             {sucursales.length > 1 && (

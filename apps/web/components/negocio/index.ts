@@ -63,3 +63,5 @@ export * from "./PersonalError";
 export * from "./PersonalEmpty";
 export * from "./PersonalModals";
 export * from "./AgendaManualButton";
+export * from "./AgendaViewTabs";
+export * from "./AgendaViewTab";
