@@ -96,7 +96,44 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       return apiError("Profesional no encontrado.", undefined, { status: 404 });
     }
 
-    const { data, error } = await createAdminClient().rpc(
+    const admin = createAdminClient();
+    const { data: profData } = await admin
+      .from("profesionales")
+      .select("sucursal_id")
+      .eq("id", professionalId)
+      .maybeSingle();
+
+    if (profData?.sucursal_id) {
+      const { data: branchHours } = await admin
+        .from("horarios_sucursal")
+        .select("dia_semana, hora_apertura, hora_cierre, es_laborable")
+        .eq("sucursal_id", profData.sucursal_id)
+        .eq("es_laborable", true);
+
+      if (branchHours && branchHours.length > 0) {
+        for (const h of schedules) {
+          const branchDay = branchHours.find((b) => b.dia_semana === h.dia_semana);
+          if (!branchDay) {
+            return apiError(
+              `La sucursal no tiene horario de atención para el día seleccionado (${h.dia_semana}).`,
+              undefined,
+              { status: 400, code: "BRANCH_DAY_NOT_AVAILABLE" },
+            );
+          }
+          const ap = branchDay.hora_apertura.slice(0, 5);
+          const ci = branchDay.hora_cierre.slice(0, 5);
+          if (h.hora_inicio < ap || h.hora_fin > ci) {
+            return apiError(
+              `El horario (${h.hora_inicio} a ${h.hora_fin}) debe estar dentro de la jornada de la sucursal (${ap} a ${ci}).`,
+              undefined,
+              { status: 400, code: "SCHEDULE_OUT_OF_BOUNDS" },
+            );
+          }
+        }
+      }
+    }
+
+    const { data, error } = await admin.rpc(
       "replace_professional_schedule",
       { p_profesional_id: professionalId, p_horarios: schedules },
     );
