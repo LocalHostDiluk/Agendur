@@ -75,3 +75,6 @@ export * from "./AgendaCronograma";
 export * from "./AgendaWeekCita";
 export * from "./AgendaWeekDay";
 export * from "./AgendaWeek";
+export * from "./AgendaMonthCita";
+export * from "./AgendaMonthCell";
+export * from "./AgendaMonth";

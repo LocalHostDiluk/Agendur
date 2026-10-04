@@ -26,6 +26,7 @@ import {
 
 
 
+import { AgendaMonth } from "@/components/negocio/AgendaMonth";
 import { AgendaWeek } from "@/components/negocio/AgendaWeek";
 import { AgendaCronograma } from "@/components/negocio/AgendaCronograma";
 import { AgendaLoading } from "@/components/negocio/AgendaLoading";
@@ -38,14 +39,14 @@ import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual"
 import {
   Button,
 
-  PendingBadge,
+
 
 
 
 } from "@/components/ui";
-import { formatDisplayMonth } from "@/lib/utils/agenda-display-date";
 
-import { getEstadoBadgeProps } from "@/lib/utils/agenda-estado";
+
+
 
 
 // ==============================================================================
@@ -206,128 +207,7 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 4. CON DATOS — VISTA 3: MENSUAL           */}
       {/* ======================================================================= */}
-      {!loadingCitas &&
-        !errorCitas &&
-        citas.length > 0 &&
-        viewMode === "mensual" && (
-          <div className="space-y-3">
-            <div className="text-xs font-semibold text-text-secondary flex justify-between items-center px-1">
-              <div className="flex items-center gap-2">
-                <span>
-                  {citas.length}{" "}
-                  {citas.length === 1 ? "cita en el mes" : "citas en el mes"}
-                </span>
-                <PendingBadge
-                  label="Próximamente"
-                  tooltip="Vista mensual con arrastrar y soltar en desarrollo"
-                />
-              </div>
-              <span className="font-mono text-text-muted">
-                {formatDisplayMonth(selectedDate)}
-              </span>
-            </div>
-
-            <div className="rounded-[var(--radius-lg)] border border-border bg-surface overflow-hidden shadow-xs">
-              {/* Encabezado de Días de la Semana */}
-              <div className="grid grid-cols-7 border-b border-border bg-surface-alt/70 text-center">
-                {["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"].map(
-                  (dName) => (
-                    <div
-                      key={dName}
-                      className="py-2.5 text-[11px] font-mono font-semibold text-text-secondary"
-                    >
-                      {dName}
-                    </div>
-                  ),
-                )}
-              </div>
-
-              {/* Grilla de Días del Mes */}
-              <div className="grid grid-cols-7 divide-x divide-y divide-border">
-                {monthDays.map((cell) => {
-                  const dayCitas = citasByDay[cell.ymd] ?? [];
-                  const isToday = cell.ymd === todayStr;
-                  const isSelected = cell.ymd === selectedDate;
-
-                  return (
-                    <div
-                      key={cell.ymd}
-                      onClick={() => {
-                        setSelectedDate(cell.ymd);
-                        setViewMode("cronograma");
-                      }}
-                      className={`p-2 min-h-[95px] sm:min-h-[110px] flex flex-col justify-between cursor-pointer transition-colors duration-100 ease-out hover:bg-surface-alt/60 group ${
-                        !cell.isCurrentMonth
-                          ? "bg-surface-alt/20 opacity-40"
-                          : isSelected
-                            ? "bg-grape-soft/20"
-                            : "bg-surface"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <span
-                          className={`inline-flex items-center justify-center text-xs font-mono font-bold rounded-[var(--radius-sm)] px-1.5 py-0.5 ${
-                            isToday
-                              ? "bg-grape text-white"
-                              : isSelected
-                                ? "text-grape font-bold"
-                                : "text-text-primary"
-                          }`}
-                        >
-                          {cell.dayNumber}
-                        </span>
-
-                        {dayCitas.length > 0 && (
-                          <span className="text-[10px] font-mono font-semibold text-text-secondary bg-surface-alt px-1.5 py-0.2 rounded-md border border-border">
-                            {dayCitas.length}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Dots de citas / disponibilidad */}
-                      <div className="mt-2 space-y-1">
-                        {dayCitas.slice(0, 2).map((c) => {
-                          const badgeInfo = getEstadoBadgeProps(c.estado);
-                          const hora = c.hora_inicio ?? c.hora ?? "";
-                          return (
-                            <div
-                              key={c.id}
-                              className="flex items-center gap-1 text-[10px] font-mono truncate px-1 py-0.5 rounded bg-surface-alt/70 border border-border/50 text-text-secondary group-hover:border-grape/30"
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                  badgeInfo.variant === "success"
-                                    ? "bg-success"
-                                    : badgeInfo.variant === "warning"
-                                      ? "bg-warning"
-                                      : badgeInfo.variant === "grape"
-                                        ? "bg-grape"
-                                        : "bg-danger"
-                                }`}
-                              />
-                              <span className="tabular-nums font-semibold text-text-primary">
-                                {hora}
-                              </span>
-                              <span className="truncate">
-                                {c.cliente_nombre ?? c.clienteNombre ?? ""}
-                              </span>
-                            </div>
-                          );
-                        })}
-                        {dayCitas.length > 2 && (
-                          <div className="flex items-center gap-1 text-[9px] font-mono text-text-muted px-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-text-muted shrink-0" />
-                            <span>+{dayCitas.length - 2} más</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+      <AgendaMonth loadingCitas={loadingCitas} errorCitas={errorCitas} citas={citas} viewMode={viewMode} monthDays={monthDays} citasByDay={citasByDay} todayStr={todayStr} selectedDate={selectedDate} setSelectedDate={setSelectedDate} setViewMode={setViewMode} />
 
       {/* ======================================================================= */}
       {/* Drawer Lateral de Detalle de Cita (§5.10)                               */}
