@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { crearReservaCita } from "@/lib/backend/reserva-service";
+import { crearReservaCita } from "@/lib/backend/reservas/crear-reserva";
 import { apiError, apiSuccess } from "@/lib/utils/api-error";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { isCalendarDate } from "@/lib/utils/business-date";

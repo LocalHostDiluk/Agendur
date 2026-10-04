@@ -13,3 +13,4 @@ export * from "./use-booking-form";
 export * from "./use-personal-actions";
 export * from "./use-personal-data";
 export * from "./use-horarios";
+export * from "./use-personal-mutations";

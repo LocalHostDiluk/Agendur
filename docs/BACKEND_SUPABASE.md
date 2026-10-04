@@ -4,6 +4,20 @@ Documento canónico de operación y contratos del backend. Verificado contra `ma
 tras el merge del punto 3 y el remoto el **1 de octubre de 2026** (Monterrey).
 Los [planes anteriores](planes/) son históricos, no especificaciones del estado actual.
 
+La tarea A del **2 de octubre de 2026** añade el [inventario integral](INVENTARIO_BACKEND.md)
+y las [reglas de construcción backend](reglas/REGLAS_BACKEND.md), contrastados con
+`main` en `ae591563521cc06145deec2b7cc9fd197a5f15d7`. No reorganiza código ni
+implementa sus hallazgos funcionales. El inventario registra la baseline nueva,
+incluidos cuatro errores TypeScript preexistentes que aparecen al regenerar tipos
+Next; los resultados anteriores no sustituyen esa comprobación.
+
+La tarea B del **4 de octubre de 2026** parte de `main` en
+`6c58f51457548b0d4782d2222357c7984f1205d3`, tras el merge de A (PR #37).
+El mapa siguiente refleja la extracción de reservas y del parser de horarios
+especiales. Contratos, SQL, permisos y reglas de disponibilidad se conservan;
+el [estado y evidencia de B](INVENTARIO_BACKEND.md#tarea-b-reservas-disponibilidad-y-horarios)
+se distinguen de la auditoría histórica de A.
+
 ## Fuente de verdad
 
 - Proyecto de desarrollo: `Citas`, referencia `dolpnpuycjfppflcqexe`, hostname
@@ -18,6 +32,38 @@ Los [planes anteriores](planes/) son históricos, no especificaciones del estado
   El timestamp de versión es UTC y no implica otra fecha local de ejecución.
 - El snapshot privado `backup_wave0_20260924` permanece en el mismo proyecto:
   ayuda a revertir, pero no reemplaza una copia externa ni prueba recuperación total.
+
+## Mapa para localizar responsabilidades
+
+Rutas de la tabla relativas a `apps/web/`. Los puntos de entrada Next conservan
+su ubicación; hooks, componentes y pantallas no se reorganizan con el backend.
+Destino propuesto sólo se crea al extraer una responsabilidad existente durante
+la tarea correspondiente, después del merge humano de la tarea previa.
+
+| Responsabilidad | Ubicación vigente | Destino / tarea posterior |
+|---|---|---|
+| Contrato HTTP, autenticación de petición, cookies y respuesta | [`app/api/`](../apps/web/app/api/) | Conservar rutas y exports HTTP admitidos por Next |
+| Cálculo temporal y ventanas de reserva | [`reservas/calculo-disponibilidad.ts`](../apps/web/lib/backend/reservas/calculo-disponibilidad.ts) | B: puro, minutos/día, excepciones/intersecciones y slots completos |
+| Consulta de disponibilidad | [`reservas/disponibilidad.ts`](../apps/web/lib/backend/reservas/disponibilidad.ts) | B: consultas y orquestación; cliente sólo consume HTTP |
+| Validación y creación de reserva | [`reservas/crear-reserva.ts`](../apps/web/lib/backend/reservas/crear-reserva.ts) | B: selección/configuración y una RPC cliente+cita; WhatsApp posterior |
+| Sucursales | [`lib/backend/sucursal-service.ts`](../apps/web/lib/backend/sucursal-service.ts) + [`api/negocio/sucursales`](../apps/web/app/api/negocio/sucursales/route.ts) | `lib/backend/sucursales/`, C |
+| Profesionales y asignaciones | [`api/negocio/profesionales`](../apps/web/app/api/negocio/profesionales/route.ts) | `lib/backend/profesionales/`, C |
+| Colaboradores y directorio | [`api/negocio/personal`](../apps/web/app/api/negocio/personal/route.ts) | `lib/backend/personal/`, C |
+| Servicios y configuración | [`api/negocio/servicios`](../apps/web/app/api/negocio/servicios/route.ts), [`configuracion`](../apps/web/app/api/negocio/configuracion/route.ts) | Carpetas de esos dominios sólo si existe complejidad real, C |
+| Identidad, registro y baja | [`api/auth/`](../apps/web/app/api/auth/) | `lib/backend/auth/` para operaciones extensas, D |
+| Capacidades y selección de negocio | [`lib/auth/negocio-access.ts`](../apps/web/lib/auth/negocio-access.ts) | Mantener |
+| Planes, pagos y adaptadores | [`lib/payments/`](../apps/web/lib/payments/) | Mantener interfaz; separar Stripe por responsabilidades reales, D |
+| Notificación WhatsApp simulada | [`lib/backend/whatsapp-service.ts`](../apps/web/lib/backend/whatsapp-service.ts) | `lib/backend/notificaciones/`, D; sigue simulada |
+| Supabase, seguridad, instrumentación | [`lib/supabase/`](../apps/web/lib/supabase/), [`lib/security/`](../apps/web/lib/security/), [`instrumentation.ts`](../apps/web/instrumentation.ts) | Mantener ubicaciones coherentes, D |
+| Storage y Realtime | Políticas SQL, [`ImageUploadButton`](../apps/web/components/negocio/ImageUploadButton.tsx), [`lib/realtime/`](../apps/web/lib/realtime/) | Inventariar frontera browser/SSR; no mover frontend |
+| Validadores y tipos compartidos | [`lib/schedules/professional.ts`](../apps/web/lib/schedules/professional.ts), [`special.ts`](../apps/web/lib/schedules/special.ts), [`business-date.ts`](../apps/web/lib/utils/business-date.ts), [`lib/types/`](../apps/web/lib/types/) | Mantener compartidos y puros; B extrae special literalmente desde la ruta |
+| Pruebas y script remoto | [`tests/`](../apps/web/tests/), [`verify-wave3-remote.ts`](../apps/web/scripts/verify-wave3-remote.ts), [`matriz SQL`](../supabase/tests/wave3_role_matrix_rollback.sql) | Reutilizar, actualizar imports/mocks en B–E |
+
+El [inventario](INVENTARIO_BACKEND.md) contiene contratos de todas las URLs,
+consumidores estáticos/dinámicos, módulos de infraestructura, cobertura, tamaños,
+estado remoto de lectura y backlog priorizado. API de clientes, reservas internas,
+suscripciones/anticipos por negocio y decisiones de días sin horario, permisos,
+transiciones/reembolsos permanecen etapas posteriores con pausa explícita.
 
 ## Modelo vigente
 
@@ -371,11 +417,24 @@ bunx tsc --noEmit
 
 ### Evidencia y límites conocidos
 
-- Fase documental: suite controlada actual 428 aprobadas/0 fallos en 46 archivos,
-  TypeScript correcto; inventario remoto de sólo lectura y advisors actualizados.
+- Fase documental anterior, histórica al 1 de octubre: suite controlada
+  428 aprobadas/0 fallos en 46 archivos y TypeScript correcto con los tipos de
+  aquella ejecución; inventario remoto de sólo lectura y advisors de esa fecha.
   Punto 2: recorrido backend remoto histórico 109 checks con limpieza verificada.
   Punto 3: matriz SQL histórica aprobada con rollback. No se repitieron esos
   recorridos con fixtures en esta fase; los resultados no son garantía permanente.
+- Tarea A del 2 de octubre: baseline controlada 428 aprobadas/0 fallos, lint sin
+  errores y 24 warnings. Con tipos Next regenerados, TypeScript y build webpack
+  fallan por cuatro TS2344 preexistentes: props de configuración/personal y exports
+  extra de personal/horarios especiales. Evidencia y separación de fallos actuales,
+  históricos y limitaciones en el [inventario](INVENTARIO_BACKEND.md#línea-base-de-a-histórica-anterior-a-la-extracción-b).
+- Tarea B del 4 de octubre: caracterización focal antes y después del movimiento,
+  25 aprobadas/0 fallos; suite completa 429/0 y lint 0 errores/24 warnings.
+  TypeScript con tipos Next regenerados conserva tres TS2344 de las páginas
+  configuración/personal; el export extra de la ruta desaparece al trasladar el
+  parser a su módulo puro, sin errores nuevos. Webpack compila JS y falla por
+  esos tres errores; no se afirma que el build esté verde. El análisis de imports
+  verifica ausencia de ciclos y de caminos cliente a módulos privilegiados.
 - Inventario remoto actual: PostgreSQL 17.6, cinco RPC cerradas a clientes, ningún crítico
   nuevo. Detección GiST `float4`/`float8`: cero índices afectados; no hubo REINDEX.
 - `stripe_webhook_events` tiene RLS sin policies: aceptable sólo mientras no tenga

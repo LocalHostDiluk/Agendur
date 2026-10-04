@@ -1,4 +1,4 @@
-import type { Profesional, Servicio } from "@/lib/types";
+import type { Profesional, Servicio, Sucursal, Cita } from "@/lib/types";
 
 export interface UnifiedColaborador extends Profesional {
   serviciosIds: string[];
@@ -92,4 +92,25 @@ export function filtrarColaboradores(
 
     return matchNombre || matchRol || matchServicio;
   });
+}
+
+export const mergePersonalColaboradores = (
+  profData?: { profesionales?: Array<Profesional & { serviciosIds?: string[]; cargo?: string | null; horarios?: Array<{ dia_semana: number; hora_inicio: string; hora_fin: string }> }> } | null,
+  catData?: { data?: { profesionales?: Array<Profesional & { cargo?: string | null; horarios?: Array<{ dia_semana: number; hora_inicio: string; hora_fin: string }> }> } } | null,
+  locales: UnifiedColaborador[] = [],
+) => combinarColaboradores(profData?.profesionales, catData?.data?.profesionales, locales);
+
+export const filterPersonalColaboradores = filtrarColaboradores;
+
+export function getPersonalColaboradorDetails(
+  colab: UnifiedColaborador,
+  sucursales: Sucursal[],
+  servicios: Servicio[],
+  citas: Cita[],
+) {
+  const sucursal = sucursales.find((s) => s.id === colab.sucursal_id);
+  const serviciosDelColab = servicios.filter((s) => (colab.serviciosIds || []).includes(s.id));
+  const citasAsignadas = citas.filter((c) => c.profesional_id === colab.id && c.estado !== "cancelada");
+  const esActivo = colab.activo !== false;
+  return { sucursal, serviciosDelColab, citasAsignadas, esActivo };
 }
