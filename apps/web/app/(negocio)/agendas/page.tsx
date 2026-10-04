@@ -5,7 +5,7 @@ import {
   Calendar as CalendarIcon,
   CalendarDays,
   Clock,
-  Plus,
+
   ChevronLeft,
   ChevronRight,
   AlertCircle,
@@ -24,6 +24,7 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 
+import { AgendaManualButton } from "@/components/negocio/AgendaManualButton";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
@@ -91,14 +92,7 @@ export default function AgendasPage() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          onClick={() => setIsManualModalOpen(true)}
-          className="gap-2 shrink-0 min-h-[44px]"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-          <span>Agendar Cita Manual</span>
-        </Button>
+        <AgendaManualButton onClick={() => setIsManualModalOpen(true)} className="gap-2 shrink-0 min-h-[44px]" />
       </div>
 
       {/* ======================================================================= */}
@@ -435,14 +429,7 @@ export default function AgendasPage() {
           </div>
 
           <div className="pt-1">
-            <Button
-              variant="primary"
-              onClick={() => setIsManualModalOpen(true)}
-              className="gap-2 min-h-[44px]"
-            >
-              <Plus className="w-4 h-4" strokeWidth={2} />
-              <span>Agendar Cita Manual</span>
-            </Button>
+            <AgendaManualButton onClick={() => setIsManualModalOpen(true)} className="gap-2 min-h-[44px]" />
           </div>
         </div>
       )}
