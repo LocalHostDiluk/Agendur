@@ -70,3 +70,5 @@ export * from "./AgendaDateNavigation";
 export * from "./AgendaCronogramaSkeletonRow";
 export * from "./AgendaWeekSkeletonDay";
 export * from "./AgendaLoading";
+export * from "./AgendaCronogramaRow";
+export * from "./AgendaCronograma";
