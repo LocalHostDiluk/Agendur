@@ -24,7 +24,9 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 
-import { AgendaCronogramaSkeletonRow } from "@/components/negocio/AgendaCronogramaSkeletonRow";
+
+
+import { AgendaLoading } from "@/components/negocio/AgendaLoading";
 import { AgendaDateNavigation } from "@/components/negocio/AgendaDateNavigation";
 import { AgendaFilters } from "@/components/negocio/AgendaFilters";
 import { AgendaViewTabs } from "@/components/negocio/AgendaViewTabs";
@@ -35,9 +37,9 @@ import {
   Button,
   Badge,
   PendingBadge,
-  SkeletonBlock,
-  SkeletonText,
-  SkeletonCircle,
+
+
+
 } from "@/components/ui";
 import { formatDisplayMonth } from "@/lib/utils/agenda-display-date";
 
@@ -120,73 +122,7 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 1. LOADING CON SKELETONS RISOGRÁFICOS    */}
       {/* ======================================================================= */}
-      {loadingCitas && viewMode === "cronograma" && (
-        <div
-          className="divide-y divide-border rounded-[var(--radius-lg)] bg-surface border border-border overflow-hidden shadow-xs animate-pulse"
-          data-testid="agenda-loading"
-        >
-          {[1, 2, 3, 4, 5].map((i) => (
-            <AgendaCronogramaSkeletonRow key={i} />
-          ))}
-        </div>
-      )}
-
-      {loadingCitas && viewMode === "semanal" && (
-        <div
-          className="grid grid-cols-1 md:grid-cols-7 gap-3 animate-pulse"
-          data-testid="agenda-loading"
-        >
-          {weekDays.map((item) => (
-            <div
-              key={item.ymd}
-              className="rounded-[var(--radius-lg)] border border-border bg-surface flex flex-col min-h-[320px]"
-            >
-              <div className="p-3 border-b border-border text-center rounded-t-[var(--radius-lg)] bg-surface-alt/70">
-                <span className="text-[11px] font-mono font-semibold text-text-secondary block">
-                  {item.dayName}
-                </span>
-                <span className="text-lg font-bricolage font-bold text-text-primary">
-                  {item.dayNumber}
-                </span>
-                <div className="flex justify-center items-center h-2 mt-1">
-                  <SkeletonCircle className="w-1 h-1" />
-                </div>
-              </div>
-              <div className="p-2 space-y-2 flex-1">
-                <SkeletonBlock className="h-16 w-full rounded-xl" />
-                <SkeletonBlock className="h-16 w-full rounded-xl" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {loadingCitas && viewMode === "mensual" && (
-        <div
-          className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 space-y-4 animate-pulse shadow-xs"
-          data-testid="agenda-loading"
-        >
-          <div className="grid grid-cols-7 gap-2 pb-2 border-b border-border text-center">
-            {["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"].map((dayName) => (
-              <SkeletonText key={dayName} className="h-3 w-8 mx-auto" />
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 35 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-[var(--radius-md)] border border-border p-2 min-h-[90px] flex flex-col justify-between"
-              >
-                <SkeletonText className="h-4 w-6" />
-                <div className="space-y-1 mt-auto">
-                  <SkeletonBlock className="h-3 w-full rounded" />
-                  <SkeletonBlock className="h-3 w-3/4 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <AgendaLoading loadingCitas={loadingCitas} viewMode={viewMode} weekDays={weekDays} />
 
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 2. ERROR CON BANNER Y REINTENTO          */}

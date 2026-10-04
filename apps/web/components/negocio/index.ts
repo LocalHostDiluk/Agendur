@@ -68,3 +68,5 @@ export * from "./AgendaViewTab";
 export * from "./AgendaFilters";
 export * from "./AgendaDateNavigation";
 export * from "./AgendaCronogramaSkeletonRow";
+export * from "./AgendaWeekSkeletonDay";
+export * from "./AgendaLoading";
