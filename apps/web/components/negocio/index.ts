@@ -65,3 +65,4 @@ export * from "./PersonalModals";
 export * from "./AgendaManualButton";
 export * from "./AgendaViewTabs";
 export * from "./AgendaViewTab";
+export * from "./AgendaFilters";
