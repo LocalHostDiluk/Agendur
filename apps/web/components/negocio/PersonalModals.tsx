@@ -1,58 +1,60 @@
 "use client";
-import type { ComponentProps } from "react";
-import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
-import type { Sucursal, Servicio } from "@/lib/types";
-import type { usePersonalActions } from "@/lib/hooks/use-personal-actions";
+
+import { ModalNuevoColaborador, ModalEditarColaborador, ModalHorariosProfesional } from "@/components/negocio";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PersonalRolesModal } from "./PersonalRolesModal";
-import { ModalNuevoColaborador } from "./ModalNuevoColaborador";
-import { ModalEditarColaborador } from "./ModalEditarColaborador";
+import type { useConfirmDialog, usePersonalActions, usePersonalData } from "@/lib/hooks";
+
 interface PersonalModalsProps {
-  isPermisosModalOpen: boolean; setIsPermisosModalOpen: (open: boolean) => void;
-  isModalOpen: boolean; setIsModalOpen: (open: boolean) => void;
-  isEditModalOpen: boolean; setIsEditModalOpen: (open: boolean) => void;
-  colaboradorAEditar: UnifiedColaborador | null;
-  setColaboradorAEditar: (colab: UnifiedColaborador | null) => void;
-  sucursales: Sucursal[]; servicios: Servicio[];
-  handleColaboradorCreado: ReturnType<typeof usePersonalActions>["handleColaboradorCreado"];
-  handleColaboradorActualizado: ReturnType<typeof usePersonalActions>["handleColaboradorActualizado"];
-  dialogProps: ComponentProps<typeof ConfirmDialog>;
+  actions: ReturnType<typeof usePersonalActions>;
+  data: ReturnType<typeof usePersonalData>;
+  confirmDialogProps: ReturnType<typeof useConfirmDialog>["dialogProps"];
 }
-export function PersonalModals({ isPermisosModalOpen, setIsPermisosModalOpen, isModalOpen,
-  setIsModalOpen, isEditModalOpen, setIsEditModalOpen, colaboradorAEditar, setColaboradorAEditar,
-  sucursales, servicios, handleColaboradorCreado, handleColaboradorActualizado, dialogProps }: PersonalModalsProps) {
+
+export function PersonalModals({ actions, data, confirmDialogProps }: PersonalModalsProps) {
   return (
     <>
       <PersonalRolesModal
-        isOpen={isPermisosModalOpen}
-        onClose={() => setIsPermisosModalOpen(false)}
+        isOpen={actions.isRolesOpen}
+        onClose={() => actions.setIsRolesOpen(false)}
       />
 
-      {/* Modal para Registrar Colaborador */}
       <ModalNuevoColaborador
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        sucursales={sucursales}
-        servicios={servicios}
-        onColaboradorCreado={handleColaboradorCreado}
+        isOpen={actions.isNuevoOpen}
+        onClose={() => actions.setIsNuevoOpen(false)}
+        sucursales={data.sucursales}
+        servicios={data.servicios}
+        onColaboradorCreado={actions.handleColaboradorCreado}
       />
 
-      {/* Modal para Editar Colaborador */}
-      {colaboradorAEditar && <ModalEditarColaborador
-        key={colaboradorAEditar.id}
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setColaboradorAEditar(null);
-        }}
-        colaborador={colaboradorAEditar}
-        sucursales={sucursales}
-        servicios={servicios}
-        onColaboradorActualizado={handleColaboradorActualizado}
-      />}
+      {actions.editingColab && (
+        <ModalEditarColaborador
+          key={actions.editingColab.id}
+          isOpen={Boolean(actions.editingColab)}
+          onClose={() => actions.setEditingColab(null)}
+          colaborador={actions.editingColab}
+          sucursales={data.sucursales}
+          servicios={data.servicios}
+          onColaboradorActualizado={actions.handleColaboradorActualizado}
+          onOpenHorarios={() => {
+            const target = actions.editingColab;
+            actions.setEditingColab(null);
+            actions.setEditingHorariosColab(target);
+          }}
+        />
+      )}
 
-      {/* Diálogo de Confirmación (Nivel 1 para desactivar, Nivel 2 con verificationText para eliminar) */}
-      <ConfirmDialog {...dialogProps} />
+      {actions.editingHorariosColab && (
+        <ModalHorariosProfesional
+          key={`hor-${actions.editingHorariosColab.id}`}
+          isOpen={Boolean(actions.editingHorariosColab)}
+          onClose={() => actions.setEditingHorariosColab(null)}
+          profesional={actions.editingHorariosColab}
+          sucursalNombre={data.sucursales.find((s) => s.id === actions.editingHorariosColab?.sucursal_id)?.nombre}
+        />
+      )}
+
+      <ConfirmDialog {...confirmDialogProps} />
     </>
   );
 }

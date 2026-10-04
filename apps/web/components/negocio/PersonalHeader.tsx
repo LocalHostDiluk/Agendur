@@ -1,11 +1,19 @@
 "use client";
+
 import { ShieldCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+
 interface PersonalHeaderProps {
-  canWriteStaff: boolean; setIsPermisosModalOpen: (open: boolean) => void;
-  setIsModalOpen: (open: boolean) => void;
+  canWriteStaff: boolean;
+  onOpenRoles: () => void;
+  onOpenNuevo: () => void;
 }
-export function PersonalHeader({ canWriteStaff, setIsPermisosModalOpen, setIsModalOpen }: PersonalHeaderProps) {
+
+export function PersonalHeader({
+  canWriteStaff,
+  onOpenRoles,
+  onOpenNuevo,
+}: PersonalHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
       <div>
@@ -18,28 +26,29 @@ export function PersonalHeader({ canWriteStaff, setIsPermisosModalOpen, setIsMod
         </p>
       </div>
 
-      {/* Action Buttons: Roles y Permisos + Registrar Colaborador */}
-      {canWriteStaff && <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setIsPermisosModalOpen(true)}
-          className="gap-2"
-        >
-          <ShieldCheck className="w-4 h-4 text-grape" />
-          <span>Roles y Permisos</span>
-        </Button>
+      {canWriteStaff && (
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onOpenRoles}
+            className="gap-2"
+          >
+            <ShieldCheck className="w-4 h-4 text-grape" />
+            <span>Roles y Permisos</span>
+          </Button>
 
-        <Button
-          type="button"
-          variant="primary"
-          onClick={() => setIsModalOpen(true)}
-          className="gap-2"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Registrar Colaborador</span>
-        </Button>
-      </div>}
+          <Button
+            type="button"
+            variant="primary"
+            onClick={onOpenNuevo}
+            className="gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Registrar Colaborador</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

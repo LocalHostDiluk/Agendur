@@ -1,34 +1,51 @@
-import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
-import type { Sucursal, Servicio, Cita } from "@/lib/types";
-import { getPersonalColaboradorDetails } from "@/lib/utils/personal-colaboradores";
+"use client";
+
 import { PersonalColaboradorCard } from "./PersonalColaboradorCard";
 import { PersonalColaboradorRow } from "./PersonalColaboradorRow";
-import { PersonalColaboradorActions } from "./PersonalColaboradorActions";
+import type { UnifiedColaborador } from "@/lib/utils/personal-colaboradores";
+import type { Sucursal, Servicio, Cita } from "@/lib/types";
+
 interface PersonalDirectorioProps {
-  colaboradoresFiltrados: UnifiedColaborador[]; sucursales: Sucursal[]; servicios: Servicio[]; citas: Cita[];
-  canWriteStaff: boolean; setActiveTab: (tab: "directorio" | "horarios") => void;
-  setColaboradorAEditar: (colab: UnifiedColaborador | null) => void;
-  setIsEditModalOpen: (open: boolean) => void;
-  handleToggleActivo: (colab: UnifiedColaborador) => Promise<void>;
-  handleEliminarColaborador: (colab: UnifiedColaborador) => Promise<void>;
+  colaboradores: UnifiedColaborador[];
+  sucursales: Sucursal[];
+  servicios: Servicio[];
+  citas: Cita[];
+  canWriteStaff: boolean;
+  onViewHorarios: (colab: UnifiedColaborador) => void;
+  onEdit: (colab: UnifiedColaborador) => void;
+  onToggleActivo: (colab: UnifiedColaborador) => void;
+  onDelete: (colab: UnifiedColaborador) => void;
 }
-export function PersonalDirectorio({ colaboradoresFiltrados, sucursales, servicios, citas,
-  canWriteStaff, setActiveTab, setColaboradorAEditar, setIsEditModalOpen,
-  handleToggleActivo, handleEliminarColaborador }: PersonalDirectorioProps) {
+
+export function PersonalDirectorio({
+  colaboradores,
+  sucursales,
+  servicios,
+  citas,
+  canWriteStaff,
+  onViewHorarios,
+  onEdit,
+  onToggleActivo,
+  onDelete,
+}: PersonalDirectorioProps) {
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* MOBILE VIEW (<640px): Tarjetas limpias apiladas (§8) */}
-      <div
-        className="sm:hidden space-y-3.5"
-        data-testid="colaboradores-mobile-list"
-      >
-        {colaboradoresFiltrados.map((colab) => {
-          const { sucursal, serviciosDelColab, citasAsignadas, esActivo } = getPersonalColaboradorDetails(colab, sucursales, servicios, citas);
-
-          return (
-            <PersonalColaboradorCard key={`mob-${colab.id}`} colab={colab} sucursal={sucursal} serviciosDelColab={serviciosDelColab} citasAsignadas={citasAsignadas} esActivo={esActivo} canWriteStaff={canWriteStaff} acciones={<PersonalColaboradorActions colab={colab} esActivo={esActivo} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />} />
-          );
-        })}
+      <div className="sm:hidden space-y-3.5" data-testid="colaboradores-mobile-list">
+        {colaboradores.map((colab) => (
+          <PersonalColaboradorCard
+            key={`mob-${colab.id}`}
+            colab={colab}
+            sucursal={sucursales.find((s) => s.id === colab.sucursal_id)}
+            servicios={servicios}
+            citas={citas}
+            canWriteStaff={canWriteStaff}
+            onViewHorarios={() => onViewHorarios(colab)}
+            onEdit={() => onEdit(colab)}
+            onToggleActivo={() => onToggleActivo(colab)}
+            onDelete={() => onDelete(colab)}
+          />
+        ))}
       </div>
 
       {/* DESKTOP / TABLET VIEW (>=640px): Tabla completa (§5.5, §8) */}
@@ -61,13 +78,20 @@ export function PersonalDirectorio({ colaboradoresFiltrados, sucursales, servici
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {colaboradoresFiltrados.map((colab) => {
-                const { sucursal, serviciosDelColab, citasAsignadas, esActivo } = getPersonalColaboradorDetails(colab, sucursales, servicios, citas);
-
-                return (
-                  <PersonalColaboradorRow key={`desk-${colab.id}`} colab={colab} sucursal={sucursal} serviciosDelColab={serviciosDelColab} citasAsignadas={citasAsignadas} esActivo={esActivo} canWriteStaff={canWriteStaff} acciones={<PersonalColaboradorActions colab={colab} esActivo={esActivo} setActiveTab={setActiveTab} setColaboradorAEditar={setColaboradorAEditar} setIsEditModalOpen={setIsEditModalOpen} handleToggleActivo={handleToggleActivo} handleEliminarColaborador={handleEliminarColaborador} />} />
-                );
-              })}
+              {colaboradores.map((colab) => (
+                <PersonalColaboradorRow
+                  key={`desk-${colab.id}`}
+                  colab={colab}
+                  sucursal={sucursales.find((s) => s.id === colab.sucursal_id)}
+                  servicios={servicios}
+                  citas={citas}
+                  canWriteStaff={canWriteStaff}
+                  onViewHorarios={() => onViewHorarios(colab)}
+                  onEdit={() => onEdit(colab)}
+                  onToggleActivo={() => onToggleActivo(colab)}
+                  onDelete={() => onDelete(colab)}
+                />
+              ))}
             </tbody>
           </table>
         </div>

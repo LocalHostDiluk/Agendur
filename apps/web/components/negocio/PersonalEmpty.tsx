@@ -1,10 +1,19 @@
 "use client";
+
 import { Users, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+
 interface PersonalEmptyProps {
-  searchQuery: string; setSearchQuery: (query: string) => void; setIsModalOpen: (open: boolean) => void;
+  searchQuery: string;
+  onClearSearch: () => void;
+  onOpenNuevo: () => void;
 }
-export function PersonalEmpty({ searchQuery, setSearchQuery, setIsModalOpen }: PersonalEmptyProps) {
+
+export function PersonalEmpty({
+  searchQuery,
+  onClearSearch,
+  onOpenNuevo,
+}: PersonalEmptyProps) {
   return (
     <div className="bg-surface border border-border rounded-2xl p-10 text-center space-y-4 max-w-md mx-auto my-8">
       <div className="size-14 rounded-2xl bg-grape/10 border border-grape/20 text-grape flex items-center justify-center mx-auto">
@@ -26,16 +35,14 @@ export function PersonalEmpty({ searchQuery, setSearchQuery, setIsModalOpen }: P
         type="button"
         variant="primary"
         onClick={() => {
-          if (searchQuery) setSearchQuery("");
-          else setIsModalOpen(true);
+          if (searchQuery) onClearSearch();
+          else onOpenNuevo();
         }}
         className="gap-2 mx-auto"
       >
         <UserPlus className="w-4 h-4" />
         <span>
-          {searchQuery
-            ? "Limpiar búsqueda"
-            : "Registrar primer colaborador"}
+          {searchQuery ? "Limpiar búsqueda" : "Registrar primer colaborador"}
         </span>
       </Button>
     </div>

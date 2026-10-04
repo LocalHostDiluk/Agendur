@@ -1,17 +1,32 @@
 "use client";
+
 import { Users, Calendar, Search } from "lucide-react";
 import type { Sucursal } from "@/lib/types";
+
 interface PersonalControlsProps {
-  activeTab: "directorio" | "horarios"; setActiveTab: (tab: "directorio" | "horarios") => void;
-  totalColaboradores: number; sucursales: Sucursal[];
-  selectedSucursalId: string; setSelectedSucursalId: (id: string) => void;
-  searchQuery: string; setSearchQuery: (query: string) => void;
+  activeTab: "directorio" | "horarios" | "roles";
+  onTabChange: (tab: "directorio" | "horarios" | "roles") => void;
+  totalColaboradores: number;
+  sucursales: Sucursal[];
+  selectedSucursalId: string;
+  onSucursalChange: (id: string) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
 }
-export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, sucursales,
-  selectedSucursalId, setSelectedSucursalId, searchQuery, setSearchQuery }: PersonalControlsProps) {
+
+export function PersonalControls({
+  activeTab,
+  onTabChange,
+  totalColaboradores,
+  sucursales,
+  selectedSucursalId,
+  onSucursalChange,
+  searchQuery,
+  onSearchChange,
+}: PersonalControlsProps) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-      {/* Pills Switcher (§10: Directorio y Horarios semanales) */}
+      {/* Pills Switcher */}
       <div
         className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-fit shrink-0"
         role="tablist"
@@ -22,7 +37,7 @@ export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, 
           role="tab"
           id="tab-directorio"
           aria-selected={activeTab === "directorio"}
-          onClick={() => setActiveTab("directorio")}
+          onClick={() => onTabChange("directorio")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
             activeTab === "directorio"
               ? "bg-grape text-white shadow-xs"
@@ -47,7 +62,7 @@ export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, 
           role="tab"
           id="tab-horarios"
           aria-selected={activeTab === "horarios"}
-          onClick={() => setActiveTab("horarios")}
+          onClick={() => onTabChange("horarios")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all min-h-[38px] cursor-pointer ${
             activeTab === "horarios"
               ? "bg-grape text-white shadow-xs"
@@ -58,7 +73,6 @@ export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, 
           <span>Horarios semanales</span>
           <span className="sr-only">Matriz de Horarios</span>
         </button>
-
       </div>
 
       {/* Filters */}
@@ -68,7 +82,7 @@ export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, 
           <div className="relative shrink-0 sm:w-48">
             <select
               value={selectedSucursalId}
-              onChange={(e) => setSelectedSucursalId(e.target.value)}
+              onChange={(e) => onSucursalChange(e.target.value)}
               className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
               aria-label="Filtrar por sucursal"
             >
@@ -88,9 +102,10 @@ export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, 
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar colaborador o servicio..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar por nombre, cargo o servicio..."
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+            aria-label="Buscar personal"
           />
         </div>
       </div>

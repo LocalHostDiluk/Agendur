@@ -121,9 +121,23 @@ export function getHumanErrorMessage(
     };
   }
 
+  // 8. Eliminación de sucursales con dependencias (citas o profesionales)
+  if (
+    lower.includes("citas") &&
+    (lower.includes("sucursal") || lower.includes("eliminar") || lower.includes("pendientes") || lower.includes("registradas"))
+  ) {
+    return {
+      title: "No se puede eliminar la sucursal",
+      description:
+        rawMessage.length <= 250
+          ? rawMessage
+          : "La sucursal tiene citas pendientes o registradas en el sistema. Desactívala para archivarla sin perder historial.",
+    };
+  }
+
   return {
     title: "Atención",
-    description: rawMessage.length < 120 ? rawMessage : fallbackMessage,
+    description: rawMessage.length <= 250 ? rawMessage : fallbackMessage,
   };
 }
 

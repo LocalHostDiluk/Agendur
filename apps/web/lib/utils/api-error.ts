@@ -44,7 +44,12 @@ export function apiError(
       error: message,
       ...(code ? { code } : {}),
     },
-    { status },
+    {
+      status,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    },
   );
 }
 
@@ -54,6 +59,7 @@ export function apiError(
 export function apiSuccess<T extends Record<string, unknown>>(
   data: T,
   status = 200,
+  headers?: HeadersInit,
 ) {
   return NextResponse.json(
     {
@@ -61,7 +67,13 @@ export function apiSuccess<T extends Record<string, unknown>>(
       ok: true,
       ...data,
     },
-    { status },
+    {
+      status,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        ...headers,
+      },
+    },
   );
 }
 

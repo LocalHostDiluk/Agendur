@@ -55,6 +55,16 @@ describe("GET y PUT /api/negocio/profesionales/horarios", () => {
             }),
           }),
         };
+        if (table === "horarios_sucursal") return {
+          select: () => ({
+            eq: () => ({
+              eq: async () => ({
+                data: [{ dia_semana: 2, hora_apertura: "08:00:00", hora_cierre: "20:00:00", es_laborable: true }],
+                error: null,
+              }),
+            }),
+          }),
+        };
         throw new Error(`Tabla inesperada: ${table}`);
       },
       rpc: async (_name: string, payload: Record<string, unknown>) => {

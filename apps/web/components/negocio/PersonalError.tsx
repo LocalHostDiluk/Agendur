@@ -1,8 +1,13 @@
 "use client";
+
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-interface PersonalErrorProps { handleRetryAll: () => void }
-export function PersonalError({ handleRetryAll }: PersonalErrorProps) {
+
+interface PersonalErrorProps {
+  onRetry: () => void;
+}
+
+export function PersonalError({ onRetry }: PersonalErrorProps) {
   return (
     <div
       role="alert"
@@ -21,7 +26,7 @@ export function PersonalError({ handleRetryAll }: PersonalErrorProps) {
       <Button
         type="button"
         variant="secondary"
-        onClick={handleRetryAll}
+        onClick={onRetry}
         className="gap-2 mx-auto"
       >
         <RefreshCw className="w-4 h-4" />
