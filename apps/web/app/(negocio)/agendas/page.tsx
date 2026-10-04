@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   CalendarDays,
@@ -14,13 +14,14 @@ import {
   Ticket,
 } from "lucide-react";
 import {
+  useAgendaUi,
   useAuthMe,
   useCitasNegocio,
   useSucursales,
   useServicios,
   useCatalogo,
 } from "@/lib/hooks";
-import { getTodayString, parseYMD, formatYMD, addDaysYMD, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agenda-date";
+import { parseYMD, addDaysYMD, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agenda-date";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
@@ -49,18 +50,7 @@ export default function AgendasPage() {
   const negocioTz = auth?.negocio?.zona_horaria;
   const negocioSlug = auth?.negocio?.slug;
 
-  const todayStr = useMemo(() => getTodayString(negocioTz), [negocioTz]);
-
-  const [selectedDate, setSelectedDate] = useState<string>(() => todayStr);
-  const [viewMode, setViewMode] = useState<
-    "cronograma" | "semanal" | "mensual"
-  >("cronograma");
-  const [filterSucursal, setFilterSucursal] = useState<string>("");
-  const [filterProfesional, setFilterProfesional] = useState<string>("");
-  const [filterEstado, setFilterEstado] = useState<EstadoCita | "">("");
-
-  const [selectedCita, setSelectedCita] = useState<Cita | null>(null);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const { todayStr, selectedDate, setSelectedDate, viewMode, setViewMode, filterSucursal, setFilterSucursal, filterProfesional, setFilterProfesional, filterEstado, setFilterEstado, selectedCita, setSelectedCita, isManualModalOpen, setIsManualModalOpen, handlePrev, handleNext, handleToday } = useAgendaUi(negocioTz);
 
   // Consultas de datos de apoyo
   const { data: sucursalesData } = useSucursales();
@@ -153,35 +143,6 @@ export default function AgendasPage() {
       return hA.localeCompare(hB);
     });
   }, [citasData?.citas, filterProfesional]);
-
-  // Navegación temporal adaptativa
-  const handlePrev = () => {
-    if (viewMode === "cronograma") {
-      setSelectedDate((prev) => addDaysYMD(prev, -1));
-    } else if (viewMode === "semanal") {
-      setSelectedDate((prev) => addDaysYMD(prev, -7));
-    } else {
-      const d = parseYMD(selectedDate);
-      d.setMonth(d.getMonth() - 1);
-      setSelectedDate(formatYMD(d));
-    }
-  };
-
-  const handleNext = () => {
-    if (viewMode === "cronograma") {
-      setSelectedDate((prev) => addDaysYMD(prev, 1));
-    } else if (viewMode === "semanal") {
-      setSelectedDate((prev) => addDaysYMD(prev, 7));
-    } else {
-      const d = parseYMD(selectedDate);
-      d.setMonth(d.getMonth() + 1);
-      setSelectedDate(formatYMD(d));
-    }
-  };
-
-  const handleToday = () => {
-    setSelectedDate(todayStr);
-  };
 
   // 7 días de la semana para la vista semanal
   const weekDays = useMemo(() => {
