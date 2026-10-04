@@ -15,13 +15,14 @@ import {
 } from "lucide-react";
 import {
   useAgendaUi,
+  useAgendaRange,
   useAuthMe,
   useCitasNegocio,
   useSucursales,
   useServicios,
   useCatalogo,
 } from "@/lib/hooks";
-import { parseYMD, addDaysYMD, getMondayOfDate, getSundayOfDate } from "@/lib/utils/agenda-date";
+import { parseYMD, addDaysYMD } from "@/lib/utils/agenda-date";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 import {
@@ -61,66 +62,7 @@ export default function AgendasPage() {
   const servicios = serviciosData?.servicios ?? [];
   const profesionales = catalogoData?.data?.profesionales ?? [];
 
-  // Rango de fechas según la vista activa
-  const mondayYMD = useMemo(
-    () => getMondayOfDate(selectedDate),
-    [selectedDate],
-  );
-  const sundayYMD = useMemo(
-    () => getSundayOfDate(selectedDate),
-    [selectedDate],
-  );
-
-  const [selYear, selMonth] = useMemo(
-    () => selectedDate.split("-").map(Number),
-    [selectedDate],
-  );
-
-  const startOfMonthYMD = useMemo(() => {
-    const m = String(selMonth).padStart(2, "0");
-    return `${selYear}-${m}-01`;
-  }, [selYear, selMonth]);
-
-  const endOfMonthYMD = useMemo(() => {
-    const lastDay = new Date(selYear, selMonth, 0).getDate();
-    const m = String(selMonth).padStart(2, "0");
-    const d = String(lastDay).padStart(2, "0");
-    return `${selYear}-${m}-${d}`;
-  }, [selYear, selMonth]);
-
-  const filtrosQuery = useMemo(() => {
-    const res: {
-      sucursalId?: string;
-      fechaInicio?: string;
-      fechaFin?: string;
-      estado?: EstadoCita;
-    } = {};
-
-    if (filterSucursal) res.sucursalId = filterSucursal;
-    if (filterEstado) res.estado = filterEstado;
-
-    if (viewMode === "cronograma") {
-      res.fechaInicio = selectedDate;
-      res.fechaFin = selectedDate;
-    } else if (viewMode === "semanal") {
-      res.fechaInicio = mondayYMD;
-      res.fechaFin = sundayYMD;
-    } else {
-      res.fechaInicio = startOfMonthYMD;
-      res.fechaFin = endOfMonthYMD;
-    }
-
-    return res;
-  }, [
-    filterSucursal,
-    filterEstado,
-    viewMode,
-    selectedDate,
-    mondayYMD,
-    sundayYMD,
-    startOfMonthYMD,
-    endOfMonthYMD,
-  ]);
+  const { mondayYMD, sundayYMD, filtrosQuery } = useAgendaRange({ selectedDate, viewMode, filterSucursal, filterEstado });
 
   // Consulta de citas en Supabase
   const {
