@@ -16,7 +16,10 @@ export async function apiFetch<T>(
   input: string | URL | Request,
   init?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(input, init);
+  const res = await fetch(input, {
+    cache: "no-store",
+    ...init,
+  });
 
   if (!res.ok) {
     const json = await res.json().catch(() => null);

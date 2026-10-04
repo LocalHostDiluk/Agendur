@@ -209,8 +209,48 @@ export function useCreateSucursal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevaSucursal),
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data?.sucursal) {
+        queryClient.setQueryData<{ sucursales: Sucursal[] }>(
+          ["negocio", "sucursales"],
+          (old) => {
+            if (!old?.sucursales) return { sucursales: [data.sucursal] };
+            return { ...old, sucursales: [...old.sucursales, data.sucursal] };
+          },
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["negocio", "sucursales"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
+    },
+  });
+}
+
+export function useUpdateSucursal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...cambios }: Partial<Sucursal> & { id: string }) =>
+      apiFetch<{ sucursal: Sucursal }>("/api/negocio/sucursales", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...cambios }),
+      }),
+    onSuccess: (data, vars) => {
+      if (data?.sucursal) {
+        queryClient.setQueryData<{ sucursales: Sucursal[] }>(
+          ["negocio", "sucursales"],
+          (old) => {
+            if (!old?.sucursales) return old;
+            return {
+              ...old,
+              sucursales: old.sucursales.map((s) =>
+                s.id === vars.id ? { ...s, ...data.sucursal } : s,
+              ),
+            };
+          },
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ["negocio", "sucursales"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
     },
   });
 }
@@ -239,8 +279,18 @@ export function useCreateServicio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevoServicio),
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data?.servicio) {
+        queryClient.setQueryData<{ servicios: Servicio[] }>(
+          ["negocio", "servicios"],
+          (old) => {
+            if (!old?.servicios) return { servicios: [data.servicio] };
+            return { ...old, servicios: [...old.servicios, data.servicio] };
+          },
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["negocio", "servicios"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
     },
   });
 }
@@ -254,8 +304,23 @@ export function useUpdateServicio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, ...cambios }),
       }),
-    onSuccess: () => {
+    onSuccess: (data, vars) => {
+      if (data?.servicio) {
+        queryClient.setQueryData<{ servicios: Servicio[] }>(
+          ["negocio", "servicios"],
+          (old) => {
+            if (!old?.servicios) return old;
+            return {
+              ...old,
+              servicios: old.servicios.map((s) =>
+                s.id === vars.id ? { ...s, ...data.servicio } : s,
+              ),
+            };
+          },
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["negocio", "servicios"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente", "catalogo"] });
     },
   });
 }

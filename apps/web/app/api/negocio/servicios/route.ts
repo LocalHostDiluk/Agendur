@@ -8,6 +8,8 @@ import {
   type NegocioCapability,
 } from "@/lib/auth/negocio-access";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Autentica al usuario y obtiene el negocio asociado (owner_id = user.id).
  */

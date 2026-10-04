@@ -18,6 +18,7 @@ import {
   Trash2,
   Download,
   ArrowUpDown,
+  Pencil,
 } from "lucide-react";
 import {
   useAuthMe,
@@ -27,7 +28,10 @@ import {
   useConfirmDialog,
 } from "@/lib/hooks";
 import { ModalNuevaSucursal } from "@/components/negocio/ModalNuevaSucursal";
+import { ModalEditarSucursal } from "@/components/negocio/ModalEditarSucursal";
+import { ModalHorariosSucursal } from "@/components/negocio/ModalHorariosSucursal";
 import { ModalNuevoServicio } from "@/components/negocio/ModalNuevoServicio";
+import { ModalEditarServicio } from "@/components/negocio/ModalEditarServicio";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -45,6 +49,9 @@ export default function SucursalesPage() {
   const [updatingServiceId, setUpdatingServiceId] = useState<string | null>(
     null,
   );
+  const [editingServicio, setEditingServicio] = useState<Servicio | null>(null);
+  const [editingSucursal, setEditingSucursal] = useState<Sucursal | null>(null);
+  const [scheduleSucursal, setScheduleSucursal] = useState<Sucursal | null>(null);
 
   const confirmDialog = useConfirmDialog();
 
@@ -108,7 +115,11 @@ export default function SucursalesPage() {
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.error || "Error al eliminar la sucursal.");
+        const msg =
+          typeof errData?.error === "string"
+            ? errData.error
+            : errData?.error?.message || errData?.message || "No se pudo eliminar la sucursal.";
+        throw new Error(msg);
       }
       notify.success(
         "Sucursal eliminada",
@@ -494,6 +505,26 @@ export default function SucursalesPage() {
                                 </Link>
                               )}
                               <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setScheduleSucursal(suc)}
+                                aria-label={`Gestionar horario de sucursal ${suc.nombre}`}
+                                className="h-8 px-2.5 text-xs"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                                <span className="hidden lg:inline">Horario</span>
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setEditingSucursal(suc)}
+                                aria-label={`Editar sucursal ${suc.nombre}`}
+                                className="h-8 px-2.5 text-xs"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span className="hidden lg:inline">Editar</span>
+                              </Button>
+                              <Button
                                 variant="danger"
                                 size="sm"
                                 onClick={() => handleDeleteSucursal(suc)}
@@ -577,7 +608,7 @@ export default function SucursalesPage() {
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                    <div className="pt-2 border-t border-border flex items-center justify-between gap-2 flex-wrap">
                       {negocioSlug && (
                         <Link
                           href={`/reserva/${negocioSlug}`}
@@ -590,16 +621,37 @@ export default function SucursalesPage() {
                           <ExternalLink className="w-3 h-3" />
                         </Link>
                       )}
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteSucursal(suc)}
-                        aria-label={`Eliminar sucursal ${suc.nombre}`}
-                        className="h-8 px-2.5 text-xs"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Eliminar</span>
-                      </Button>
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setScheduleSucursal(suc)}
+                          aria-label={`Gestionar horario de sucursal ${suc.nombre}`}
+                          className="h-8 px-2 text-xs"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Horario</span>
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setEditingSucursal(suc)}
+                          aria-label={`Editar sucursal ${suc.nombre}`}
+                          className="h-8 px-2 text-xs"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span>Editar</span>
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteSucursal(suc)}
+                          aria-label={`Eliminar sucursal ${suc.nombre}`}
+                          className="h-8 px-2 text-xs"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -776,6 +828,16 @@ export default function SucursalesPage() {
                             <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-2">
                                 <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingServicio(s)}
+                                  aria-label={`Editar servicio ${s.nombre}`}
+                                  className="h-8 px-2.5 text-xs"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  <span className="hidden lg:inline">Editar</span>
+                                </Button>
+                                <Button
                                   variant={isActivo ? "outline" : "secondary"}
                                   size="sm"
                                   disabled={isUpdating}
@@ -878,6 +940,16 @@ export default function SucursalesPage() {
 
                       <div className="pt-2 border-t border-border flex items-center justify-end gap-2">
                         <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingServicio(s)}
+                          aria-label={`Editar servicio ${s.nombre}`}
+                          className="h-8 px-2.5 text-xs"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span>Editar</span>
+                        </Button>
+                        <Button
                           variant={isActivo ? "outline" : "secondary"}
                           size="sm"
                           disabled={isUpdating}
@@ -926,6 +998,26 @@ export default function SucursalesPage() {
       <ModalNuevoServicio
         isOpen={modalServicioOpen}
         onClose={() => setModalServicioOpen(false)}
+      />
+
+      <ModalEditarServicio
+        isOpen={Boolean(editingServicio)}
+        onClose={() => setEditingServicio(null)}
+        servicio={editingServicio}
+        onSuccess={() => refetchServicios()}
+      />
+
+      <ModalEditarSucursal
+        isOpen={Boolean(editingSucursal)}
+        onClose={() => setEditingSucursal(null)}
+        sucursal={editingSucursal}
+        onSuccess={() => refetchSucursales()}
+      />
+
+      <ModalHorariosSucursal
+        isOpen={Boolean(scheduleSucursal)}
+        onClose={() => setScheduleSucursal(null)}
+        sucursal={scheduleSucursal}
       />
 
       {/* 4. Confirmación Crítica Nivel 2 */}
