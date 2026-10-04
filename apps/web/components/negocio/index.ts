@@ -66,3 +66,4 @@ export * from "./AgendaManualButton";
 export * from "./AgendaViewTabs";
 export * from "./AgendaViewTab";
 export * from "./AgendaFilters";
+export * from "./AgendaDateNavigation";

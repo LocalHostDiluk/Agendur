@@ -2,12 +2,12 @@
 
 
 import {
-  Calendar as CalendarIcon,
+
 
   Clock,
 
-  ChevronLeft,
-  ChevronRight,
+
+
   AlertCircle,
   RefreshCw,
   ArrowRight,
@@ -24,6 +24,7 @@ import {
   useCatalogo,
 } from "@/lib/hooks";
 
+import { AgendaDateNavigation } from "@/components/negocio/AgendaDateNavigation";
 import { AgendaFilters } from "@/components/negocio/AgendaFilters";
 import { AgendaViewTabs } from "@/components/negocio/AgendaViewTabs";
 import { AgendaManualButton } from "@/components/negocio/AgendaManualButton";
@@ -37,7 +38,7 @@ import {
   SkeletonText,
   SkeletonCircle,
 } from "@/components/ui";
-import { formatDisplayDate, formatDisplayWeek, formatDisplayMonth } from "@/lib/utils/agenda-display-date";
+import { formatDisplayMonth } from "@/lib/utils/agenda-display-date";
 
 import { getEstadoBadgeProps } from "@/lib/utils/agenda-estado";
 
@@ -103,61 +104,7 @@ export default function AgendasPage() {
       <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Navegador de Fecha */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={handleToday}
-              className={`px-3 py-1.5 rounded-[var(--radius-md)] text-xs font-semibold border transition-all duration-100 ease-out cursor-pointer min-h-[36px] ${
-                selectedDate === todayStr
-                  ? "bg-grape-soft text-grape border-grape/30 font-bold"
-                  : "bg-surface-alt hover:bg-surface text-text-secondary border-border"
-              }`}
-            >
-              Hoy
-            </button>
-
-            <div className="inline-flex items-center rounded-[var(--radius-md)] border border-border bg-surface-alt p-0.5">
-              <button
-                type="button"
-                onClick={handlePrev}
-                aria-label="Fecha anterior"
-                className="p-1.5 hover:bg-surface rounded-md text-text-secondary hover:text-text-primary cursor-pointer transition-colors duration-100 ease-out"
-              >
-                <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                aria-label="Fecha siguiente"
-                className="p-1.5 hover:bg-surface rounded-md text-text-secondary hover:text-text-primary cursor-pointer transition-colors duration-100 ease-out"
-              >
-                <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
-              </button>
-            </div>
-
-            {/* Input nativo de fecha accesible */}
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) =>
-                e.target.value && setSelectedDate(e.target.value)
-              }
-              className="bg-surface-alt border border-border rounded-[var(--radius-md)] px-2.5 py-1 text-xs font-mono text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
-              aria-label="Seleccionar fecha específica"
-            />
-
-            {/* Título de Fecha formateado en Bricolage Grotesque */}
-            <span className="text-xs sm:text-sm font-bricolage font-bold text-text-primary pl-1 flex items-center gap-1.5 tracking-tight">
-              <CalendarIcon className="w-3.5 h-3.5 text-grape" strokeWidth={1.75} />
-              <span>
-                {viewMode === "cronograma"
-                  ? formatDisplayDate(selectedDate)
-                  : viewMode === "semanal"
-                    ? formatDisplayWeek(mondayYMD, sundayYMD)
-                    : formatDisplayMonth(selectedDate)}
-              </span>
-            </span>
-          </div>
+          <AgendaDateNavigation selectedDate={selectedDate} todayStr={todayStr} mondayYMD={mondayYMD} sundayYMD={sundayYMD} viewMode={viewMode} setSelectedDate={setSelectedDate} handleToday={handleToday} handlePrev={handlePrev} handleNext={handleNext} />
 
           {/* Alternador Canónico de 3 Vistas (§10) y Filtros */}
           <div className="flex items-center gap-3 flex-wrap justify-between lg:justify-end">
