@@ -1,4 +1,4 @@
-# Inventario integral del backend — tareas A y B
+# Inventario integral del backend — tareas A, B y C
 
 Auditoría del **2 de octubre de 2026 (Monterrey)**, baseline de código
 `ae591563521cc06145deec2b7cc9fd197a5f15d7`, rama
@@ -10,19 +10,19 @@ A entrega inventario, reglas, evidencia y backlog. No mueve módulos, corrige
 comportamiento, reorganiza frontend, cambia SQL ni instala dependencias.
 Los puntos de entrada de Next conservan sus URLs. Las ubicaciones propuestas
 eran tareas futuras; ninguna carpeta de dominio se creó por anticipado en A.
-La actualización B siguiente localiza el código vigente. **Las tablas, tamaños,
-líneas y observaciones de las secciones posteriores a B conservan la fotografía
-de A y su SHA**, incluida la ruta antigua del servicio como referencia histórica.
-Para reservas/horarios trasladados se usa el mapa B; sus hallazgos funcionales
-siguen pendientes, sin correcciones encubiertas por el movimiento.
+Las actualizaciones B y C siguientes localizan el código vigente. **Las tablas,
+tamaños, líneas y observaciones desde «Línea base de A» conservan la fotografía
+de A y su SHA**, incluidas las rutas antiguas como referencias históricas. Para
+reservas/horarios y operaciones trasladadas se usan los mapas B/C; los hallazgos
+funcionales siguen pendientes, sin correcciones encubiertas por los movimientos.
 
 ## Estado de ejecución y control de alcance
 
 | Tarea | Rama | Estado al preparar esta entrega |
 |---|---|---|
 | A Inventario integral y reglas | `codex/backend-inventario-reglas` | Publicada y merge humano PR #37 comprobado en main; commit A `4271b6b1ab52aa68ef7d9a406c675f14c67151cc` ancestro de la base B |
-| B Reservas, disponibilidad y horarios | `codex/backend-organizacion-reservas` | Caracterización y extracción implementadas, checks finales completados y revisión independiente aprobada sin cambios requeridos abiertos; cierre Git antes de la pausa para merge humano |
-| C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Pendiente; extracción por operación, contratos preservados |
+| B Reservas, disponibilidad y horarios | `codex/backend-organizacion-reservas` | Publicada y merge humano PR #39 comprobado en main; incluida en la base C `81c5bffe` |
+| C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Implementada y verificada en commit local `705ebc75`; publicación no comprobada. Corrección INF-01 autorizada en esta misma rama antes de D, con commit separado |
 | D Identidad, pagos e infraestructura | `codex/backend-organizacion-integraciones` | Pendiente; proveedores y cookies preservados |
 | E Cierre y backlog | `codex/backend-cierre-organizacion` | Pendiente; verificación integral y tareas funcionales posteriores |
 
@@ -32,7 +32,9 @@ y realiza exclusivamente documentación de A; `backend-inventario-verification`
 inventaría infraestructura/remoto y realiza checks, integración, commit/push.
 Un solo escritor del checkout a la vez; el orquestador coordina. Tras publicación
 se pausa para merge del usuario. B mantiene esa separación: operaciones implementa,
-identidad audita/revisa y verificación comprueba e integra. C–E siguen pendientes.
+identidad audita/revisa y verificación comprueba e integra. C conserva un único
+escritor, revisión independiente y verificador para integración/publicación.
+D y E siguen pendientes y no están autorizadas.
 
 Evidencia distinguida: lectura actual de código y SQL local; baseline controlada
 actual; observación remota de sólo lectura; resultados históricos explícitos.
@@ -105,7 +107,153 @@ tiene funciones ≤60. Esto registra deuda de las orquestaciones, no un cumplimi
 ficticio del objetivo. OP-03 se localiza ahora en `special.ts:16–19`; los demás
 hallazgos y decisiones de producto de A permanecen abiertos.
 
-## Línea base de A (histórica, anterior a la extracción B)
+## Tarea C: profesionales, personal y catálogo
+
+Fecha **4 de octubre de 2026**; rama `codex/backend-organizacion-operacion`,
+base limpia `main`/`origin/main` `81c5bffeec645f57911d559c11af2dfc86a57aef`,
+con el merge humano de B (PR #39) y frontend (PR #38) comprobados. Se organizan
+operaciones existentes; se mantienen URLs, métodos, autorización, tenant y scopes,
+validación, orden de consultas, respuestas, herencia de horarios y política de
+historial. No cambia frontend, SQL, dependencias, proveedores ni datos remotos.
+
+### Mapa vigente de módulos C
+
+Ubicaciones relativas a `apps/web`; las cinco rutas conservan autenticación,
+lectura de URL/JSON, `apiSuccess`, status exitosos y catch/fallback existentes.
+
+| Módulo (líneas) | Responsabilidad e interfaz conservada | Consumidores |
+|---|---|---|
+| `lib/backend/profesionales/consultar-profesionales.ts` (85) | `getNegocioSucursalesIds` y `consultarProfesionales(access, sucursalId, activo)`; negocio/scope, perfil, servicios y horarios | GET profesionales; alta/modificación/baja reutilizan consulta de sedes |
+| `lib/backend/profesionales/crear-profesional.ts` (222) | `crearProfesional(access, body)`; entrada, sede/cupo, alta, servicios y horario heredado | POST profesionales |
+| `lib/backend/profesionales/actualizar-profesional.ts` (222) | `actualizarProfesional(access, body)`; pertenencia, perfil/reactivación y asignaciones | PATCH profesionales |
+| `lib/backend/profesionales/asignar-servicios.ts` (56) | `asignarServiciosProfesional(negocioId, profesionalId, serviciosIds)`; reemplazo o lectura de relaciones | Actualización profesional |
+| `lib/backend/profesionales/eliminar-profesional.ts` (52) | `eliminarProfesional(access, id)`; pertenencia previa y baja física existente | DELETE profesionales; ID en query o JSON conservado en ruta |
+| `lib/backend/personal/directorio.ts` (186) | `consultarPersonal(access)`; colaboradores/perfiles/Auth, profesionales/servicios/horarios; limpieza, búsqueda Auth y sede/negocio reutilizadas | GET personal y módulos de alta/modificación |
+| `lib/backend/personal/agregar-personal.ts` (150) | `agregarPersonal(access, admin, body)`; gerente/recepcionista registrado o alta profesional, cupo/servicios y compensación existente | POST personal |
+| `lib/backend/personal/actualizar-personal.ts` (139) | `actualizarPersonal(access, admin, body)`; roles, vínculo Auth, sede, reactivación y baja lógica | PATCH personal |
+| `lib/backend/servicios/catalogo.ts` (145) | Consulta, alta, modificación y baja; `access` más body o ID, filtros negocio/asignaciones | GET/POST/PATCH/DELETE servicios |
+| `lib/backend/servicios/validar-servicio.ts` (189) | `validarNuevoServicio(body)` y `validarCambiosServicio(body)`; campos y buffer existentes | Catálogo privado de servicios |
+| `lib/backend/sucursales/servicio.ts` (253) | Conserva `createSucursal` y `getSucursalesByNegocio`; añade `consultarSucursales(access)`, `crearSucursalDesdeDatos(access, body)` y `eliminarSucursal(access, id)` | Ruta sucursales; tests de desactivación pública y pagos |
+| `lib/backend/configuracion/configuracion.ts` (191) | `consultarConfiguracion(access)`, `prepararActualizacionConfiguracion(access)` y `actualizarConfiguracion(context, body)`; preparación antes de JSON, contacto y proyección camelCase | GET/PUT configuración |
+
+Las operaciones retornan payload plano en éxito. Conservan `apiError`/`NextResponse`
+sólo en ramas de error ya existentes; la ruta devuelve ese resultado sin alterar
+status/código/fallback ni la captura Sentry 5xx. Es una excepción explícita de
+acoplamiento HTTP para preservar contratos; no se añade Result genérico, capa
+intermedia, barrel, jerarquía de errores ni dependencia.
+
+Se elimina `lib/backend/sucursal-service.ts` y se actualizan el import de la ruta,
+el estático en `public-deactivation.test.ts` y los dos dinámicos de
+`payments.test.ts`. `getSucursalesByNegocio` conserva su export aunque no tenga
+caller productivo. Catálogo público, rutas de horarios y parsers compartidos ya
+coherentes permanecen donde estaban; el frontend consume HTTP.
+
+### Caracterización y deuda preservada
+
+Siete casos añadidos se ejecutaron contra las rutas originales antes de extraer:
+las bajas profesionales/servicios/sucursales caracterizan denegación sin consultas,
+recurso ajeno 404, FK de historial 23503→500 y payload de éxito; personal caracteriza
+directorio por scope, baja lógica y rol de colaborador, alta de gerente registrado,
+conflictos `STAFF_HISTORY_SCOPE_LOCKED`/`STAFF_ALREADY_EXISTS` y denegación previa a
+DB. La fixture proyecta las columnas realmente seleccionadas; el caso original
+`BRANCH_SCHEDULE_REQUIRED` conserva su expectativa. La misma caracterización se
+repitió después de extraer. Son mocks controlados: no acreditan RLS, FK ni carreras
+contra PostgreSQL remoto.
+
+OP-01/02/04/06/07 siguen pendientes: error de asignación que puede producir éxito
+falso, reemplazo parcial de relaciones, consulta fallida como lista vacía, cupos
+comprobados antes de escribir y compensación sin comprobar. Sus ubicaciones
+vigentes son respectivamente `crear-profesional.ts`, `actualizar-profesional.ts` +
+`asignar-servicios.ts`, `consultar-profesionales.ts` + catálogo público,
+`crear-profesional.ts`/`actualizar-profesional.ts`/personal/sucursales y
+`agregar-personal.ts`. La carrera de cupos aún requiere reproducción concurrente
+con DB. C no convierte DELETE físico en archivo lógico ni modifica restricciones
+FK, scopes históricos o snapshots. API clientes, reservas internas y decisiones
+producto siguen fuera de esta entrega; D no comienza antes del merge humano.
+
+### Verificación y excepciones de C
+
+La baseline C se ejecutó antes de cambiar código en `81c5bffe`; la caracterización
+focal corrió antes/después de la extracción. El cierre se reverificó el 4 de octubre
+en esta rama porque los logs temporales iniciales ya no estaban disponibles.
+
+| Comprobación | Baseline / caracterización previa | Cierre verificado C |
+|---|---|---|
+| Suite completa | 429 aprobadas, 0 fallos, 46 archivos, 2049 expect | 436 aprobadas, 0 fallos, 47 archivos, 2109 expect |
+| Focal operativa | 54 aprobadas, 0 fallos, 8 archivos, 259 expect contra rutas originales | Mismo resultado 54/0/259 tras extracción; casos incluidos en suite completa final |
+| Lint completo | 0 errores, 24 warnings | Mismo resultado |
+| TypeScript con tipos Next regenerados | Tres TS2344 de páginas configuración/personal | Mismos tres diagnósticos; cero nuevos |
+| Build webpack | Compila JavaScript y falla por esos tres TS2344 | Compila JS en 8 s y falla por esos tres; no se declara build verde |
+| Imports y frontera, análisis AST | Referencias estáticas/dinámicas/mocks inventariadas | 322 fuentes TS/JS totales, 274 de producción, 105 raíces cliente, 12 módulos C; cero imports antiguos, referencias nuevas sin resolver, caminos privilegiados cliente o ciclos nuevos |
+
+El primer build de cierre dentro del sandbox falló al lanzar TypeScript
+`--showConfig`; el mismo comando con escalación aprobada permitió comprobar los
+tipos Next. `bunx tsc --noEmit` posterior conserva exactamente TS2344 en
+configuración `page.ts:39` (PageProps) y personal `page.ts:14` (export
+getRoleBadgeVariant) y `:39` (PageProps), dentro de `.next/types/app/(negocio)/`.
+Las páginas fuente configuración/personal son idénticas byte por byte a la base
+`81c5bffe`; build también conserva el warning de dependencia dinámica de Sentry.
+Logs temporales actuales: `/tmp/backend-c-final-{test,lint,imports,build-webpack,tsc}.log`;
+no son artefactos permanentes ni validación de proveedores/remoto.
+
+Tamaños actuales: rutas profesionales/personal/servicios/sucursales/configuración
+94/78/83/58/40 líneas. Los 12 módulos están dentro de 250 salvo
+`sucursales/servicio.ts` (253). Sus tres líneas de exceso se justifican por reunir
+el servicio existente y tres operaciones de sede; dividirlas sólo por el número
+crearía un archivo adicional sin nueva responsabilidad. Se reduce cuando exista
+una separación coherente; queda como excepción explícita para revisión.
+
+Funciones que conservan >60 líneas (conteo AST inclusivo): `consultarProfesionales`
+72; `crearProfesional` y `actualizarProfesional` 215 cada una; `consultarPersonal`
+122; `agregarPersonal` 142; `actualizarPersonal` 133; `validarNuevoServicio` 78;
+`validarCambiosServicio` 108; `crearSucursalDesdeDatos` 76;
+`actualizarConfiguracion` 134. Se conserva cada secuencia de validación/consultas,
+multiescritura o compensación para revisar equivalencia; extraer helpers arbitrarios
+ocultaría el orden observable. Queda deuda explícita, sin prometer atomicidad que
+el código previo no tenía. Las futuras correcciones de asignaciones/cupos deberán
+caracterizar fallos parciales antes de cambiar esas operaciones.
+
+La revisión independiente de código aprobó equivalencia: 50 comparaciones AST
+sin diferencias semánticas y cero cambios requeridos abiertos. La revisión documental y `git diff --check` preceden a commit/push;
+la publicación se acredita con SHA/URL en la entrega y luego se pausa para merge.
+
+## Corrección INF-01 antes de D
+
+El **4 de octubre de 2026**, el usuario autorizó corregir los tres TS2344 y hacer
+un commit separado en la rama C, desde checkout limpio `705ebc75ba52ab36de125391bb67495f8d98ff87`.
+**INF-01 queda resuelto en la verificación actual**: B había retirado el export
+extra del parser de horarios especiales y este commit corrige los tres errores
+de páginas restantes. Los resultados fallidos A/B/C anteriores permanecen como
+evidencia histórica y D sigue sin comenzar.
+
+`configuracion/page.tsx` y `personal/page.tsx` son ahora entradas Next sin argumentos
+(5 y 7 líneas) que renderizan `ConfiguracionView.tsx` y `PersonalView.tsx` colocados
+en sus mismos directorios. Los cuerpos cliente, props de pestañas/modal, hooks,
+permisos y JSX se conservaron literalmente; sólo cambia el nombre de la función
+y se elimina el reexport runtime innecesario de helpers de personal. Los helpers
+ya existentes se consumen desde `lib/utils/personal-role.ts`. `UnifiedColaborador`
+conserva su interfaz en PersonalView y reexport type-only en page para sus once
+consumidores. Sólo cambian los imports en los tres archivos de pruebas; ninguna
+expectativa ni control de pestañas/permisos se elimina.
+
+Verificación posterior: focal 32 aprobadas/0 fallos/172 expect en 3 archivos;
+suite completa 436/0/2109 expect en 47 archivos; lint 0 errores/24 warnings;
+**`bun run build --webpack` y `bunx tsc --noEmit` posterior terminan en 0**.
+Webpack completó compilación, validación TypeScript, 42/42 páginas, optimización
+y trazas; conserva el warning previo de dependencia dinámica de Sentry. El AST
+sobre 276 fuentes de producción y 105 raíces cliente no encuentra caminos
+privilegiados cliente, nuevas referencias sin resolver ni ciclos nuevos.
+Logs temporales: `/tmp/buildfix-focal-test.log` y
+`/tmp/buildfix-final-{test,lint,build-webpack,tsc,imports}.log`.
+
+Excepción explícita de alcance: ConfiguracionView conserva 1671 líneas de código
+previo para corregir el contrato Next sin mezclar un refactor general del formulario.
+PersonalView tiene 92 líneas. La colocación nativa conserva `./loading`, no crea
+URLs ni carpetas nuevas y evita cambios arbitrarios por tamaño. No hubo cambios
+de backend, SQL, dependencias, contratos HTTP ni verificación remota/proveedores.
+El commit local separado se registra al completar revisión y Git; no implica push.
+
+## Línea base de A (histórica, anterior a las extracciones B y C)
 
 | Comprobación | Resultado observado antes de editar documentación |
 |---|---|

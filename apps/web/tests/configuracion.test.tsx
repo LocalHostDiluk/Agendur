@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import ConfiguracionPage from "@/app/(negocio)/configuracion/page";
+import ConfiguracionPage from "@/app/(negocio)/configuracion/ConfiguracionView";
 
 const mockConfiguracion = {
   id: "neg-12345",

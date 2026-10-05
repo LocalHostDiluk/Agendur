@@ -9,7 +9,7 @@ mock.module("next/navigation", () => ({
   usePathname: () => "/configuracion",
 }));
 
-import ConfiguracionPage from "@/app/(negocio)/configuracion/page";
+import ConfiguracionPage from "@/app/(negocio)/configuracion/ConfiguracionView";
 import PagosPage from "@/app/(negocio)/pagos/page";
 import ReportesPage from "@/app/(negocio)/reportes/page";
 
