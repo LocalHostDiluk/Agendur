@@ -80,3 +80,4 @@ export * from "./AgendaMonthCell";
 export * from "./AgendaMonth";
 export * from "./AgendaError";
 export * from "./AgendaEmpty";
+export * from "./AgendaHeader";
