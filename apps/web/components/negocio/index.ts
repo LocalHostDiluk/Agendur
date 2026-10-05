@@ -78,3 +78,4 @@ export * from "./AgendaWeek";
 export * from "./AgendaMonthCita";
 export * from "./AgendaMonthCell";
 export * from "./AgendaMonth";
+export * from "./AgendaError";

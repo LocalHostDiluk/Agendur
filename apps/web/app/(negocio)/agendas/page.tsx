@@ -8,8 +8,8 @@ import {
 
 
 
-  AlertCircle,
-  RefreshCw,
+
+
 
   Ticket,
 } from "lucide-react";
@@ -26,6 +26,7 @@ import {
 
 
 
+import { AgendaError } from "@/components/negocio/AgendaError";
 import { AgendaMonth } from "@/components/negocio/AgendaMonth";
 import { AgendaWeek } from "@/components/negocio/AgendaWeek";
 import { AgendaCronograma } from "@/components/negocio/AgendaCronograma";
@@ -36,14 +37,7 @@ import { AgendaViewTabs } from "@/components/negocio/AgendaViewTabs";
 import { AgendaManualButton } from "@/components/negocio/AgendaManualButton";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
-import {
-  Button,
 
-
-
-
-
-} from "@/components/ui";
 
 
 
@@ -130,33 +124,7 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 2. ERROR CON BANNER Y REINTENTO          */}
       {/* ======================================================================= */}
-      {!loadingCitas && errorCitas && (
-        <div
-          role="alert"
-          className="p-8 rounded-[var(--radius-lg)] bg-surface border border-danger/30 text-center space-y-4 shadow-xs"
-        >
-          <div className="w-12 h-12 rounded-full bg-danger-soft text-danger flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" strokeWidth={1.75} />
-          </div>
-          <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-base font-bold text-text-primary font-bricolage">
-              No se pudieron consultar las citas
-            </h3>
-            <p className="text-xs text-text-secondary">
-              Ocurrió un error al consultar la agenda del negocio. Intenta
-              recargar la información.
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            onClick={() => refetchCitas()}
-            className="gap-2 min-h-[44px]"
-          >
-            <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.75} />
-            <span>Reintentar</span>
-          </Button>
-        </div>
-      )}
+      <AgendaError loadingCitas={loadingCitas} errorCitas={errorCitas} refetchCitas={refetchCitas} />
 
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 3. ESTADO VACÍO (TICKET RISOGRÁFICO)      */}
