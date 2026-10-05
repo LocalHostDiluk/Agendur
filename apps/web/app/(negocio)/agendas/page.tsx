@@ -1,135 +1,94 @@
 "use client";
 
-
 import {
-  useAgendaUi,
-  useAgendaDerived,
-  useAgendaRange,
-  useAuthMe,
-  useCitasNegocio,
-  useSucursales,
-  useServicios,
-  useCatalogo,
+  useAuthMe, useSucursales, useServicios, useCatalogo, useCitasNegocio,
+  useAgendaUi, useAgendaRange, useAgendaDerived,
 } from "@/lib/hooks";
-
-
-
-import { AgendaEmpty } from "@/components/negocio/AgendaEmpty";
-import { AgendaError } from "@/components/negocio/AgendaError";
-import { AgendaMonth } from "@/components/negocio/AgendaMonth";
-import { AgendaWeek } from "@/components/negocio/AgendaWeek";
-import { AgendaCronograma } from "@/components/negocio/AgendaCronograma";
-import { AgendaLoading } from "@/components/negocio/AgendaLoading";
-import { AgendaControls } from "@/components/negocio/AgendaControls";
-
-
 import { AgendaHeader } from "@/components/negocio/AgendaHeader";
+import { AgendaControls } from "@/components/negocio/AgendaControls";
+import { AgendaViews } from "@/components/negocio/AgendaViews";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
 
-
-
-
-
-
-// ==============================================================================
-// Utilidades de Fechas (UTC-safe y limpias)
-// ==============================================================================
-
-// ==============================================================================
-// Componente Principal
-// ==============================================================================
-
 export default function AgendasPage() {
   const { data: auth } = useAuthMe();
-  const negocioTz = auth?.negocio?.zona_horaria;
-  const negocioSlug = auth?.negocio?.slug;
-
-  const { todayStr, selectedDate, setSelectedDate, viewMode, setViewMode, filterSucursal, setFilterSucursal, filterProfesional, setFilterProfesional, filterEstado, setFilterEstado, selectedCita, setSelectedCita, isManualModalOpen, setIsManualModalOpen, handlePrev, handleNext, handleToday } = useAgendaUi(negocioTz);
-
-  // Consultas de datos de apoyo
+  const ui = useAgendaUi(auth?.negocio?.zona_horaria);
   const { data: sucursalesData } = useSucursales();
   const { data: serviciosData } = useServicios();
-  const { data: catalogoData } = useCatalogo(negocioSlug);
-
+  const { data: catalogoData } = useCatalogo(auth?.negocio?.slug);
   const sucursales = sucursalesData?.sucursales ?? [];
   const servicios = serviciosData?.servicios ?? [];
   const profesionales = catalogoData?.data?.profesionales ?? [];
-
-  const { mondayYMD, sundayYMD, filtrosQuery } = useAgendaRange({ selectedDate, viewMode, filterSucursal, filterEstado });
-
-  // Consulta de citas en Supabase
+  const range = useAgendaRange({
+    selectedDate: ui.selectedDate, viewMode: ui.viewMode,
+    filterSucursal: ui.filterSucursal, filterEstado: ui.filterEstado,
+  });
   const {
     data: citasData,
     isLoading: loadingCitas,
     isError: errorCitas,
     refetch: refetchCitas,
-  } = useCitasNegocio(filtrosQuery);
-
-  const { citas, weekDays, monthDays, citasByDay } = useAgendaDerived({ citasData, filterProfesional, mondayYMD, todayStr, selectedDate });
+  } = useCitasNegocio(range.filtrosQuery);
+  const derived = useAgendaDerived({
+    citasData, filterProfesional: ui.filterProfesional,
+    mondayYMD: range.mondayYMD, todayStr: ui.todayStr, selectedDate: ui.selectedDate,
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* ======================================================================= */}
-      {/* Encabezado y Acciones Principales (§5.13)                               */}
-      {/* ======================================================================= */}
-      <AgendaHeader onCreateCita={() => setIsManualModalOpen(true)} />
-
-
-      {/* ======================================================================= */}
-      {/* Barra de Control: Fecha, Alternador de Vista (3 pestañas) y Filtros     */}
-      {/* ======================================================================= */}
-      <AgendaControls selectedDate={selectedDate} todayStr={todayStr} mondayYMD={mondayYMD} sundayYMD={sundayYMD} viewMode={viewMode} setSelectedDate={setSelectedDate} setViewMode={setViewMode} handleToday={handleToday} handlePrev={handlePrev} handleNext={handleNext} sucursales={sucursales} profesionales={profesionales} filterSucursal={filterSucursal} filterProfesional={filterProfesional} filterEstado={filterEstado} setFilterSucursal={setFilterSucursal} setFilterProfesional={setFilterProfesional} setFilterEstado={setFilterEstado} />
-      {/* ======================================================================= */}
-      {/* 4 ESTADOS DE LA PÁGINA (§10): 1. LOADING CON SKELETONS RISOGRÁFICOS    */}
-      {/* ======================================================================= */}
-      <AgendaLoading loadingCitas={loadingCitas} viewMode={viewMode} weekDays={weekDays} />
-
-      {/* ======================================================================= */}
-      {/* 4 ESTADOS DE LA PÁGINA (§10): 2. ERROR CON BANNER Y REINTENTO          */}
-      {/* ======================================================================= */}
-      <AgendaError loadingCitas={loadingCitas} errorCitas={errorCitas} refetchCitas={refetchCitas} />
-
-      {/* ======================================================================= */}
-      {/* 4 ESTADOS DE LA PÁGINA (§10): 3. ESTADO VACÍO (TICKET RISOGRÁFICO)      */}
-      {/* ======================================================================= */}
-      <AgendaEmpty loadingCitas={loadingCitas} errorCitas={errorCitas} citas={citas} onCreateCita={() => setIsManualModalOpen(true)} />
-
-      {/* ======================================================================= */}
-      {/* 4 ESTADOS DE LA PÁGINA (§10): 4. CON DATOS — VISTA 1: CRONOGRAMA       */}
-      {/* ======================================================================= */}
-      <AgendaCronograma loadingCitas={loadingCitas} errorCitas={errorCitas} citas={citas} viewMode={viewMode} sucursales={sucursales} servicios={servicios} profesionales={profesionales} setSelectedCita={setSelectedCita} />
-
-      {/* ======================================================================= */}
-      {/* 4 ESTADOS DE LA PÁGINA (§10): 4. CON DATOS — VISTA 2: SEMANAL           */}
-      {/* ======================================================================= */}
-      <AgendaWeek loadingCitas={loadingCitas} errorCitas={errorCitas} citas={citas} viewMode={viewMode} weekDays={weekDays} citasByDay={citasByDay} servicios={servicios} setSelectedCita={setSelectedCita} />
-
-      {/* ======================================================================= */}
-      {/* 4 ESTADOS DE LA PÁGINA (§10): 4. CON DATOS — VISTA 3: MENSUAL           */}
-      {/* ======================================================================= */}
-      <AgendaMonth loadingCitas={loadingCitas} errorCitas={errorCitas} citas={citas} viewMode={viewMode} monthDays={monthDays} citasByDay={citasByDay} todayStr={todayStr} selectedDate={selectedDate} setSelectedDate={setSelectedDate} setViewMode={setViewMode} />
-
-      {/* ======================================================================= */}
-      {/* Drawer Lateral de Detalle de Cita (§5.10)                               */}
-      {/* ======================================================================= */}
+      <AgendaHeader onCreateCita={() => ui.setIsManualModalOpen(true)} />
+      <AgendaControls
+        selectedDate={ui.selectedDate}
+        todayStr={ui.todayStr}
+        mondayYMD={range.mondayYMD}
+        sundayYMD={range.sundayYMD}
+        viewMode={ui.viewMode}
+        setSelectedDate={ui.setSelectedDate}
+        setViewMode={ui.setViewMode}
+        handleToday={ui.handleToday}
+        handlePrev={ui.handlePrev}
+        handleNext={ui.handleNext}
+        sucursales={sucursales}
+        profesionales={profesionales}
+        filterSucursal={ui.filterSucursal}
+        filterProfesional={ui.filterProfesional}
+        filterEstado={ui.filterEstado}
+        setFilterSucursal={ui.setFilterSucursal}
+        setFilterProfesional={ui.setFilterProfesional}
+        setFilterEstado={ui.setFilterEstado}
+      />
+      <AgendaViews
+        loadingCitas={loadingCitas}
+        errorCitas={errorCitas}
+        refetchCitas={refetchCitas}
+        citas={derived.citas}
+        viewMode={ui.viewMode}
+        weekDays={derived.weekDays}
+        monthDays={derived.monthDays}
+        citasByDay={derived.citasByDay}
+        sucursales={sucursales}
+        servicios={servicios}
+        profesionales={profesionales}
+        todayStr={ui.todayStr}
+        selectedDate={ui.selectedDate}
+        setSelectedDate={ui.setSelectedDate}
+        setViewMode={ui.setViewMode}
+        setSelectedCita={ui.setSelectedCita}
+        onCreateCita={() => ui.setIsManualModalOpen(true)}
+      />
       <CitaDetailDrawer
-        isOpen={Boolean(selectedCita)}
-        onClose={() => setSelectedCita(null)}
-        cita={selectedCita}
+        isOpen={Boolean(ui.selectedCita)}
+        onClose={() => ui.setSelectedCita(null)}
+        cita={ui.selectedCita}
         sucursales={sucursales}
         servicios={servicios}
         profesionales={profesionales}
         onCitaUpdated={() => refetchCitas()}
       />
-
-      {/* ======================================================================= */}
-      {/* Modal de Nueva Cita Manual de Recepción (§5.10)                         */}
-      {/* ======================================================================= */}
       <ModalNuevaCitaManual
-        isOpen={isManualModalOpen}
-        onClose={() => setIsManualModalOpen(false)}
-        initialFecha={selectedDate}
+        isOpen={ui.isManualModalOpen}
+        onClose={() => ui.setIsManualModalOpen(false)}
+        initialFecha={ui.selectedDate}
         sucursales={sucursales}
         servicios={servicios}
         onSuccess={() => refetchCitas()}

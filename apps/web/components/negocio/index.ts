@@ -82,3 +82,4 @@ export * from "./AgendaError";
 export * from "./AgendaEmpty";
 export * from "./AgendaHeader";
 export * from "./AgendaControls";
+export * from "./AgendaViews";
