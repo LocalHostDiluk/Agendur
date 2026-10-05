@@ -18,6 +18,13 @@ especiales. Contratos, SQL, permisos y reglas de disponibilidad se conservan;
 el [estado y evidencia de B](INVENTARIO_BACKEND.md#tarea-b-reservas-disponibilidad-y-horarios)
 se distinguen de la auditoría histórica de A.
 
+La tarea C del **4 de octubre de 2026** parte de `main` en
+`81c5bffeec645f57911d559c11af2dfc86a57aef`, tras el merge de B (PR #39) y
+frontend (PR #38). El mapa vigente añade operaciones de profesionales, personal,
+servicios, sucursales y configuración. La
+[evidencia C](INVENTARIO_BACKEND.md#tarea-c-profesionales-personal-y-catálogo)
+conserva contratos, deuda funcional y pruebas de esta ejecución.
+
 ## Fuente de verdad
 
 - Proyecto de desarrollo: `Citas`, referencia `dolpnpuycjfppflcqexe`, hostname
@@ -46,10 +53,11 @@ la tarea correspondiente, después del merge humano de la tarea previa.
 | Cálculo temporal y ventanas de reserva | [`reservas/calculo-disponibilidad.ts`](../apps/web/lib/backend/reservas/calculo-disponibilidad.ts) | B: puro, minutos/día, excepciones/intersecciones y slots completos |
 | Consulta de disponibilidad | [`reservas/disponibilidad.ts`](../apps/web/lib/backend/reservas/disponibilidad.ts) | B: consultas y orquestación; cliente sólo consume HTTP |
 | Validación y creación de reserva | [`reservas/crear-reserva.ts`](../apps/web/lib/backend/reservas/crear-reserva.ts) | B: selección/configuración y una RPC cliente+cita; WhatsApp posterior |
-| Sucursales | [`lib/backend/sucursal-service.ts`](../apps/web/lib/backend/sucursal-service.ts) + [`api/negocio/sucursales`](../apps/web/app/api/negocio/sucursales/route.ts) | `lib/backend/sucursales/`, C |
-| Profesionales y asignaciones | [`api/negocio/profesionales`](../apps/web/app/api/negocio/profesionales/route.ts) | `lib/backend/profesionales/`, C |
-| Colaboradores y directorio | [`api/negocio/personal`](../apps/web/app/api/negocio/personal/route.ts) | `lib/backend/personal/`, C |
-| Servicios y configuración | [`api/negocio/servicios`](../apps/web/app/api/negocio/servicios/route.ts), [`configuracion`](../apps/web/app/api/negocio/configuracion/route.ts) | Carpetas de esos dominios sólo si existe complejidad real, C |
+| Sucursales | [`sucursales/servicio.ts`](../apps/web/lib/backend/sucursales/servicio.ts) + [`ruta HTTP`](../apps/web/app/api/negocio/sucursales/route.ts) | C: servicio existente, consulta autorizada, entrada de alta y eliminación; conserva exports createSucursal/getSucursalesByNegocio |
+| Profesionales y asignaciones | [`profesionales/`](../apps/web/lib/backend/profesionales/) + [`ruta HTTP`](../apps/web/app/api/negocio/profesionales/route.ts) | C: consultar-profesionales, crear-profesional, actualizar-profesional, asignar-servicios y eliminar-profesional |
+| Colaboradores y directorio | [`personal/`](../apps/web/lib/backend/personal/) + [`ruta HTTP`](../apps/web/app/api/negocio/personal/route.ts) | C: directorio y sus consultas reutilizadas, agregar-personal y actualizar-personal; baja lógica con activo=false |
+| Servicios | [`servicios/catalogo.ts`](../apps/web/lib/backend/servicios/catalogo.ts), [`validar-servicio.ts`](../apps/web/lib/backend/servicios/validar-servicio.ts) + [`ruta HTTP`](../apps/web/app/api/negocio/servicios/route.ts) | C: CRUD cohesionado y validación de alta/cambios; snapshots de citas intactos |
+| Configuración | [`configuracion/configuracion.ts`](../apps/web/lib/backend/configuracion/configuracion.ts) + [`ruta HTTP`](../apps/web/app/api/negocio/configuracion/route.ts) | C: lectura, preparación antes del body y modificación/proyecciones existentes |
 | Identidad, registro y baja | [`api/auth/`](../apps/web/app/api/auth/) | `lib/backend/auth/` para operaciones extensas, D |
 | Capacidades y selección de negocio | [`lib/auth/negocio-access.ts`](../apps/web/lib/auth/negocio-access.ts) | Mantener |
 | Planes, pagos y adaptadores | [`lib/payments/`](../apps/web/lib/payments/) | Mantener interfaz; separar Stripe por responsabilidades reales, D |
@@ -64,6 +72,13 @@ consumidores estáticos/dinámicos, módulos de infraestructura, cobertura, tama
 estado remoto de lectura y backlog priorizado. API de clientes, reservas internas,
 suscripciones/anticipos por negocio y decisiones de días sin horario, permisos,
 transiciones/reembolsos permanecen etapas posteriores con pausa explícita.
+
+En C las rutas conservan autorización, lectura JSON/URL, `apiSuccess`/status y
+captura de errores. Las operaciones reciben datos y acceso autorizado; retornan
+payload plano exitoso. Las ramas de error mantienen `apiError`/`NextResponse`
+literal para preservar fallback/códigos/captura existentes: excepción acotada de
+acoplamiento HTTP, no un dominio independiente del transporte. Catálogo público
+y rutas de horarios existentes ya son coherentes y conservan su ubicación.
 
 ## Modelo vigente
 
@@ -427,7 +442,7 @@ bunx tsc --noEmit
   errores y 24 warnings. Con tipos Next regenerados, TypeScript y build webpack
   fallan por cuatro TS2344 preexistentes: props de configuración/personal y exports
   extra de personal/horarios especiales. Evidencia y separación de fallos actuales,
-  históricos y limitaciones en el [inventario](INVENTARIO_BACKEND.md#línea-base-de-a-histórica-anterior-a-la-extracción-b).
+  históricos y limitaciones en el [inventario](INVENTARIO_BACKEND.md#línea-base-de-a-histórica-anterior-a-las-extracciones-b-y-c).
 - Tarea B del 4 de octubre: caracterización focal antes y después del movimiento,
   25 aprobadas/0 fallos; suite completa 429/0 y lint 0 errores/24 warnings.
   TypeScript con tipos Next regenerados conserva tres TS2344 de las páginas
@@ -435,7 +450,14 @@ bunx tsc --noEmit
   parser a su módulo puro, sin errores nuevos. Webpack compila JS y falla por
   esos tres errores; no se afirma que el build esté verde. El análisis de imports
   verifica ausencia de ciclos y de caminos cliente a módulos privilegiados.
-- Inventario remoto actual: PostgreSQL 17.6, cinco RPC cerradas a clientes, ningún crítico
+- Tarea C del 4 de octubre: operaciones privadas extraídas por responsabilidad,
+  siete casos de caracterización antes/después; suite final 436/0, lint 0 errores/
+  24 warnings. TypeScript y webpack conservan los mismos tres TS2344 de páginas;
+  sin errores nuevos. Contratos, permisos, bajas e historial preservados. Ver
+  [evidencia C](INVENTARIO_BACKEND.md#verificación-y-excepciones-de-c); atomicidad,
+  asignaciones y cupos siguen pendientes. D no está autorizada. No se repitieron
+  verificaciones ni mutaciones del proyecto Supabase.
+- Inventario remoto observado en A: PostgreSQL 17.6, cinco RPC cerradas a clientes, ningún crítico
   nuevo. Detección GiST `float4`/`float8`: cero índices afectados; no hubo REINDEX.
 - `stripe_webhook_events` tiene RLS sin policies: aceptable sólo mientras no tenga
   grants de cliente. Advisor INFO [0008](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).

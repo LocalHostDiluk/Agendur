@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET as getCatalog } from "@/app/api/cliente/catalogo/route";
-import { getSucursalesByNegocio } from "@/lib/backend/sucursal-service";
+import { getSucursalesByNegocio } from "@/lib/backend/sucursales/servicio";
 import { getAdminClient } from "@/lib/supabase/admin";
 
 describe("portales públicos de negocios desactivados", () => {

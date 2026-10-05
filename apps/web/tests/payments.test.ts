@@ -344,7 +344,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
 
   describe("createSucursal - Control de Matrices y Límites", () => {
     it("debería forzar es_matriz a false si ya existe otra matriz en el negocio", async () => {
-      const { createSucursal } = await import("@/lib/backend/sucursal-service");
+      const { createSucursal } = await import("@/lib/backend/sucursales/servicio");
       const { getAdminClient } = await import("@/lib/supabase/admin");
       const client = getAdminClient();
       const originalFrom = client.from;
@@ -440,7 +440,7 @@ describe("Endpoints de Suscripción y Webhook - Seguridad y Validaciones", () =>
     });
 
     it("debería asignar es_matriz a true si es la primera sucursal creada del negocio", async () => {
-      const { createSucursal } = await import("@/lib/backend/sucursal-service");
+      const { createSucursal } = await import("@/lib/backend/sucursales/servicio");
       const { getAdminClient } = await import("@/lib/supabase/admin");
       const client = getAdminClient();
       const originalFrom = client.from;

@@ -197,9 +197,9 @@ Los siguientes patrones se identifican en implementaciones concretas del reposit
 | **Proxy con inicialización diferida** | `adminClient` en [`admin.ts`](apps/web/lib/supabase/admin.ts) | Un `Proxy` de JavaScript crea el cliente privilegiado al primer acceso y enlaza sus métodos a la instancia real. Es distinto del proxy HTTP de Next.js. |
 | **Observer / publicación-suscripción** | [`citas-channel.ts`](apps/web/lib/realtime/citas-channel.ts), [`layout del negocio`](apps/web/app/(negocio)/layout.tsx) | El canal escucha cambios y puede invalidar consultas; el estado del sidebar notifica a sus suscriptores mediante `useSyncExternalStore`. |
 | **Provider y composición** | [`QueryProvider`](apps/web/components/providers/QueryProvider.tsx), [`ThemeProvider`](apps/web/components/theme/ThemeProvider.tsx) | Comparte dependencias y estado transversal con el árbol de componentes. |
-| **Service Layer** | [`reservas/crear-reserva.ts`](apps/web/lib/backend/reservas/crear-reserva.ts), [`reservas/disponibilidad.ts`](apps/web/lib/backend/reservas/disponibilidad.ts), [`sucursal-service.ts`](apps/web/lib/backend/sucursal-service.ts) | Agrupa reglas de negocio que los endpoints pueden reutilizar. |
+| **Service Layer** | [`reservas/crear-reserva.ts`](apps/web/lib/backend/reservas/crear-reserva.ts), [`reservas/disponibilidad.ts`](apps/web/lib/backend/reservas/disponibilidad.ts), [`sucursales/servicio.ts`](apps/web/lib/backend/sucursales/servicio.ts), [mapa por dominio](docs/BACKEND_SUPABASE.md#mapa-para-localizar-responsabilidades) | Agrupa operaciones de reservas, profesionales, personal y catálogo; las rutas conservan autorización y contrato HTTP. |
 | **Fachada HTTP y errores tipados** | [`apiFetch`](apps/web/lib/query/api-client.ts), [`api-error.ts`](apps/web/lib/utils/api-error.ts) | Simplifica el consumo de respuestas y concentra tratamiento de errores; algunos endpoints mantienen respuestas específicas. |
-| **Guarda de autorización compartida** | `getAuthenticatedNegocio()` en [`servicios/route.ts`](apps/web/app/api/negocio/servicios/route.ts) | Resuelve sesión y negocio propietario antes de ejecutar `GET`, `POST` o `PATCH`, devolviendo `401` o `404` de forma uniforme. |
+| **Guarda de autorización compartida** | `getAuthenticatedNegocio()` en [`servicios/route.ts`](apps/web/app/api/negocio/servicios/route.ts) | Reutiliza `requireNegocioAccess` con `services:read`/`services:write`; conserva negocio/scope y los errores de acceso existentes. |
 
 También se usan **guardas de negocio**, como `assertActiveSubscription()`, y **hooks personalizados** para separar consultas de la representación visual. La creación del registro incluye compensación ante fallos de aprovisionamiento mediante eliminación del usuario recién creado; no constituye una transacción única entre Auth y todas las escrituras.
 
@@ -215,6 +215,7 @@ También se usan **guardas de negocio**, como `assertActiveSubscription()`, y **
 | `apps/web/app/403/`, `not-found.tsx`, `error.tsx`, `global-error.tsx` | Páginas y límites de error de la aplicación. |
 | `apps/web/components/` | Componentes por área: `negocio`, `cliente`, `landing`, `auth`, `errors`, `ui`, `providers`, `theme` y `security`. |
 | `apps/web/lib/` | Dominio, pagos, Supabase, hooks, consultas, tipos y utilidades. |
+| `apps/web/lib/backend/` | Reservas; profesionales, personal, servicios, sucursales y configuración por responsabilidad. [Mapa vigente B/C](docs/BACKEND_SUPABASE.md#mapa-para-localizar-responsabilidades). |
 | `apps/web/tests/` | Pruebas controladas con Bun. |
 | `apps/web/e2e/` | Escenario Playwright. |
 | `apps/web/proxy.ts` | Renovación de sesión y redirecciones de acceso. |
@@ -439,7 +440,13 @@ La suite de `apps/web/tests/` cubre autenticación, identidad, onboarding, reser
 bun run test
 ```
 
-**Verificación del 1 de octubre de 2026:** 428 pruebas aprobadas en 46 archivos, cero fallos; `bunx tsc --noEmit` desde `apps/web` termina correctamente. Son resultados de esa ejecución, no una garantía permanente. La antigua dependencia de fecha de agenda ya no es un fallo vigente.
+**Verificación histórica del 1 de octubre de 2026:** 428 pruebas aprobadas en 46 archivos, cero fallos; `bunx tsc --noEmit` desde `apps/web` termina correctamente. Son resultados de esa ejecución, no una garantía permanente. La antigua dependencia de fecha de agenda ya no es un fallo vigente.
+
+La reorganización C del 4 de octubre conserva contratos y permisos de profesionales,
+personal y catálogo: suite final 436 aprobadas/0 fallos, lint 0 errores/24 warnings.
+Su [evidencia y límites](docs/INVENTARIO_BACKEND.md#verificación-y-excepciones-de-c)
+registra tres TS2344 preexistentes de páginas configuración/personal; TypeScript y
+build no se declaran verdes. No hubo nuevos recorridos ni mutaciones remotas en C.
 
 El [recorrido backend remoto](apps/web/scripts/verify-wave3-remote.ts) verificó herencia de horarios, disponibilidad y conflicto concurrente `201/409`, con 109 checks y limpieza confirmada en el punto 2. La [matriz SQL](supabase/tests/wave3_role_matrix_rollback.sql) pasó con `ROLLBACK` en el punto 3. Estas pruebas no se vuelven a ejecutar por editar documentación; su procedimiento está en [Operación y verificación](docs/BACKEND_SUPABASE.md#operación-y-verificación).
 

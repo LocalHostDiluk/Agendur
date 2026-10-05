@@ -31,6 +31,11 @@ y documentación no reciben límites artificiales de líneas.
 - Son objetivos de diseño. Superarlos exige revisión y justificación explícita
   en la entrega: responsabilidad indivisible, riesgo de fragmentación y reducción
   prevista cuando exista una extracción coherente.
+- Excepción de C: `lib/backend/sucursales/servicio.ts` tiene 253 líneas; reúne
+  el servicio existente y operaciones de sede. Las funciones >60 y justificaciones
+  están en [evidencia C](../INVENTARIO_BACKEND.md#verificación-y-excepciones-de-c).
+  Se revisan explícitamente; no tratar el traslado como cumplimiento ficticio ni
+  ampliar esta excepción a otros módulos.
 - No partir una transacción, validación o flujo de compensación para cumplir un
   número. Tampoco introducir capas que sólo reenvían argumentos.
 - Archivos existentes largos se inventarían como deuda. Se caracterizan y reducen
@@ -68,10 +73,10 @@ y documentación no reciben límites artificiales de líneas.
 |---|---|
 | URL, método, petición, cookies y respuesta HTTP | `app/api/**/route.ts`; conservar ubicación |
 | Reservas y disponibilidad | `lib/backend/reservas/`: cálculo puro, consulta y creación extraídos en B |
-| Sucursales | `lib/backend/sucursales/`, al extraer durante C |
-| Profesionales y asignaciones | `lib/backend/profesionales/`, al extraer durante C |
-| Colaboradores | `lib/backend/personal/`, al extraer durante C |
-| Servicios y configuración | Carpetas concretas del dominio en `lib/backend/`, si hace falta |
+| Sucursales | `lib/backend/sucursales/servicio.ts`, servicio existente y operaciones extraídos en C |
+| Profesionales y asignaciones | `lib/backend/profesionales/`, consulta/alta/modificación/asignaciones/baja extraídas en C |
+| Colaboradores | `lib/backend/personal/`, directorio/alta/modificación extraídos en C |
+| Servicios y configuración | `lib/backend/servicios/` y `lib/backend/configuracion/`, operaciones extraídas en C |
 | Alta y baja de cuentas | `lib/backend/auth/`, sólo para operaciones extensas extraídas |
 | WhatsApp simulado existente | `lib/backend/notificaciones/`, durante D |
 | Autorización y capacidades | Mantener `lib/auth/` |
@@ -79,7 +84,7 @@ y documentación no reciben límites artificiales de líneas.
 | Supabase, seguridad, Realtime e instrumentación | Mantener ubicaciones coherentes actuales |
 | Validadores puros y tipos usados por cliente | Mantener fuera de módulos exclusivos servidor |
 
-Este mapa es destino de las tareas siguientes, no afirmación de carpetas ya creadas.
+Este mapa distingue ubicaciones extraídas en B/C de los destinos aún pendientes.
 Sólo crear una carpeta cuando aloje una responsabilidad existente que necesita
 extracción. Sin carpetas vacías ni capa de servicios adicional.
 Los hooks, componentes y pantallas siguen en frontend; modificar únicamente sus
@@ -96,6 +101,12 @@ imports cuando un movimiento autorizado del backend lo requiera.
   real no equivale a consulta fallida; 201 no acredita escrituras que fallaron.
 - Errores esperados conservan su contrato; fallos internos pasan por la frontera
   común. No exponer detalles técnicos ni duplicar eventos Sentry por cada capa.
+- Excepción acotada del traslado C: las operaciones reciben datos y acceso
+  autorizado, devuelven payload plano al tener éxito y conservan `apiError`/
+  `NextResponse` sólo para ramas de error existentes. La ruta discrimina ese
+  resultado y conserva `apiSuccess`, status, autorización, lectura HTTP y catch.
+  Reemplazar esos retornos por throws habría cambiado fallback 5xx y captura;
+  no introducir un Result genérico ni una jerarquía de errores para este movimiento.
 - Operaciones multiescritura que conservan integridad deben ser atómicas en DB.
   Para Auth/proveedores externos, comprobar compensación y resultados ambiguos;
   no prometer atomicidad distribuida que no existe.
