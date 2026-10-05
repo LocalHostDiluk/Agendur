@@ -20,9 +20,9 @@ import { AgendaMonth } from "@/components/negocio/AgendaMonth";
 import { AgendaWeek } from "@/components/negocio/AgendaWeek";
 import { AgendaCronograma } from "@/components/negocio/AgendaCronograma";
 import { AgendaLoading } from "@/components/negocio/AgendaLoading";
-import { AgendaDateNavigation } from "@/components/negocio/AgendaDateNavigation";
-import { AgendaFilters } from "@/components/negocio/AgendaFilters";
-import { AgendaViewTabs } from "@/components/negocio/AgendaViewTabs";
+import { AgendaControls } from "@/components/negocio/AgendaControls";
+
+
 import { AgendaHeader } from "@/components/negocio/AgendaHeader";
 import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
 import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
@@ -79,21 +79,7 @@ export default function AgendasPage() {
       {/* ======================================================================= */}
       {/* Barra de Control: Fecha, Alternador de Vista (3 pestañas) y Filtros     */}
       {/* ======================================================================= */}
-      <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Navegador de Fecha */}
-          <AgendaDateNavigation selectedDate={selectedDate} todayStr={todayStr} mondayYMD={mondayYMD} sundayYMD={sundayYMD} viewMode={viewMode} setSelectedDate={setSelectedDate} handleToday={handleToday} handlePrev={handlePrev} handleNext={handleNext} />
-
-          {/* Alternador Canónico de 3 Vistas (§10) y Filtros */}
-          <div className="flex items-center gap-3 flex-wrap justify-between lg:justify-end">
-            {/* Switcher 3 Pestañas: Día (Cronograma) / Semana / Mes */}
-            <AgendaViewTabs viewMode={viewMode} setViewMode={setViewMode} />
-
-            <AgendaFilters sucursales={sucursales} profesionales={profesionales} filterSucursal={filterSucursal} filterProfesional={filterProfesional} filterEstado={filterEstado} setFilterSucursal={setFilterSucursal} setFilterProfesional={setFilterProfesional} setFilterEstado={setFilterEstado} />
-          </div>
-        </div>
-      </div>
-
+      <AgendaControls selectedDate={selectedDate} todayStr={todayStr} mondayYMD={mondayYMD} sundayYMD={sundayYMD} viewMode={viewMode} setSelectedDate={setSelectedDate} setViewMode={setViewMode} handleToday={handleToday} handlePrev={handlePrev} handleNext={handleNext} sucursales={sucursales} profesionales={profesionales} filterSucursal={filterSucursal} filterProfesional={filterProfesional} filterEstado={filterEstado} setFilterSucursal={setFilterSucursal} setFilterProfesional={setFilterProfesional} setFilterEstado={setFilterEstado} />
       {/* ======================================================================= */}
       {/* 4 ESTADOS DE LA PÁGINA (§10): 1. LOADING CON SKELETONS RISOGRÁFICOS    */}
       {/* ======================================================================= */}
