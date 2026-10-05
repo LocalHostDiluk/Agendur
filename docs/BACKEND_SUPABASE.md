@@ -457,6 +457,12 @@ bunx tsc --noEmit
   [evidencia C](INVENTARIO_BACKEND.md#verificación-y-excepciones-de-c); atomicidad,
   asignaciones y cupos siguen pendientes. D no está autorizada. No se repitieron
   verificaciones ni mutaciones del proyecto Supabase.
+- Corrección INF-01 posterior a C, autorizada antes de D: entradas de páginas Next
+  sin props adicionales y vistas cliente conservadas; suite 436/0, lint 0 errores/
+  24 warnings, build webpack completo y TypeScript posterior en 0. Ver
+  [corrección y límites](INVENTARIO_BACKEND.md#corrección-inf-01-antes-de-d). Los
+  resultados fallidos A/B/C anteriores son históricos; no hubo cambios de backend
+  ni remoto. Commit local separado en la rama C, sin comenzar D.
 - Inventario remoto observado en A: PostgreSQL 17.6, cinco RPC cerradas a clientes, ningún crítico
   nuevo. Detección GiST `float4`/`float8`: cero índices afectados; no hubo REINDEX.
 - `stripe_webhook_events` tiene RLS sin policies: aceptable sólo mientras no tenga

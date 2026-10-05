@@ -22,7 +22,7 @@ funcionales siguen pendientes, sin correcciones encubiertas por los movimientos.
 |---|---|---|
 | A Inventario integral y reglas | `codex/backend-inventario-reglas` | Publicada y merge humano PR #37 comprobado en main; commit A `4271b6b1ab52aa68ef7d9a406c675f14c67151cc` ancestro de la base B |
 | B Reservas, disponibilidad y horarios | `codex/backend-organizacion-reservas` | Publicada y merge humano PR #39 comprobado en main; incluida en la base C `81c5bffe` |
-| C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Extracción y caracterización implementadas; revisión de código aprobada y checks finales completados. Cierre documental y Git antes de la pausa para merge humano |
+| C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Implementada y verificada en commit local `705ebc75`; publicación no comprobada. Corrección INF-01 autorizada en esta misma rama antes de D, con commit separado |
 | D Identidad, pagos e infraestructura | `codex/backend-organizacion-integraciones` | Pendiente; proveedores y cookies preservados |
 | E Cierre y backlog | `codex/backend-cierre-organizacion` | Pendiente; verificación integral y tareas funcionales posteriores |
 
@@ -216,6 +216,42 @@ caracterizar fallos parciales antes de cambiar esas operaciones.
 La revisión independiente de código aprobó equivalencia: 50 comparaciones AST
 sin diferencias semánticas y cero cambios requeridos abiertos. La revisión documental y `git diff --check` preceden a commit/push;
 la publicación se acredita con SHA/URL en la entrega y luego se pausa para merge.
+
+## Corrección INF-01 antes de D
+
+El **4 de octubre de 2026**, el usuario autorizó corregir los tres TS2344 y hacer
+un commit separado en la rama C, desde checkout limpio `705ebc75ba52ab36de125391bb67495f8d98ff87`.
+**INF-01 queda resuelto en la verificación actual**: B había retirado el export
+extra del parser de horarios especiales y este commit corrige los tres errores
+de páginas restantes. Los resultados fallidos A/B/C anteriores permanecen como
+evidencia histórica y D sigue sin comenzar.
+
+`configuracion/page.tsx` y `personal/page.tsx` son ahora entradas Next sin argumentos
+(5 y 7 líneas) que renderizan `ConfiguracionView.tsx` y `PersonalView.tsx` colocados
+en sus mismos directorios. Los cuerpos cliente, props de pestañas/modal, hooks,
+permisos y JSX se conservaron literalmente; sólo cambia el nombre de la función
+y se elimina el reexport runtime innecesario de helpers de personal. Los helpers
+ya existentes se consumen desde `lib/utils/personal-role.ts`. `UnifiedColaborador`
+conserva su interfaz en PersonalView y reexport type-only en page para sus once
+consumidores. Sólo cambian los imports en los tres archivos de pruebas; ninguna
+expectativa ni control de pestañas/permisos se elimina.
+
+Verificación posterior: focal 32 aprobadas/0 fallos/172 expect en 3 archivos;
+suite completa 436/0/2109 expect en 47 archivos; lint 0 errores/24 warnings;
+**`bun run build --webpack` y `bunx tsc --noEmit` posterior terminan en 0**.
+Webpack completó compilación, validación TypeScript, 42/42 páginas, optimización
+y trazas; conserva el warning previo de dependencia dinámica de Sentry. El AST
+sobre 276 fuentes de producción y 105 raíces cliente no encuentra caminos
+privilegiados cliente, nuevas referencias sin resolver ni ciclos nuevos.
+Logs temporales: `/tmp/buildfix-focal-test.log` y
+`/tmp/buildfix-final-{test,lint,build-webpack,tsc,imports}.log`.
+
+Excepción explícita de alcance: ConfiguracionView conserva 1671 líneas de código
+previo para corregir el contrato Next sin mezclar un refactor general del formulario.
+PersonalView tiene 92 líneas. La colocación nativa conserva `./loading`, no crea
+URLs ni carpetas nuevas y evita cambios arbitrarios por tamaño. No hubo cambios
+de backend, SQL, dependencias, contratos HTTP ni verificación remota/proveedores.
+El commit local separado se registra al completar revisión y Git; no implica push.
 
 ## Línea base de A (histórica, anterior a las extracciones B y C)
 

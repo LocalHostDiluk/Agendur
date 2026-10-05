@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import PersonalPage from "@/app/(negocio)/personal/page";
+import PersonalPage from "@/app/(negocio)/personal/PersonalView";
 import { ROLE_CAPABILITIES, type NegocioRole } from "@/lib/auth/negocio-access";
 
 const mockSucursales = [

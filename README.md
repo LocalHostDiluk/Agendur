@@ -444,9 +444,11 @@ bun run test
 
 La reorganización C del 4 de octubre conserva contratos y permisos de profesionales,
 personal y catálogo: suite final 436 aprobadas/0 fallos, lint 0 errores/24 warnings.
-Su [evidencia y límites](docs/INVENTARIO_BACKEND.md#verificación-y-excepciones-de-c)
-registra tres TS2344 preexistentes de páginas configuración/personal; TypeScript y
-build no se declaran verdes. No hubo nuevos recorridos ni mutaciones remotas en C.
+La [evidencia C previa](docs/INVENTARIO_BACKEND.md#verificación-y-excepciones-de-c)
+conserva los tres TS2344 históricos. La [corrección INF-01 antes de D](docs/INVENTARIO_BACKEND.md#corrección-inf-01-antes-de-d)
+resuelve esos errores: `bun run build --webpack` y `bunx tsc --noEmit` posterior
+pasan, manteniendo 436 pruebas aprobadas y 24 warnings de lint. No hubo nuevos
+recorridos ni mutaciones remotas.
 
 El [recorrido backend remoto](apps/web/scripts/verify-wave3-remote.ts) verificó herencia de horarios, disponibilidad y conflicto concurrente `201/409`, con 109 checks y limpieza confirmada en el punto 2. La [matriz SQL](supabase/tests/wave3_role_matrix_rollback.sql) pasó con `ROLLBACK` en el punto 3. Estas pruebas no se vuelven a ejecutar por editar documentación; su procedimiento está en [Operación y verificación](docs/BACKEND_SUPABASE.md#operación-y-verificación).
 
