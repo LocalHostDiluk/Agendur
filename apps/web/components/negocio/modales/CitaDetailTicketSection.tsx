@@ -100,7 +100,7 @@ export function CitaDetailTicketSection({
             onChange={(e) => onChangeNotas(e.target.value)}
             rows={3}
             placeholder="Escribe notas internas sobre el cliente o la cita..."
-            className="w-full text-xs sm:text-sm bg-surface border border-border rounded-xl p-3 text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-grape focus:ring-1 focus:ring-grape transition-all resize-none shadow-2xs"
+            className="field-textarea w-full text-xs sm:text-sm bg-surface border border-border rounded-xl p-3 text-text-primary placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-1 focus:ring-grape transition-all shadow-2xs"
           />
           <div className="flex justify-end">
             <Button

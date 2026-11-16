@@ -6,13 +6,32 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light dark;
+  accent-color: var(--grape);
+  scrollbar-color: var(--text-muted) var(--background);
+
   --background: #f7f5ef;
   --surface: #ffffff;
   --surface-alt: #f0ece0;
   --border: #e7e1d3;
   --text-primary: #211a26;
   --text-secondary: #6b6355;
-  --text-muted: #a39c8c;
+  --text-muted: #736a5a;
+
+  /* Semantic Action & Status Contrast Tokens (Design-system.md §3.3) */
+  --action-bg: #6e49a6;
+  --action-fg: #ffffff;
+  --action-hover: #5e3e8f;
+  --link: #6e49a6;
+
+  /* Layered Depth Tokens */
+  --shadow-card:
+    0 1px 2px rgb(33 26 38 / 0.04),
+    0 4px 12px rgb(33 26 38 / 0.04);
+  --shadow-overlay:
+    0 8px 24px rgb(33 26 38 / 0.12),
+    0 2px 6px rgb(33 26 38 / 0.06);
+  --scroll-shadow-color: rgb(33 26 38 / 0.14);
 
   /* Landing Risograph Palette */
   --paper: #f3eedf;
@@ -39,10 +58,14 @@
   --sidebar-text-muted: #948c7e;
 
   --success: #3f9e76;
+  --success-text: #246b4f;
   --success-soft: rgba(63, 158, 118, 0.12);
   --warning: #e8a23d;
+  --warning-text: #80540b;
   --warning-soft: rgba(232, 162, 61, 0.12);
   --danger: #d14343;
+  --danger-text: #a82a36;
+  --danger-action: #b93643;
   --danger-soft: rgba(209, 67, 67, 0.12);
 
   --radius-sm: 6px;
@@ -65,7 +88,22 @@
   --border: #332b3d;
   --text-primary: #f1ece2;
   --text-secondary: #a79fae;
-  --text-muted: #766e82;
+  --text-muted: #a79fae;
+
+  --action-bg: #7854b2;
+  --action-fg: #ffffff;
+  --action-hover: #6b499f;
+  --link: #bda0e8;
+
+  --shadow-card:
+    inset 0 1px 0 0 color-mix(in oklab, white 6%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.28),
+    0 8px 20px rgb(0 0 0 / 0.22);
+  --shadow-overlay:
+    inset 0 1px 0 0 color-mix(in oklab, white 6%, transparent),
+    0 12px 32px rgb(0 0 0 / 0.45),
+    0 4px 10px rgb(0 0 0 / 0.3);
+  --scroll-shadow-color: rgb(0 0 0 / 0.42);
 
   --sidebar-bg: #1d1720;
   --sidebar-text: #ede7dd;
@@ -79,10 +117,14 @@
   --mint-dark: #6ee7b7;
 
   --success: #5cc498;
+  --success-text: #5cc498;
   --success-soft: rgba(92, 196, 152, 0.16);
   --warning: #f0b65e;
+  --warning-text: #f0b65e;
   --warning-soft: rgba(240, 182, 94, 0.16);
   --danger: #e9696b;
+  --danger-text: #f58b8d;
+  --danger-action: #b93643;
   --danger-soft: rgba(233, 105, 107, 0.16);
 }
 
@@ -94,6 +136,11 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
+
+  --color-action-bg: var(--action-bg);
+  --color-action-fg: var(--action-fg);
+  --color-action-hover: var(--action-hover);
+  --color-link: var(--link);
 
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-text: var(--sidebar-text);
@@ -109,10 +156,14 @@
   --color-mist: var(--mist);
 
   --color-success: var(--success);
+  --color-success-text: var(--success-text);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
+  --color-danger-action: var(--danger-action);
   --color-danger-soft: var(--danger-soft);
 
   --color-ink: var(--ink);
@@ -162,10 +213,79 @@
   }
 }
 
+html {
+  color-scheme: light dark;
+  scroll-padding-top: 5rem;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+}
+
 body {
   background-color: var(--background);
   color: var(--text-primary);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-size-adjust: from-font;
+}
+
+.font-bricolage,
+.font-mono {
+  font-size-adjust: from-font;
+}
+
+::selection {
+  background-color: var(--grape-soft);
+  color: var(--text-primary);
+}
+
+/* Keyboard focus must never be invisible even when components use focus:outline-hidden */
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+.heading-balance {
+  text-wrap: balance;
+}
+
+.prose-pretty {
+  text-wrap: pretty;
+}
+
+/* Native autofill theme synchronization */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  -webkit-text-fill-color: var(--text-primary);
+  caret-color: var(--text-primary);
+}
+
+:is(input, textarea, select):autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  -webkit-text-fill-color: var(--text-primary);
+  caret-color: var(--text-primary);
 }
 
 @keyframes marquee {
@@ -180,7 +300,12 @@ body {
 .animate-marquee {
   display: flex;
   width: max-content;
-  animation: marquee 35s linear infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-marquee {
+    animation: marquee 35s linear infinite;
+  }
 }
 
 .animate-marquee,
@@ -955,5 +1080,447 @@ body {
     transition-duration: 0.32s, 0.24s, 0.32s, 0.32s;
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease, ease, ease;
     transition-behavior: allow-discrete;
+  }
+}
+
+/* ==========================================================================
+   Form Validation & Controls (Modern Web Guidance)
+   ========================================================================== */
+:where(
+  input:not([type="range"], [type="checkbox"], [type="radio"], [type="hidden"]),
+  textarea,
+  select,
+  .field-control
+):is(:user-invalid, .user-invalid-fallback) {
+  border-color: var(--danger);
+}
+
+:where(
+  .field-validate :where(
+    input:not([type="range"], [type="checkbox"], [type="radio"], [type="hidden"]),
+    textarea,
+    select
+  ),
+  .field-control
+):is(:user-valid, .user-valid-fallback) {
+  border-color: var(--success);
+}
+
+.field-textarea {
+  resize: vertical;
+  field-sizing: content;
+  min-block-size: 5.5rem;
+  max-block-size: 18rem;
+}
+
+.select-native {
+  appearance: none;
+  background-color: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding-inline: 0.75rem 2.25rem;
+  padding-block: 0.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b6355' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem 1rem;
+}
+
+.select-native:dir(rtl) {
+  background-position: left 0.75rem center;
+}
+
+.dark .select-native {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a79fae' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.select-native:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+  border-color: var(--link);
+}
+
+/* ==========================================================================
+   Layered Depth & Ticket Elevation
+   ========================================================================== */
+.surface-card-depth {
+  box-shadow: var(--shadow-card);
+}
+
+.surface-overlay-depth {
+  box-shadow: var(--shadow-overlay);
+}
+
+.ticket-perforated {
+  filter: drop-shadow(0 2px 6px rgb(33 26 38 / 0.08))
+    drop-shadow(0 1px 2px rgb(33 26 38 / 0.06));
+}
+
+.dark .ticket-perforated {
+  filter: drop-shadow(0 4px 12px rgb(0 0 0 / 0.35));
+}
+
+/* ==========================================================================
+   Scroll Details (Reactive Header & Scrollability Affordance Hints)
+   ========================================================================== */
+@keyframes header-scroll-elevate {
+  from {
+    box-shadow: 0 0 0 transparent;
+    border-bottom-color: var(--border);
+  }
+  to {
+    box-shadow: var(--shadow-card);
+    border-bottom-color: color-mix(in oklab, var(--text-muted) 45%, var(--border));
+  }
+}
+
+@supports ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .header-scroll-reactive {
+      animation: header-scroll-elevate linear both;
+      animation-timeline: scroll(block root);
+      animation-range: 0px 48px;
+    }
+  }
+}
+
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes reveal-fade-start {
+  to {
+    --fade-start: var(--fade-size);
+  }
+}
+
+@keyframes hide-fade-end {
+  from {
+    --fade-end: var(--fade-size);
+  }
+}
+
+.scroll-fade-x {
+  overflow-x: auto;
+  scroll-padding-inline: 1.5rem;
+}
+
+@supports (
+  (animation-timeline: scroll()) and
+  (animation-range: 0% 100%) and
+  (mask-image: linear-gradient(black, black))
+) {
+  .scroll-fade-x {
+    --fade-size: 1.5rem;
+    --fade-dir: right;
+    --fade-start-pos: 0;
+    --fade-end-pos: 100%;
+    mask:
+      linear-gradient(black, black) no-clip subtract,
+      linear-gradient(to var(--fade-dir), black, transparent) var(--fade-start-pos) 0 / var(--fade-start) 100% no-repeat no-clip,
+      linear-gradient(to var(--fade-dir), transparent, black) var(--fade-end-pos) 0 / var(--fade-end) 100% no-repeat no-clip;
+    animation: reveal-fade-start linear both, hide-fade-end linear both;
+    animation-timeline: scroll(self inline);
+    animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+  }
+
+  .scroll-fade-x:dir(rtl) {
+    --fade-dir: left;
+    --fade-start-pos: 100%;
+    --fade-end-pos: 0;
+  }
+}
+
+.scroll-shadows-y {
+  overflow-y: auto;
+  container-type: scroll-state;
+}
+
+.scroll-shadows-y::before,
+.scroll-shadows-y::after {
+  content: "";
+  display: block;
+  position: sticky;
+  block-size: 0.75rem;
+  flex-shrink: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.scroll-shadows-y::before {
+  inset-block-start: 0;
+  margin-block-end: -0.75rem;
+  background: radial-gradient(farthest-side at 50% 0, var(--scroll-shadow-color), transparent);
+}
+
+.scroll-shadows-y::after {
+  inset-block-end: 0;
+  margin-block-start: -0.75rem;
+  background: radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow-color), transparent);
+}
+
+@container scroll-state(scrollable: top) {
+  .scroll-shadows-y::before {
+    opacity: 1;
+  }
+}
+
+@container scroll-state(scrollable: bottom) {
+  .scroll-shadows-y::after {
+    opacity: 1;
+  }
+}
+
+.scroll-shadows-x {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  container-type: scroll-state;
+}
+
+.scroll-shadows-x::before,
+.scroll-shadows-x::after {
+  content: "";
+  display: block;
+  position: sticky;
+  inline-size: 0.75rem;
+  flex-shrink: 0;
+  align-self: stretch;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.scroll-shadows-x::before {
+  inset-inline-start: 0;
+  margin-inline-end: -0.75rem;
+  background: radial-gradient(farthest-side at 0 50%, var(--scroll-shadow-color), transparent);
+}
+
+.scroll-shadows-x::after {
+  inset-inline-end: 0;
+  margin-inline-start: -0.75rem;
+  background: radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow-color), transparent);
+}
+
+@container scroll-state(scrollable: left) {
+  .scroll-shadows-x::before {
+    opacity: 1;
+  }
+}
+
+@container scroll-state(scrollable: right) {
+  .scroll-shadows-x::after {
+    opacity: 1;
+  }
+}
+
+@keyframes show-shadow {
+  to {
+    opacity: 1;
+  }
+}
+
+@supports not (container-type: scroll-state) {
+  .scroll-shadows-y::before,
+  .scroll-shadows-y::after {
+    animation: show-shadow linear both;
+    animation-timeline: scroll();
+  }
+
+  .scroll-shadows-y::before {
+    animation-range: 0 2rem;
+  }
+
+  .scroll-shadows-y::after {
+    animation-direction: reverse;
+    animation-range: calc(100% - 2rem) 100%;
+  }
+
+  .scroll-shadows-x::before,
+  .scroll-shadows-x::after {
+    animation: show-shadow linear both;
+    animation-timeline: scroll(nearest inline);
+  }
+
+  .scroll-shadows-x::before {
+    animation-range: 0 2rem;
+  }
+
+  .scroll-shadows-x::after {
+    animation-direction: reverse;
+    animation-range: calc(100% - 2rem) 100%;
+  }
+}
+
+@supports not ((container-type: scroll-state) or (animation-timeline: scroll())) {
+  .scroll-shadows-y {
+    background:
+      linear-gradient(var(--surface) 30%, transparent) top / 100% 2.5rem no-repeat local,
+      linear-gradient(transparent, var(--surface) 70%) bottom / 100% 2.5rem no-repeat local,
+      radial-gradient(farthest-side at 50% 0, var(--scroll-shadow-color), transparent) top / 100% 0.75rem no-repeat,
+      radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow-color), transparent) bottom / 100% 0.75rem no-repeat,
+      var(--surface);
+  }
+
+  .scroll-shadows-x {
+    background:
+      linear-gradient(to right, var(--surface) 30%, transparent) left / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, var(--surface) 30%, transparent) right / 2.5rem 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, var(--scroll-shadow-color), transparent) left / 0.75rem 100% no-repeat,
+      radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow-color), transparent) right / 0.75rem 100% no-repeat,
+      var(--surface);
+  }
+}
+
+/* ==========================================================================
+   Top-Layer Dialog & Entry/Exit Motion
+   ========================================================================== */
+dialog.modal-dialog {
+  opacity: 0;
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog.modal-dialog {
+    transform: scale(0.96) translateY(6px);
+  }
+}
+
+dialog.modal-dialog::backdrop {
+  background-color: rgb(23 18 27 / 0);
+  backdrop-filter: blur(0px);
+  transition-property: background-color, backdrop-filter, display, overlay;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+:is(dialog.modal-dialog[open]):where(:not([data-closing])) {
+  opacity: 1;
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(1) translateY(0);
+
+    @starting-style {
+      transform: scale(0.96) translateY(6px);
+    }
+  }
+
+  &::backdrop {
+    background-color: rgb(23 18 27 / 0.55);
+    backdrop-filter: blur(2px);
+
+    @starting-style {
+      background-color: rgb(23 18 27 / 0);
+      backdrop-filter: blur(0px);
+    }
+  }
+}
+
+.modal-panel-animate {
+  opacity: 1;
+  transition-property: opacity, transform;
+  transition-duration: 0.2s;
+  transition-timing-function: var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(1) translateY(0);
+
+    @starting-style {
+      transform: scale(0.96) translateY(6px);
+    }
+  }
+}
+
+.drawer-panel-animate {
+  opacity: 1;
+  transition-property: opacity, transform;
+  transition-duration: 0.24s;
+  transition-timing-function: var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: translateX(0);
+
+    @starting-style {
+      transform: translateX(100%);
+    }
+  }
+}
+
+.drawer-panel-animate:dir(rtl) {
+  @media (prefers-reduced-motion: no-preference) {
+    @starting-style {
+      transform: translateX(-100%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.modal-dialog,
+  dialog.modal-dialog::backdrop,
+  .modal-panel-animate,
+  .drawer-panel-animate {
+    transition-duration: 0.1s;
+  }
+}
+
+/* ==========================================================================
+   Forced Colors Mode (Windows High Contrast)
+   ========================================================================== */
+@media (forced-colors: active) {
+  :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  button,
+  [role="button"] {
+    border: 1px solid ButtonText;
+  }
+
+  .select-native {
+    appearance: auto;
+    background-image: none;
+  }
+
+  .surface-card-depth,
+  .surface-overlay-depth,
+  .ticket,
+  .ticket-on-ink,
+  .ticket-on-paper {
+    border: 1px solid CanvasText;
+  }
+
+  dialog.modal-dialog,
+  [role="dialog"] {
+    border: 2px solid CanvasText;
   }
 }

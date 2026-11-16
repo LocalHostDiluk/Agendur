@@ -20,7 +20,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           ? "Modo oscuro activo (clic para claro)"
           : "Modo claro activo (clic para oscuro)"
       }
-      className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full bg-surface-alt border border-border p-0.5 transition-colors duration-200 focus:outline-hidden focus:ring-2 focus:ring-grape/30 select-none ${className}`}
+      className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full bg-surface-alt border border-border p-0.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape select-none ${className}`}
     >
       {/* Background track icons */}
       <span

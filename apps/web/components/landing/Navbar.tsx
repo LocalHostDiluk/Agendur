@@ -32,7 +32,7 @@ export function Navbar() {
   }, [mobileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper text-ink">
+    <header className="header-scroll-reactive sticky top-0 z-50 border-b-2 border-ink bg-paper text-ink">
       <a href="#main-content" className="skip-link">
         {lang === "en" ? "Skip to main content" : "Saltar al contenido principal"}
       </a>

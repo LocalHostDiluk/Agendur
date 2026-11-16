@@ -299,15 +299,15 @@ describe("Drawer de Detalle de Cita (apps/web/components/negocio/CitaDetailDrawe
     // Badge oficial de estado con dot (§5.12)
     expect(html).toContain("Confirmada");
     expect(html).toContain("bg-success-soft");
-    expect(html).toContain("text-success");
+    expect(html).toContain("text-[var(--success-text)]");
 
     // Botón oficial Button variant="primary" para completar (§5.13)
     expect(html).toContain("Marcar completada");
-    expect(html).toContain("bg-grape");
+    expect(html).toContain("bg-[var(--action-bg)]");
 
     // Botón oficial Button variant="destructive" para cancelar
     expect(html).toContain("Cancelar cita");
-    expect(html).toContain("bg-danger");
+    expect(html).toContain("bg-[var(--danger-action)]");
 
     // Botón oficial Button variant="secondary" para guardar notas
     expect(html).toContain("Guardar notas");

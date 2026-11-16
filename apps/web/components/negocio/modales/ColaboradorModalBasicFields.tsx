@@ -66,7 +66,7 @@ export function ColaboradorModalBasicFields({
           <select
             id={`${idPrefix}-sucursal`} required value={sucursalId}
             onChange={(e) => onChangeSucursalId(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+            className="select-native w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
           >
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>{s.nombre} {s.es_matriz ? "(Matriz)" : ""}</option>
@@ -83,7 +83,7 @@ export function ColaboradorModalBasicFields({
           </div>
           <select
             id={`${idPrefix}-rol`} value={rol} onChange={(e) => onChangeRol(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+            className="select-native w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
           >
             {COLABORADOR_ROLES.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>

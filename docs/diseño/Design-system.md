@@ -192,11 +192,12 @@ Radio md; altura visual 40 px en escritorio, 32 px para acción compacta y 44 px
 ### 4.2 Formularios y selección
 
 - Label visible y asociado, placeholder de ejemplo, ayuda opcional y error concreto debajo. Campos opcionales identificados.
-- Inputs con radio sm, superficie del contexto y foco visible; error con texto, icono si ayuda y `aria-invalid`/`aria-describedby`.
-- Validar al continuar/enviar y después al corregir; no mostrar errores antes de que el usuario interactúe.
-- Select nativo primero; usar el existente si aporta búsqueda o selección compleja. Checkbox y radio conservan semántica nativa.
+- Inputs con radio sm, superficie del contexto y foco visible (`:focus-visible`); error con texto e icono o prefijo no dependiente solo del color. `aria-invalid` y `aria-describedby` se asignan de forma condicional únicamente cuando el error está activo.
+- Validar tras la interacción mediante `:user-invalid` / `:user-valid` en CSS (excluyendo controles deslizantes `input[type="range"]`) y al continuar/enviar o corregir; no mostrar errores antes de que el usuario interactúe.
+- Los `<textarea>` usan `resize: vertical; field-sizing: content` para permitir ajuste manual sin romper el ancho ni cortar texto largo.
+- Select nativo primero; usar el existente si aporta búsqueda o selección compleja. Checkbox y radio conservan semántica nativa; los grupos de opción múltiple en línea usan `<fieldset>` y `<legend>` con estilizado vía `label:has(:checked)`.
 - Pills y tarjetas seleccionables usan radio/checkbox o botón semántico con estado accesible. El usuario debe distinguir selección por borde/check, además de color.
-- Conservar datos al volver, ante error de red y al reintentar. No bloquear gestores de contraseñas ni pegar texto.
+- Conservar datos al volver, ante error de red y al reintentar. No bloquear gestores de contraseñas ni pegar texto. En campos de correo electrónico, especificar `autocomplete`, `autoCorrect="off"`, `autoCapitalize="none"` y `spellCheck={false}`; en atajos o envíos por teclado, proteger la composición IME (`isComposing || keyCode === 229`).
 
 ### 4.3 Tablas y cards
 
@@ -503,9 +504,13 @@ Reutilizar utilidades CSS existentes. Muescas: 24 px en tarjeta y 16 px en botó
 
 Sidebar: 200 ms; modal: fade/scale 0.95→1 y drawer: slide, ambos 320 ms; paso de wizard: fade o desplazamiento de hasta 24 px, 200 ms; toast: comportamiento existente. No esperar a una animación de salida completa antes de permitir la tarea siguiente.
 
+**Transiciones nativas (*top layer* y DOM):** preferir CSS nativo con `@starting-style`, `transition-behavior: allow-discrete` y `overlay` para transiciones de entrada y salida en diálogos, popovers, drawers y elementos del DOM; como *fallback* compatible con Firefox y Safari en cierres diferidos de capa superior, usar `closeTopLayer` con el atributo `[data-closing]`. Reservar `motion` para coreografías interactivas, gestos o *shared-layout* que CSS no exprese.
+
+**Animaciones ligadas al scroll:** implementar efectos dependientes del desplazamiento mediante `animation-timeline: scroll()` dentro de bloques `@supports (animation-timeline: scroll())` con estado estático legible como *fallback*.
+
 KPI muestra el valor real desde el principio; no count-up obligatorio. Gráfica puede tener una entrada de hasta 600 ms, una vez, si no afecta lectura; no reiniciarla en refetch. El shimmer de carga dura 1.4 s por ciclo. `--motion-page` de 400 ms existe en CSS pero no se aplica automáticamente a cada ruta.
 
-**Movimiento reducido:** renderizar directamente el estado final; sin shimmer, pulsos, desplazamientos, glitch, count-up ni confetti. No mantener un fade obligatorio de 100 ms. Las actualizaciones de estado y anuncios accesibles continúan. Si hay movimiento decorativo continuo, debe poder detenerse; evitarlo como opción predeterminada.
+**Movimiento reducido (estrategia *opt-in*):** partir del estado final estático por defecto y habilitar transformaciones espaciales, rotaciones, *marquees*, *shimmer*, pulsos, desplazamientos, *glitch*, *count-up* o *confetti* únicamente dentro de `@media (prefers-reduced-motion: no-preference)`. Mantener activas las transiciones sin desplazamiento (color o fondo) y permitir *fades* más breves en `reduce` cuando aporten claridad, sin imponer un fade obligatorio de 100 ms. Las actualizaciones de estado y anuncios accesibles continúan. Toda animación automática que dure más de 5 s debe poder pausarse o detenerse (WCAG 2.2.2); evitar el movimiento decorativo continuo como opción predeterminada.
 
 React Bits/Magic UI son referencias de efectos y componentes copiados, no requisitos de instalación. Reutilizar equivalentes locales/CSS/Motion. Un error siempre renderiza texto y salida aunque falle la decoración; el portal no descarga fondos interactivos.
 
@@ -518,6 +523,9 @@ React Bits/Magic UI son referencias de efectos y componentes copiados, no requis
 - Diálogos con gestión completa del foco; no confiar en que una librería garantiza por sí sola la accesibilidad.
 - Objetivo de producto: áreas táctiles de **44×44 px**. WCAG 2.2 AA establece 24×24 px con condiciones/excepciones; 44 px es nuestra elección más cómoda. Ver [WCAG: tamaño de objetivo](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
 - Reflow a 320 px, zoom y texto ampliado sin pérdida de acciones; barras fijas no ocultan campos ni mensajes.
+- **Foco sin obstrucción (*Focus Not Obscured*):** definir `scroll-padding-top` acorde a la altura de barras o cabeceras fijas (`sticky`) para que ningún elemento enfocado quede tapado al desplazarse (WCAG 2.4.11).
+- **Alto contraste del sistema:** incluir una línea base mínima en `@media (forced-colors: active)` que preserve bordes, separaciones e indicadores de foco visibles sin depender del color de fondo de marca.
+- **Pausa en animaciones persistentes:** toda animación automática o continua que dure más de 5 segundos debe ofrecer un control accesible para pausarla o detenerla (WCAG 2.2.2).
 - Portal: objetivo de interacción inicial <2.5 s en una prueba 4G definida, no una garantía sin medición. CSS y HTML primero; animación opcional fuera del camino crítico.
 - No afirmar conformidad AA o rendimiento a partir de una paleta o de esta revisión documental: validar la pantalla y el flujo reales.
 
@@ -525,16 +533,16 @@ React Bits/Magic UI son referencias de efectos y componentes copiados, no requis
 
 Esta es la lista para aplicar la guía, no una declaración de cambios ya realizados.
 
-| Prioridad | Mejora | Evidencia de aceptación |
-| --- | --- | --- |
-| P0 | Corregir texto tenue, acciones oscuras y roles de estado | Contraste medido sobre fondos y transparencias reales |
-| P0 | Aislar tema de papel/ticket y acento del negocio | Portal y comprobante legibles al entrar desde dashboard oscuro |
-| P0 | Conservar datos y recuperar reserva/pago inciertos | Error de red o cupo ocupado no duplica operación ni borra contacto |
-| P1 | Retirar mínimos de skeleton/procesamiento y éxito | Datos y resultado disponibles al terminar; sin demora artificial |
-| P1 | Alinear carga con wizard y agenda reales | Mismo paso/grid antes y después; días/semana correctos |
-| P1 | Revisar controles en 320 px, teclado y móvil | Calendario sin overflow, foco visible y CTA sin solapamientos |
-| P1 | Unificar duración de modales y reducción de movimiento | Un solo motor y estado final estático con reducción activada |
-| P2 | Dosificar ticket, simplificar bento y gráficas | La tarea domina; no hay métricas ficticias ni color semántico ambiguo |
+| Prioridad | Mejora | Evidencia de aceptación | Estado |
+| --- | --- | --- | --- |
+| P0 | Corregir texto tenue, acciones oscuras y roles de estado | Contraste medido sobre fondos y transparencias reales | En progreso en `feat/modern-web-polish` |
+| P0 | Aislar tema de papel/ticket y acento del negocio | Portal y comprobante legibles al entrar desde dashboard oscuro | Pendiente |
+| P0 | Conservar datos y recuperar reserva/pago inciertos | Error de red o cupo ocupado no duplica operación ni borra contacto | Pendiente |
+| P1 | Retirar mínimos de skeleton/procesamiento y éxito (`useDelayedSkeleton` y `ProcessingOverlay`) | Datos y resultado disponibles al terminar; sin demora artificial | Pendiente (fuera de `feat/modern-web-polish`, para PR separado) |
+| P1 | Alinear carga con wizard y agenda reales | Mismo paso/grid antes y después; días/semana correctos | Pendiente |
+| P1 | Revisar controles en 320 px, teclado y móvil | Calendario sin overflow, foco visible y CTA sin solapamientos | Pendiente |
+| P1 | Unificar duración de modales, pulido web nativo y reducción de movimiento *opt-in* | CSS nativo (`@starting-style`, `closeTopLayer`), `:focus-visible`, `:user-invalid`, `scroll-padding-top`, `forced-colors` y estado final estático en `reduce` | En progreso en `feat/modern-web-polish` |
+| P2 | Dosificar ticket, simplificar bento y gráficas | La tarea domina; no hay métricas ficticias ni color semántico ambiguo | Pendiente |
 
 ### 13.1 Supuestos que necesitan evidencia
 

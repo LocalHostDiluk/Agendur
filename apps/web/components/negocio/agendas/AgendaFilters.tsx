@@ -23,7 +23,7 @@ export function AgendaFilters({ sucursales, profesionales, filterSucursal, filte
               <select
                 value={filterSucursal}
                 onChange={(e) => setFilterSucursal(e.target.value)}
-                className="bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
+                className="select-native bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus-visible:border-grape min-h-[40px]"
                 aria-label="Filtrar por sucursal"
               >
                 <option value="">Todas las sucursales</option>
@@ -40,7 +40,7 @@ export function AgendaFilters({ sucursales, profesionales, filterSucursal, filte
               <select
                 value={filterProfesional}
                 onChange={(e) => setFilterProfesional(e.target.value)}
-                className="bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
+                className="select-native bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus-visible:border-grape min-h-[40px]"
                 aria-label="Filtrar por profesional"
               >
                 <option value="">Todos los profesionales</option>
@@ -63,7 +63,7 @@ export function AgendaFilters({ sucursales, profesionales, filterSucursal, filte
               onChange={(e) =>
                 setFilterEstado(e.target.value as EstadoCita | "")
               }
-              className="bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus:outline-hidden focus:border-grape min-h-[36px]"
+              className="select-native bg-surface-alt/60 border border-border text-xs rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus-visible:border-grape min-h-[40px]"
               aria-label="Filtrar por estado de cita"
             >
               <option value="">Todos los estados</option>

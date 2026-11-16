@@ -49,7 +49,7 @@ export function PagosFilterBar({
         <select
           value={estadoFilter}
           onChange={(e) => onEstadoChange(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius-sm)] bg-surface border border-border text-xs font-medium text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[40px]"
+          className="select-native px-3 py-2 rounded-[var(--radius-sm)] bg-surface border border-border text-xs font-medium text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[40px]"
         >
           <option value="todos">Todos los estados</option>
           <option value="pagado">Pagado</option>
@@ -60,7 +60,7 @@ export function PagosFilterBar({
         <select
           value={metodoFilter}
           onChange={(e) => onMetodoChange(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius-sm)] bg-surface border border-border text-xs font-medium text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[40px]"
+          className="select-native px-3 py-2 rounded-[var(--radius-sm)] bg-surface border border-border text-xs font-medium text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[40px]"
         >
           <option value="todos">Todos los métodos</option>
           <option value="stripe">Stripe (Tarjeta)</option>

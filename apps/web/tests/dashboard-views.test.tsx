@@ -299,7 +299,7 @@ describe("Dashboard Views & Onboarding Brand Polish (Fase 3 — Design System §
       expect(html).toContain("border-dashed border-border");
     });
 
-    it("renderiza el botón primario de Agendur con tokens oficiales (bg-grape / Button)", () => {
+    it("renderiza el botón primario de Agendur con tokens oficiales (bg-[var(--action-bg)] / Button)", () => {
       const html = renderWithClient(React.createElement(OnboardingPage), {
         auth: newOwnerOnboarding,
         branches: [],
@@ -307,7 +307,7 @@ describe("Dashboard Views & Onboarding Brand Polish (Fase 3 — Design System §
       });
 
       // Botón submit con tokens Agendur
-      expect(html).toContain("bg-grape text-white");
+      expect(html).toContain("bg-[var(--action-bg)] text-[var(--action-fg)]");
       expect(html).toContain("rounded-[var(--radius-md)]");
       expect(html).toContain('type="submit"');
       expect(html).toContain("Guardar y abrir panel");

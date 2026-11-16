@@ -28,11 +28,12 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
         React.createElement(Button, null, "Guardar")
       );
       expect(html).toContain("Guardar");
-      expect(html).toContain("bg-grape");
-      expect(html).toContain("text-white");
+      expect(html).toContain("bg-[var(--action-bg)]");
+      expect(html).toContain("text-[var(--action-fg)]");
       expect(html).toContain("h-10 px-4 text-sm");
       expect(html).toContain("rounded-[var(--radius-md)]");
-      expect(html).toContain("active:scale-[0.98]");
+      expect(html).toContain("motion-safe:active:scale-[0.98]");
+      expect(html).toContain("focus-visible:outline-grape");
       expect(html).toContain("duration-100");
     });
 
@@ -40,8 +41,8 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       const primary = renderToStaticMarkup(
         React.createElement(Button, { variant: "primary" }, "Primary")
       );
-      expect(primary).toContain("bg-grape");
-      expect(primary).toContain("text-white");
+      expect(primary).toContain("bg-[var(--action-bg)]");
+      expect(primary).toContain("text-[var(--action-fg)]");
 
       const secondary = renderToStaticMarkup(
         React.createElement(Button, { variant: "secondary" }, "Secondary")
@@ -68,13 +69,13 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       const danger = renderToStaticMarkup(
         React.createElement(Button, { variant: "danger" }, "Danger")
       );
-      expect(danger).toContain("bg-danger");
+      expect(danger).toContain("bg-[var(--danger-action)]");
       expect(danger).toContain("text-white");
 
       const destructive = renderToStaticMarkup(
         React.createElement(Button, { variant: "destructive" }, "Destructive")
       );
-      expect(destructive).toContain("bg-danger");
+      expect(destructive).toContain("bg-[var(--danger-action)]");
       expect(destructive).toContain("text-white");
     });
 
@@ -141,7 +142,7 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       expect(html).toContain("bg-surface");
       expect(html).toContain("border-border");
       expect(html).toContain("rounded-[var(--radius-md)]");
-      expect(html).toContain("shadow-xs");
+      expect(html).toContain("surface-card-depth");
       expect(html).toContain("transition-colors");
       expect(html).toContain("custom-card");
 
@@ -176,7 +177,7 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       const success = renderToStaticMarkup(
         React.createElement(Badge, { variant: "success" }, "Confirmada")
       );
-      expect(success).toContain("text-success");
+      expect(success).toContain("text-[var(--success-text)]");
       expect(success).toContain("bg-success-soft");
       expect(success).toContain("border-success/20");
       expect(success).toContain("bg-success"); // Punto de color
@@ -185,7 +186,7 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       const warning = renderToStaticMarkup(
         React.createElement(Badge, { variant: "warning" }, "Pendiente")
       );
-      expect(warning).toContain("text-warning");
+      expect(warning).toContain("text-[var(--warning-text)]");
       expect(warning).toContain("bg-warning-soft");
       expect(warning).toContain("border-warning/20");
       expect(warning).toContain("bg-warning");
@@ -194,7 +195,7 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       const danger = renderToStaticMarkup(
         React.createElement(Badge, { variant: "danger" }, "Cancelada")
       );
-      expect(danger).toContain("text-danger");
+      expect(danger).toContain("text-[var(--danger-text)]");
       expect(danger).toContain("bg-danger-soft");
       expect(danger).toContain("border-danger/20");
       expect(danger).toContain("bg-danger");
@@ -280,7 +281,7 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
   });
 
   describe("Modal Component", () => {
-    it("retorna null si isOpen es false", () => {
+    it("mantiene el elemento <dialog> en el DOM sin atributo open ni contenido cuando isOpen es false", () => {
       const html = renderToStaticMarkup(
         React.createElement(
           Modal,
@@ -288,10 +289,13 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
           "Contenido oculto"
         )
       );
-      expect(html).toBe("");
+      expect(html).toContain("<dialog");
+      expect(html).toContain("modal-dialog");
+      expect(html).not.toMatch(/<dialog[^>]*\sopen(?:=|\s|>)/);
+      expect(html).not.toContain("Contenido oculto");
     });
 
-    it("renderiza backdrop, contenedor accesible, título y contenido si isOpen es true", () => {
+    it("renderiza <dialog> nativo accesible, título, descripción, scroll-shadows y contenido si isOpen es true", () => {
       const html = renderToStaticMarkup(
         React.createElement(
           Modal,
@@ -305,10 +309,13 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
         )
       );
 
-      expect(html).toContain('role="dialog"');
-      expect(html).toContain('aria-modal="true"');
-      expect(html).toContain("fixed inset-0 z-50");
-      expect(html).toContain("backdrop-blur-xs");
+      expect(html).toContain("<dialog");
+      expect(html).toContain("modal-dialog");
+      expect(html).toContain("surface-overlay-depth");
+      expect(html).toContain("aria-labelledby=");
+      expect(html).toContain("aria-describedby=");
+      expect(html).toContain("heading-balance");
+      expect(html).toContain("scroll-shadows-y");
       expect(html).toContain("Confirmar Reserva");
       expect(html).toContain("Esta acción enviará una notificación al cliente");
       expect(html).toContain("Detalles de la cita");
@@ -327,7 +334,8 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
         )
       );
 
-      expect(html).toContain('role="dialog"');
+      expect(html).toContain("<dialog");
+      expect(html).toContain("modal-dialog");
       expect(html).toContain("Solo contenido");
       expect(html).not.toContain('aria-label="Cerrar"');
     });

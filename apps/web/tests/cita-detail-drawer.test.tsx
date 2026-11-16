@@ -101,7 +101,7 @@ describe("CitaDetailDrawer Component", () => {
     // 4. Badge oficial con dot para estado pendiente_pago (§5.12)
     expect(html).toContain("Pendiente de pago");
     expect(html).toContain("bg-warning-soft");
-    expect(html).toContain("text-warning");
+    expect(html).toContain("text-[var(--warning-text)]");
 
     // 5. Sección Cliente con avatar, etiqueta y enlaces directos
     expect(html).toContain("Santiago Pérez");
@@ -129,9 +129,9 @@ describe("CitaDetailDrawer Component", () => {
 
     // 8. Botones de acción rápida con primitivas oficiales (§5.13): al ser pendiente_pago, Confirmar cita y Cancelar cita
     expect(html).toContain("Confirmar cita");
-    expect(html).toContain("bg-grape");
+    expect(html).toContain("bg-[var(--action-bg)]");
     expect(html).toContain("Cancelar cita");
-    expect(html).toContain("bg-danger");
+    expect(html).toContain("bg-[var(--danger-action)]");
   });
 
   it("renderiza botón 'Marcar completada' y badge confirmada cuando la cita está confirmada", () => {
@@ -152,11 +152,11 @@ describe("CitaDetailDrawer Component", () => {
     // Badge oficial de éxito (§5.12)
     expect(html).toContain("Confirmada");
     expect(html).toContain("bg-success-soft");
-    expect(html).toContain("text-success");
+    expect(html).toContain("text-[var(--success-text)]");
 
     // Botón Marcar completada
     expect(html).toContain("Marcar completada");
-    expect(html).toContain("bg-grape");
+    expect(html).toContain("bg-[var(--action-bg)]");
     expect(html).toContain("Cancelar cita");
   });
 
@@ -178,7 +178,7 @@ describe("CitaDetailDrawer Component", () => {
     // Badge oficial de peligro (§5.12)
     expect(html).toContain("Cancelada");
     expect(html).toContain("bg-danger-soft");
-    expect(html).toContain("text-danger");
+    expect(html).toContain("text-[var(--danger-text)]");
 
     // Al no ser confirmada, permite reactivar con Confirmar cita, y NO muestra Cancelar cita
     expect(html).toContain("Confirmar cita");

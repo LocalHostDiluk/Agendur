@@ -46,7 +46,7 @@ export function ModalCitaManualScheduleFields({
           onChange={(e) => onChangeSucursal(e.target.value)}
           disabled={isSubmitting || sucursales.length === 0}
           required
-          className="w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
+          className="select-native w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
         >
           {sucursales.length === 0 ? (
             <option value="" disabled>
@@ -77,7 +77,7 @@ export function ModalCitaManualScheduleFields({
           onChange={(e) => onChangeServicio(e.target.value)}
           disabled={isSubmitting || servicios.length === 0}
           required
-          className="w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
+          className="select-native w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
         >
           {servicios.length === 0 ? (
             <option value="" disabled>
@@ -124,7 +124,7 @@ export function ModalCitaManualScheduleFields({
             onChange={(e) => onChangeHora(e.target.value)}
             disabled={isSubmitting}
             required
-            className="w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary font-mono focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
+            className="select-native w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary font-mono focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
           >
             {FRANJAS_HORARIAS.map((slot) => (
               <option key={slot} value={slot}>

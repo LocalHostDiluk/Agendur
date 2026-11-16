@@ -101,7 +101,7 @@ export function ReportesHeaderFilters({
           <select
             value={sucursalSeleccionada}
             onChange={(e) => onSucursalChange(e.target.value)}
-            className="w-full sm:w-56 px-3 py-2 rounded-[var(--radius-sm)] bg-surface border border-border text-xs font-medium text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+            className="select-native w-full sm:w-56 px-3 py-2 rounded-[var(--radius-sm)] bg-surface border border-border text-xs font-medium text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[38px]"
           >
             <option value="todas">Todas las sedes</option>
             {sucursales.map((s) => (

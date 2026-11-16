@@ -14,26 +14,28 @@ export function RegisterSucursalesSelector({
   onChange,
 }: RegisterSucursalesSelectorProps) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[12px] font-medium text-text-primary">
+    <fieldset className="min-w-0">
+      <legend className="block text-[12px] font-medium text-text-primary mb-1.5">
         Número de sucursales
-      </label>
+      </legend>
       <div className="grid grid-cols-3 gap-2">
         {SUCURSALES_OPTIONS.map((opt) => (
-          <button
+          <label
             key={opt}
-            type="button"
-            onClick={() => onChange(opt)}
-            className={`h-[40px] rounded-md text-[14px] font-medium border transition-all ${
-              value === opt
-                ? "bg-grape text-white border-grape shadow-sm"
-                : "bg-surface border-border text-text-secondary hover:text-text-primary hover:border-text-muted"
-            }`}
+            className="relative flex items-center justify-center h-[40px] rounded-md text-[14px] font-medium border transition-all cursor-pointer select-none bg-surface border-border text-text-secondary hover:text-text-primary hover:border-text-muted has-checked:bg-grape has-checked:text-white has-checked:border-grape has-checked:shadow-sm has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-grape"
           >
-            {opt}
-          </button>
+            <input
+              type="radio"
+              name="sucursales-tier"
+              value={opt}
+              checked={value === opt}
+              onChange={() => onChange(opt)}
+              className="sr-only"
+            />
+            <span>{opt}</span>
+          </label>
         ))}
       </div>
-    </div>
+    </fieldset>
   );
 }

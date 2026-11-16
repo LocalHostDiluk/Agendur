@@ -63,7 +63,7 @@ export function BookingStepHora(props: BookingStepHoraProps) {
             setProfesionalId(e.target.value);
             setHora("");
           }}
-          className="w-full min-h-[44px] px-3.5 py-2.5 rounded-lg border border-border bg-surface-alt text-sm text-text-primary focus:outline-none focus:border-grape cursor-pointer"
+          className="select-native w-full min-h-[44px] px-3.5 py-2.5 rounded-lg border border-border bg-surface-alt text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape cursor-pointer"
         >
           <option value="">Cualquier profesional disponible</option>
           {profesionalesDisponibles.map((p) => (

@@ -41,7 +41,7 @@ export function HeroSection() {
             <div>
               <Link
                 href="/register"
-                className="inline-flex bg-flame px-6 py-4 font-semibold text-ink transition-colors hover:bg-flame/90 focus:outline-hidden focus:ring-2 focus:ring-flame focus:ring-offset-2 focus:ring-offset-ink"
+                className="inline-flex bg-flame px-6 py-4 font-semibold text-ink transition-colors hover:bg-flame/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
               >
                 {t.hero.ctaPrimary}
               </Link>
@@ -49,7 +49,7 @@ export function HeroSection() {
             </div>
             <a
               href="#como-funciona"
-              className="border-b border-paper/60 pb-1 font-semibold transition-colors hover:border-flame hover:text-flame focus:outline-hidden focus:ring-2 focus:ring-flame"
+              className="border-b border-paper/60 pb-1 font-semibold transition-colors hover:border-flame hover:text-flame focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
             >
               {t.hero.secondaryLink}
             </a>

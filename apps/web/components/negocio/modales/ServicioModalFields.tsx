@@ -47,7 +47,7 @@ export function ServicioModalFields({
           id="servicio-descripcion" rows={3} maxLength={200}
           placeholder="Configura el servicio que tus clientes podrán reservar." value={descripcion}
           onChange={(e) => onChangeDescripcion(e.target.value)} disabled={isSubmitting}
-          className="w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 resize-none"
+          className="field-textarea w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50"
         />
       </div>
 

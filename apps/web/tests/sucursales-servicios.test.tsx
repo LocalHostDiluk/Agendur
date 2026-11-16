@@ -152,7 +152,7 @@ describe("Página de Sucursales y Servicios (apps/web/app/(negocio)/sucursales/p
     );
 
     // Botón primario oficial Button
-    expect(html).toContain("bg-grape text-white");
+    expect(html).toContain("bg-[var(--action-bg)] text-[var(--action-fg)]");
     expect(html).toContain("Agregar Sucursal");
   });
 
@@ -180,10 +180,10 @@ describe("Página de Sucursales y Servicios (apps/web/app/(negocio)/sucursales/p
 
     // Badge oficial
     expect(html).toContain("inline-flex items-center gap-x-1.5 font-medium rounded-full");
-    expect(html).toContain("text-success bg-success-soft");
+    expect(html).toContain("text-[var(--success-text)] bg-success-soft");
 
     // Botones con variante danger para eliminación
-    expect(html).toContain("bg-danger text-white");
+    expect(html).toContain("bg-[var(--danger-action)] text-white");
     expect(html).toContain("aria-label=\"Eliminar sucursal Sucursal Central Polanco\"");
   });
 

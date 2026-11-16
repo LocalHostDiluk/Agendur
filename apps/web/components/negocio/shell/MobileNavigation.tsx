@@ -64,7 +64,7 @@ export function MobileNavigation({
       <button
         type="button"
         onClick={handleNewAppointment}
-        className="fixed bottom-20 right-4 z-40 bg-grape text-white rounded-full p-3.5 shadow-lg active:scale-95 transition-all hover:bg-grape/90 focus:outline-hidden flex items-center justify-center cursor-pointer"
+        className="fixed bottom-20 right-4 z-40 bg-grape text-white rounded-full p-3.5 shadow-lg active:scale-95 transition-all hover:bg-grape/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape flex items-center justify-center cursor-pointer"
         aria-label="Nueva cita"
         title="Nueva cita"
       >
@@ -105,7 +105,7 @@ export function MobileNavigation({
         <button
           type="button"
           onClick={onMenuToggle}
-          className="flex flex-col items-center justify-center flex-1 py-1 h-full text-text-muted hover:text-text-secondary font-medium transition-colors focus:outline-hidden cursor-pointer"
+          className="flex flex-col items-center justify-center flex-1 py-1 h-full text-text-muted hover:text-text-secondary font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape cursor-pointer"
           aria-label="Más opciones"
         >
           <Menu className="w-5 h-5 shrink-0" strokeWidth={1.75} />

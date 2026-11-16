@@ -21,16 +21,16 @@ import {
 
 describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseño/Design-system.md)", () => {
   describe("Button Component (§5.13 & §4.4)", () => {
-    it("renderiza botón primario con token bg-grape, texto blanco, radio md y sin clases obsoletas", () => {
+    it("renderiza botón primario con token bg-[var(--action-bg)], texto var(--action-fg), radio md y sin clases obsoletas", () => {
       const html = renderToStaticMarkup(
         React.createElement(Button, { variant: "primary" }, "Guardar Cita")
       );
 
       // Tokens oficiales
-      expect(html).toContain("bg-grape");
-      expect(html).toContain("text-white");
+      expect(html).toContain("bg-[var(--action-bg)]");
+      expect(html).toContain("text-[var(--action-fg)]");
       expect(html).toContain("rounded-[var(--radius-md)]");
-      expect(html).toContain("active:scale-[0.98]");
+      expect(html).toContain("motion-safe:active:scale-[0.98]");
       expect(html).toContain("duration-100");
       expect(html).toContain("Guardar Cita");
 
@@ -45,7 +45,7 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
         React.createElement(Button, null, "Acción Principal")
       );
 
-      expect(html).toContain("bg-grape");
+      expect(html).toContain("bg-[var(--action-bg)]");
       expect(html).toContain("h-10 px-4 text-sm");
       expect(html).toContain("rounded-[var(--radius-md)]");
     });
@@ -59,16 +59,16 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
       expect(html).toContain("border border-border");
       expect(html).toContain("text-text-primary");
       expect(html).toContain("hover:bg-surface-alt");
-      expect(html).toContain("active:scale-[0.98]");
+      expect(html).toContain("motion-safe:active:scale-[0.98]");
       expect(html).not.toContain("bg-gray-100");
       expect(html).not.toContain("dark:bg-neutral-700");
     });
 
-    it("renderiza variantes destructivas (danger y destructive) con token bg-danger sólido", () => {
+    it("renderiza variantes destructivas (danger y destructive) con token bg-[var(--danger-action)] sólido", () => {
       const dangerHtml = renderToStaticMarkup(
         React.createElement(Button, { variant: "danger" }, "Eliminar")
       );
-      expect(dangerHtml).toContain("bg-danger");
+      expect(dangerHtml).toContain("bg-[var(--danger-action)]");
       expect(dangerHtml).toContain("text-white");
       expect(dangerHtml).toContain("rounded-[var(--radius-md)]");
       expect(dangerHtml).not.toContain("bg-red-500");
@@ -76,7 +76,7 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
       const destructiveHtml = renderToStaticMarkup(
         React.createElement(Button, { variant: "destructive" }, "Eliminar Sucursal")
       );
-      expect(destructiveHtml).toContain("bg-danger");
+      expect(destructiveHtml).toContain("bg-[var(--danger-action)]");
       expect(destructiveHtml).toContain("text-white");
       expect(destructiveHtml).toContain("rounded-[var(--radius-md)]");
       expect(destructiveHtml).not.toContain("bg-red-500");
@@ -127,7 +127,7 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
       const successHtml = renderToStaticMarkup(
         React.createElement(Badge, { variant: "success" }, "Confirmada")
       );
-      expect(successHtml).toContain("text-success");
+      expect(successHtml).toContain("text-[var(--success-text)]");
       expect(successHtml).toContain("bg-success-soft");
       expect(successHtml).toContain("border-success/20");
       expect(successHtml).not.toContain("bg-teal-100");
@@ -136,7 +136,7 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
       const warningHtml = renderToStaticMarkup(
         React.createElement(Badge, { variant: "warning" }, "Pendiente")
       );
-      expect(warningHtml).toContain("text-warning");
+      expect(warningHtml).toContain("text-[var(--warning-text)]");
       expect(warningHtml).toContain("bg-warning-soft");
       expect(warningHtml).toContain("border-warning/20");
       expect(warningHtml).not.toContain("bg-amber-100");
@@ -145,7 +145,7 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
       const dangerHtml = renderToStaticMarkup(
         React.createElement(Badge, { variant: "danger" }, "Cancelada")
       );
-      expect(dangerHtml).toContain("text-danger");
+      expect(dangerHtml).toContain("text-[var(--danger-text)]");
       expect(dangerHtml).toContain("bg-danger-soft");
       expect(dangerHtml).toContain("border-danger/20");
       expect(dangerHtml).not.toContain("bg-red-100");
@@ -234,7 +234,7 @@ describe("Dashboard Visual Alignment & Design Tokens — Agendur UI (docs/diseñ
       expect(html).toContain("bg-surface");
       expect(html).toContain("border border-border");
       expect(html).toContain("rounded-[var(--radius-md)]");
-      expect(html).toContain("shadow-xs");
+      expect(html).toContain("surface-card-depth");
       expect(html).toContain("kpi-card");
 
       // Ausencia de clases sin token

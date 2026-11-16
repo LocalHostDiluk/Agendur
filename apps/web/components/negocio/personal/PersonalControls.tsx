@@ -69,7 +69,7 @@ export function PersonalControls({ activeTab, setActiveTab, totalColaboradores, 
             <select
               value={selectedSucursalId}
               onChange={(e) => setSelectedSucursalId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+              className="select-native w-full px-3 py-2 rounded-lg bg-surface border border-border text-xs text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[38px]"
               aria-label="Filtrar por sucursal"
             >
               <option value="todas">Todas las sedes</option>

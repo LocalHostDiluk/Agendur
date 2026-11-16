@@ -36,7 +36,7 @@ export function Header({
   } = useShellHeader();
 
   return (
-    <header className="h-16 sticky top-0 z-30 bg-surface border-b border-border px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
+    <header className="header-scroll-reactive h-16 sticky top-0 z-30 bg-surface border-b border-border px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
       <HeaderSearchOverlay
         isOpen={isSearchOpen}
         searchQuery={searchQuery}
@@ -50,7 +50,7 @@ export function Header({
         <button
           type="button"
           onClick={onMenuToggle}
-          className="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
+          className="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape"
           aria-label="Abrir menú de navegación"
         >
           <Menu className="w-5 h-5" strokeWidth={1.75} />
@@ -60,7 +60,7 @@ export function Header({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden md:flex p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
+            className="hidden md:flex p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape"
             title={
               isSidebarCollapsed
                 ? "Expandir barra lateral"
@@ -91,7 +91,7 @@ export function Header({
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="hidden md:flex items-center justify-between gap-3 px-3 py-1.5 w-48 lg:w-60 rounded-lg bg-surface-alt hover:bg-surface-alt/80 border border-border text-xs text-text-muted hover:text-text-secondary transition-all cursor-text focus:outline-hidden focus:border-grape/60"
+          className="hidden md:flex items-center justify-between gap-3 px-3 py-1.5 w-48 lg:w-60 rounded-lg bg-surface-alt hover:bg-surface-alt/80 border border-border text-xs text-text-muted hover:text-text-secondary transition-all cursor-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape/60"
           aria-label="Buscar citas, clientes o servicios (Ctrl+K o ⌘K)"
           title="Buscar (Ctrl+K o ⌘K)"
         >
@@ -111,7 +111,7 @@ export function Header({
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="xl:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden"
+          className="xl:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape"
           aria-label="Buscar"
           title="Buscar"
         >
