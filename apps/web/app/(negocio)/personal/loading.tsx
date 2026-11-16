@@ -1,8 +1,4 @@
-import {
-  SkeletonBlock,
-  SkeletonText,
-  SkeletonCircle,
-} from "@/components/ui/Skeleton";
+import { SkeletonBlock, SkeletonText, SkeletonCircle } from "@/components/ui/Skeleton";
 
 export function PersonalLoading() {
   return (
@@ -18,17 +14,14 @@ export function PersonalLoading() {
             Personal y equipo
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Administra los colaboradores, roles, asignación de servicios y
-            turnos de trabajo.
+            Administra los colaboradores, roles, asignación de servicios y turnos de trabajo.
           </p>
         </div>
-
         <SkeletonBlock className="h-[44px] w-48 rounded-lg shrink-0" />
       </div>
 
       {/* Barra de Control: Selector de vistas y Filtros */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Pills Switcher */}
         <div className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-fit shrink-0">
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-alt min-h-[38px]">
             <SkeletonBlock className="w-4 h-4 rounded" />
@@ -41,7 +34,6 @@ export function PersonalLoading() {
           </div>
         </div>
 
-        {/* Filtros */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 lg:max-w-md lg:justify-end">
           <SkeletonBlock className="h-[38px] w-full sm:w-48 rounded-lg shrink-0" />
           <SkeletonBlock className="h-[38px] w-full flex-1 rounded-lg" />
@@ -56,10 +48,8 @@ export function PersonalLoading() {
             className="bg-surface border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-xs"
           >
             <div className="space-y-3.5">
-              {/* Avatar circular + Info básica */}
               <div className="flex items-start gap-3.5">
                 <SkeletonCircle className="w-12 h-12 shrink-0" />
-
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <SkeletonText className="h-4 w-32" />
@@ -70,13 +60,11 @@ export function PersonalLoading() {
                 </div>
               </div>
 
-              {/* Fila de contacto */}
               <div className="pt-2 border-t border-border flex items-center gap-3">
                 <SkeletonText className="h-3 w-24" />
                 <SkeletonText className="h-3 w-28" />
               </div>
 
-              {/* Chips de servicio */}
               <div className="space-y-2 pt-1">
                 <SkeletonText className="h-3 w-24" />
                 <div className="flex flex-wrap gap-1.5">
@@ -87,7 +75,6 @@ export function PersonalLoading() {
               </div>
             </div>
 
-            {/* Footer de métricas */}
             <div className="pt-3 border-t border-border flex items-center justify-between">
               <SkeletonText className="h-3 w-20" />
               <SkeletonBlock className="h-4 w-14 rounded" />

@@ -1,8 +1,4 @@
-import {
-  SkeletonBlock,
-  SkeletonText,
-  SkeletonCircle,
-} from "@/components/ui/Skeleton";
+import { SkeletonBlock, SkeletonText, SkeletonCircle } from "@/components/ui/Skeleton";
 
 export function ConfiguracionLoading() {
   return (
@@ -22,37 +18,24 @@ export function ConfiguracionLoading() {
             suscripción de tu negocio.
           </p>
         </div>
-
         <SkeletonBlock className="h-[40px] w-36 rounded-[var(--radius-md)] shrink-0" />
       </div>
 
       {/* 5 Pestañas Superiores (§10) */}
       <div className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-xl max-w-full overflow-x-auto">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-alt min-h-[38px] shrink-0">
-          <SkeletonBlock className="w-4 h-4 rounded" />
-          <SkeletonText className="w-24 h-3.5" />
-        </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
-          <SkeletonBlock className="w-4 h-4 rounded" />
-          <SkeletonText className="w-28 h-3.5" />
-        </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
-          <SkeletonBlock className="w-4 h-4 rounded" />
-          <SkeletonText className="w-24 h-3.5" />
-        </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
-          <SkeletonBlock className="w-4 h-4 rounded" />
-          <SkeletonText className="w-28 h-3.5" />
-        </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg min-h-[38px] shrink-0">
-          <SkeletonBlock className="w-4 h-4 rounded" />
-          <SkeletonText className="w-24 h-3.5" />
-        </div>
+        {["w-24", "w-28", "w-24", "w-28", "w-24"].map((width, index) => (
+          <div
+            key={index}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg${index === 0 ? " bg-surface-alt" : ""} min-h-[38px] shrink-0`}
+          >
+            <SkeletonBlock className="w-4 h-4 rounded" />
+            <SkeletonText className={`${width} h-3.5`} />
+          </div>
+        ))}
       </div>
 
       {/* Tarjetas de Formulario */}
       <div className="space-y-6">
-        {/* Tarjeta 1: Portal Público */}
         <div className="bg-surface-alt border border-border rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -61,17 +44,14 @@ export function ConfiguracionLoading() {
             </div>
             <SkeletonBlock className="w-16 h-5 rounded-full" />
           </div>
-
           <SkeletonBlock className="h-12 w-full rounded-xl" />
         </div>
 
-        {/* Tarjeta 2: Formulario de Datos Comerciales */}
         <div className="bg-surface border border-border rounded-2xl p-6 space-y-6">
           <div className="space-y-1 pb-4 border-b border-border">
             <SkeletonText className="w-44 h-5" />
             <SkeletonText className="w-72 h-3.5" />
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[1, 2, 3, 4].map((field) => (
               <div key={field} className="space-y-2">
@@ -82,19 +62,14 @@ export function ConfiguracionLoading() {
           </div>
         </div>
 
-        {/* Tarjeta 3: Políticas y Opciones */}
         <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
           <div className="space-y-1 pb-4 border-b border-border">
             <SkeletonText className="w-48 h-5" />
             <SkeletonText className="w-80 h-3.5" />
           </div>
-
           <div className="divide-y divide-border">
             {[1, 2, 3].map((row) => (
-              <div
-                key={row}
-                className="flex items-start justify-between gap-4 py-3"
-              >
+              <div key={row} className="flex items-start justify-between gap-4 py-3">
                 <div className="space-y-1">
                   <SkeletonText className="w-40 h-4" />
                   <SkeletonText className="w-64 h-3" />

@@ -83,3 +83,8 @@ export * from "./AgendaEmpty";
 export * from "./AgendaHeader";
 export * from "./AgendaControls";
 export * from "./AgendaViews";
+export * from "./configuracion";
+export * from "./sucursales";
+export * from "./pagos";
+export * from "./reportes";
+export * from "./onboarding";
