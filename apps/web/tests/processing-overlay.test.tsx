@@ -84,51 +84,84 @@ describe("ProcessingOverlay Component (Sección 3)", () => {
     });
   });
 
-  describe("3. Mensajes por Proceso", () => {
-    it("proceso 'pago' muestra el primer mensaje en ES y EN", () => {
+  describe("3. Mensajes por Proceso (§8.2 sin rotación artificial)", () => {
+    it("proceso 'pago' muestra el mensaje canónico en ES y EN", () => {
       const htmlEs = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} process="pago" lang="es" />
       );
-      expect(htmlEs).toContain("Verificando datos de pago…");
+      expect(htmlEs).toContain("Procesando tu pago…");
+      expect(htmlEs).not.toContain("Verificando datos de pago…");
+      expect(htmlEs).not.toContain("Procesando con la pasarela…");
 
       const htmlEn = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} process="pago" lang="en" />
       );
-      expect(htmlEn).toContain("Verifying payment details…");
+      expect(htmlEn).toContain("Processing your payment…");
     });
 
-    it("proceso 'reporte' muestra el primer mensaje en ES y EN", () => {
+    it("proceso 'reporte' muestra el mensaje canónico en ES y EN", () => {
       const htmlEs = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} process="reporte" lang="es" />
       );
-      expect(htmlEs).toContain("Recopilando datos…");
+      expect(htmlEs).toContain("Preparando tu reporte…");
 
       const htmlEn = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} process="reporte" lang="en" />
       );
-      expect(htmlEn).toContain("Gathering data…");
+      expect(htmlEn).toContain("Preparing your report…");
     });
 
-    it("proceso 'reserva' muestra el primer mensaje en ES y EN", () => {
+    it("proceso 'reserva' muestra el mensaje canónico en ES y EN", () => {
       const htmlEs = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} process="reserva" lang="es" />
       );
-      expect(htmlEs).toContain("Verificando disponibilidad…");
+      expect(htmlEs).toContain("Confirmando tu cita…");
 
       const htmlEn = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} process="reserva" lang="en" />
       );
-      expect(htmlEn).toContain("Checking availability…");
+      expect(htmlEn).toContain("Confirming your appointment…");
+    });
+
+    it("muestra progreso explícito del backend con stageMessage y respaldo customMessages[0]", () => {
+      const htmlStage = renderToStaticMarkup(
+        <ProcessingOverlay
+          isOpen={true}
+          process="pago"
+          stageMessage="Validando cobro con Stripe…"
+          customMessages={["Mensaje secundario"]}
+        />
+      );
+      expect(htmlStage).toContain("Validando cobro con Stripe…");
+      expect(htmlStage).not.toContain("Mensaje secundario");
+
+      const htmlLegacy = renderToStaticMarkup(
+        <ProcessingOverlay
+          isOpen={true}
+          process="pago"
+          customMessages={["Primer mensaje backend", "Segundo mensaje ignorado"]}
+        />
+      );
+      expect(htmlLegacy).toContain("Primer mensaje backend");
+      expect(htmlLegacy).not.toContain("Segundo mensaje ignorado");
+    });
+
+    it("usa movimiento reducido opt-in en CSS y elimina demoras artificiales", () => {
+      const html = renderToStaticMarkup(
+        <ProcessingOverlay isOpen={true} process="pago" lang="es" />
+      );
+      expect(html).toContain("@media (prefers-reduced-motion: no-preference)");
+      expect(html).not.toContain("@media (prefers-reduced-motion: reduce)");
     });
   });
 
   describe("4. Estados de Éxito y Error", () => {
-    it("estado de éxito renderiza ícono CircleCheck y texto ¡Listo! / Done!", () => {
+    it("estado de éxito renderiza ícono CircleCheck con --success-text y texto ¡Listo! / Done!", () => {
       const htmlEs = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} status="success" lang="es" />
       );
       expect(htmlEs).toContain("¡Listo!");
-      expect(htmlEs).toContain("text-[var(--mint,#46b88a)]");
+      expect(htmlEs).toContain("text-[var(--success-text)]");
 
       const htmlEn = renderToStaticMarkup(
         <ProcessingOverlay isOpen={true} status="success" lang="en" />
@@ -136,7 +169,7 @@ describe("ProcessingOverlay Component (Sección 3)", () => {
       expect(htmlEn).toContain("Done!");
     });
 
-    it("estado de error renderiza ícono CircleAlert, mensaje de error y botón Reintentar", () => {
+    it("estado de error renderiza ícono CircleAlert con --danger-text, mensaje y botón Reintentar con --action-bg", () => {
       const html = renderToStaticMarkup(
         <ProcessingOverlay
           isOpen={true}
@@ -148,10 +181,12 @@ describe("ProcessingOverlay Component (Sección 3)", () => {
       );
 
       expect(html).toContain("lucide-circle-alert");
-      expect(html).toContain("text-[var(--danger,#d14343)]");
+      expect(html).toContain("text-[var(--danger-text)]");
       expect(html).toContain("Error al conectar con la pasarela de pago");
       expect(html).toContain("Reintentar");
-      expect(html).toContain("bg-[var(--grape,#6e49a6)]");
+      expect(html).toContain("bg-[var(--action-bg)]");
+      expect(html).toContain("text-[var(--action-fg)]");
+      expect(html).toContain("focus-visible:outline-grape");
     });
 
     it("estado de error en inglés renderiza texto 'Retry'", () => {

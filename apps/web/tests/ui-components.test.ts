@@ -402,7 +402,7 @@ describe("UI Kit Base - Agendur Design System Primitives", () => {
       expect(html).toContain("ticket-on-ink");
       expect(html).toContain("w-[320px]");
       expect(html).toContain("agendur-pulse-dot");
-      expect(html).toContain("Verificando disponibilidad…");
+      expect(html).toContain("Confirmando tu cita…");
       expect(html).toContain("perforacion");
       expect(html).toContain("Esto puede tardar unos segundos.");
     });
