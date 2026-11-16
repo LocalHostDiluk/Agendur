@@ -1,4 +1,4 @@
-# Inventario integral del backend — tareas A, B y C
+# Inventario integral del backend — tareas A, B, C, D y E
 
 Auditoría del **2 de octubre de 2026 (Monterrey)**, baseline de código
 `ae591563521cc06145deec2b7cc9fd197a5f15d7`, rama
@@ -10,11 +10,11 @@ A entrega inventario, reglas, evidencia y backlog. No mueve módulos, corrige
 comportamiento, reorganiza frontend, cambia SQL ni instala dependencias.
 Los puntos de entrada de Next conservan sus URLs. Las ubicaciones propuestas
 eran tareas futuras; ninguna carpeta de dominio se creó por anticipado en A.
-Las actualizaciones B y C siguientes localizan el código vigente. **Las tablas,
+Las actualizaciones B, C, D y E siguientes localizan el código vigente. **Las tablas,
 tamaños, líneas y observaciones desde «Línea base de A» conservan la fotografía
 de A y su SHA**, incluidas las rutas antiguas como referencias históricas. Para
-reservas/horarios y operaciones trasladadas se usan los mapas B/C; los hallazgos
-funcionales siguen pendientes, sin correcciones encubiertas por los movimientos.
+reservas/horarios, operaciones, identidad, pagos y notificaciones trasladadas se usan los mapas B/C/D; los hallazgos
+funcionales (`OP-*`, `PAY-*`, `SEC-*`, `INF-02/03`, `I-*`) siguen pendientes en el backlog funcional, sin correcciones encubiertas por los movimientos.
 
 ## Estado de ejecución y control de alcance
 
@@ -22,9 +22,9 @@ funcionales siguen pendientes, sin correcciones encubiertas por los movimientos.
 |---|---|---|
 | A Inventario integral y reglas | `codex/backend-inventario-reglas` | Publicada y merge humano PR #37 comprobado en main; commit A `4271b6b1ab52aa68ef7d9a406c675f14c67151cc` ancestro de la base B |
 | B Reservas, disponibilidad y horarios | `codex/backend-organizacion-reservas` | Publicada y merge humano PR #39 comprobado en main; incluida en la base C `81c5bffe` |
-| C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Implementada y verificada en commit local `705ebc75`; publicación no comprobada. Corrección INF-01 autorizada en esta misma rama antes de D, con commit separado |
-| D Identidad, pagos e infraestructura | `codex/backend-organizacion-integraciones` | Pendiente; proveedores y cookies preservados |
-| E Cierre y backlog | `codex/backend-cierre-organizacion` | Pendiente; verificación integral y tareas funcionales posteriores |
+| C Profesionales, personal y catálogo | `codex/backend-organizacion-operacion` | Completada y verificada en commit `705ebc75`; corrección `INF-01` integrada antes de D |
+| D Identidad, pagos e infraestructura | `codex/backend-organizacion-integraciones` | Completada; rutas adelgazadas (`register`, `account`, `suscripcion`, `citas`) y módulos extraídos en `lib/backend/auth/`, `lib/payments/`, `lib/backend/reservas/` y `lib/backend/notificaciones/`; proveedores y cookies preservados |
+| E Cierre y backlog | `codex/backend-cierre-organizacion` | Completada; verificación integral (`build --webpack` y `tsc --noEmit` en 0 errores) y backlog funcional (`OP-*`, `PAY-*`, `SEC-*`, `INF-02/03`, `I-*`) preservado para fases posteriores |
 
 Responsables: `backend-identidad-audit` inventaría identidad y revisa el diff de
 documentación independientemente; `backend-operaciones-audit` inventaría operaciones
@@ -34,7 +34,7 @@ Un solo escritor del checkout a la vez; el orquestador coordina. Tras publicaci�
 se pausa para merge del usuario. B mantiene esa separación: operaciones implementa,
 identidad audita/revisa y verificación comprueba e integra. C conserva un único
 escritor, revisión independiente y verificador para integración/publicación.
-D y E siguen pendientes y no están autorizadas.
+D y E completan la reorganización por dominio y el cierre documental/verificación sin alterar el comportamiento funcional ni resolver de forma encubierta el backlog.
 
 Evidencia distinguida: lectura actual de código y SQL local; baseline controlada
 actual; observación remota de sólo lectura; resultados históricos explícitos.
@@ -252,6 +252,22 @@ PersonalView tiene 92 líneas. La colocación nativa conserva `./loading`, no cr
 URLs ni carpetas nuevas y evita cambios arbitrarios por tamaño. No hubo cambios
 de backend, SQL, dependencias, contratos HTTP ni verificación remota/proveedores.
 El commit local separado se registra al completar revisión y Git; no implica push.
+
+## Tareas D y E: identidad, pagos, citas de negocio y cierre de organización
+
+La **Tarea D (`codex/backend-organizacion-integraciones`)** y el cierre de organización (**Tarea E**, `codex/backend-cierre-organizacion`) completan la extracción de módulos pendientes respetando contratos HTTP, cabeceras, cookies, compensaciones y adaptadores:
+
+- **Rutas HTTP adelgazadas** (relativas a `apps/web/`):
+  - `app/api/auth/register/route.ts` (84 líneas): conserva rate limit, verificación Turnstile, parseo HTTP y delegación a `validar-registro` y `registrar-cuenta`.
+  - `app/api/auth/account/route.ts` (70 líneas): conserva validación de `Origin`, rate limit, sesión SSR y delegación a `eliminar-cuenta`.
+  - `app/api/negocio/suscripcion/route.ts` (58 líneas): conserva `requireNegocioAccess` (`billing:read` / `billing:write`), rate limit de checkout Stripe y delegación a `suscripcion-negocio`.
+  - `app/api/negocio/citas/route.ts` (77 líneas): conserva `requireNegocioAccess` (`appointments:read` / `appointments:write`), verificación de suscripción activa y delegación a `citas-negocio`.
+- **Módulos creados y organizados** (relativos a `apps/web/`):
+  - `lib/backend/auth/validar-registro.ts` (177 líneas), `lib/backend/auth/registrar-cuenta.ts` (225 líneas) y `lib/backend/auth/eliminar-cuenta.ts` (174 líneas).
+  - `lib/payments/stripe-client.ts` (195 líneas), `lib/payments/stripe-webhooks.ts` (233 líneas), `lib/payments/suscripcion-negocio.ts` (169 líneas) y `lib/payments/stripe-adapter.ts` (148 líneas).
+  - `lib/backend/reservas/citas-negocio.ts` (171 líneas).
+  - `lib/backend/notificaciones/whatsapp-service.ts` (21 líneas; reemplaza la ubicación anterior `lib/backend/whatsapp-service.ts` y mantiene la simulación existente).
+- **Control de alcance funcional (Tarea E)**: ninguno de los hallazgos funcionales (`OP-*`, `PAY-*`, `SEC-*`, `INF-02/03`, `I-*`) se declara resuelto por esta reorganización; todos permanecen abiertos en el backlog funcional posterior (el único hallazgo de infraestructura resuelto previamente fue `INF-01`).
 
 ## Línea base de A (histórica, anterior a las extracciones B y C)
 
@@ -688,3 +704,10 @@ dependencias, fixtures ni nuevas escrituras remotas. Logs finales de esta ejecuc
 en `/tmp/backend-a-final-{test,lint,build-webpack,tsc-after-build}.log`; no son archivos
 de entrega permanentes. La publicación se acredita con SHA y URL en la entrega de
 rama; no marcarla realizada antes de que ocurra.
+
+### Cierre de verificación de las Tareas D y E
+
+Con la finalización de la **Tarea D (`codex/backend-organizacion-integraciones`)** y la **Tarea E (`codex/backend-cierre-organizacion`)**:
+- Todas las rutas objetivo quedan ≤150 líneas (`register/route.ts` 84 l., `account/route.ts` 70 l., `suscripcion/route.ts` 58 l., `citas/route.ts` 77 l.) y los nuevos módulos cumplen el límite de ≤250 líneas (`validar-registro.ts` 177 l., `registrar-cuenta.ts` 225 l., `eliminar-cuenta.ts` 174 l., `stripe-client.ts` 195 l., `stripe-webhooks.ts` 233 l., `suscripcion-negocio.ts` 169 l., `stripe-adapter.ts` 148 l., `citas-negocio.ts` 171 l., `notificaciones/whatsapp-service.ts` 21 l.).
+- El build de producción (`bun run build --webpack`) y la verificación de tipos con tipos Next generados (`bunx tsc --noEmit`) pasan con **0 errores**.
+- Los hallazgos funcionales (`OP-01` a `OP-07`, `PAY-01` a `PAY-05`, `SEC-01`, `SEC-02`, `INF-02`, `INF-03`, `I-01` a `I-03`) no fueron modificados durante la reorganización y permanecen íntegros en el backlog funcional para las fases siguientes.

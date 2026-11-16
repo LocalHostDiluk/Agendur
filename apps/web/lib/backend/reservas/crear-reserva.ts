@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { adminClient } from "@/lib/supabase/admin";
 import { assertActiveSubscription } from "@/lib/payments/guards";
-import { enviarNotificacionWhatsApp } from "../whatsapp-service";
+import { enviarNotificacionWhatsApp } from "../notificaciones/whatsapp-service";
 import { isCalendarDate, getBusinessToday } from "@/lib/utils/business-date";
 import type { Cita } from "@/lib/types";
 import { minutesToTime, timeToMinutes } from "./calculo-disponibilidad";

@@ -573,7 +573,7 @@ describe("Bloque A — privacidad en telemetría y clasificación de errores", (
 
   it("el stub de WhatsApp no escribe el teléfono ni el mensaje del cliente en consola", async () => {
     const { enviarNotificacionWhatsApp } = await import(
-      "@/lib/backend/whatsapp-service"
+      "@/lib/backend/notificaciones/whatsapp-service"
     );
 
     const salida: unknown[] = [];
@@ -612,6 +612,86 @@ describe("Bloque B — gate de Stripe: fila local e idempotencia", () => {
       .digest("hex");
     return `t=${t},v1=${v1}`;
   };
+
+  it("rechaza una firma incorrecta por HTTP sin consultar ni escribir la base", async () => {
+    const { getAdminClient } = await import("@/lib/supabase/admin");
+    const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const originalKey = process.env.STRIPE_SECRET_KEY;
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_valid";
+    process.env.STRIPE_SECRET_KEY = originalKey ?? "sk_test_dummy";
+    const client = getAdminClient();
+    const originalFrom = client.from;
+    let queries = 0;
+    try {
+      (client as unknown as Record<string, unknown>).from = () => { queries++; throw new Error("DB must not be consulted"); };
+      const payload = JSON.stringify({ id: "evt_bad_signature", type: "customer.subscription.deleted", data: { object: { id: "sub_1" } } });
+      const signature = await firmar(payload, "whsec_different");
+      const response = await webhookHandler(new NextRequest("http://localhost:3000/api/webhooks/stripe", {
+        method: "POST", body: payload, headers: { "stripe-signature": signature },
+      }));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "Firma de webhook inválida o alterada." });
+      expect(queries).toBe(0);
+    } finally {
+      (client as unknown as Record<string, unknown>).from = originalFrom;
+      if (originalSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+      else process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+      if (originalKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+      else process.env.STRIPE_SECRET_KEY = originalKey;
+    }
+  });
+
+  it("conserva efectos de suscripción y factura firmados; un error DB no registra el evento", async () => {
+    const { getAdminClient } = await import("@/lib/supabase/admin");
+    const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const originalKey = process.env.STRIPE_SECRET_KEY;
+    const secret = "whsec_test_effects";
+    process.env.STRIPE_WEBHOOK_SECRET = secret;
+    process.env.STRIPE_SECRET_KEY = originalKey ?? "sk_test_dummy";
+    const client = getAdminClient();
+    const originalFrom = client.from;
+    const writes: Array<{ payload: Record<string, unknown>; filter: [string, string] }> = [];
+    const order: string[] = [];
+    let dbError: { message: string } | null = null;
+    try {
+      (client as unknown as Record<string, unknown>).from = (table: string) => table === "stripe_webhook_events" ? {
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+        insert: async () => { order.push("ledger"); return { error: null }; },
+      } : {
+        update: (payload: Record<string, unknown>) => ({ eq: (column: string, value: string) => {
+          order.push("effect"); writes.push({ payload, filter: [column, value] }); return Promise.resolve({ error: dbError });
+        } }),
+      };
+      const cases = [
+        { type: "customer.subscription.updated", object: { id: "sub_d", status: "unpaid", cancel_at_period_end: true }, expected: { estado: "past_due", cancel_at_period_end: true } },
+        { type: "customer.subscription.deleted", object: { id: "sub_d" }, expected: { estado: "canceled", cancel_at_period_end: false } },
+        { type: "invoice.payment_failed", object: { parent: { subscription_details: { subscription: { id: "sub_d" } } } }, expected: { estado: "past_due" } },
+        { type: "invoice.payment_failed", object: { subscription: "sub_d" }, expected: { estado: "past_due" } },
+      ] as const;
+      const adapter = new StripeGatewayAdapter();
+      for (const [index, item] of cases.entries()) {
+        const payload = JSON.stringify({ id: `evt_effect_${index}`, type: item.type, data: { object: item.object } });
+        const response = await adapter.handleWebhookEvent(payload, await firmar(payload, secret));
+        expect(response).toEqual({ received: true, event: item.type, handled: true, subscriptionId: "sub_d", estado: item.expected.estado });
+        expect(writes[index]).toEqual({ payload: item.expected, filter: ["subscription_external_id", "sub_d"] });
+        expect(order.slice(index * 2)).toEqual(["effect", "ledger"]);
+      }
+      dbError = { message: "database unavailable" };
+      const payload = JSON.stringify({ id: "evt_failed_effect", type: cases[0].type, data: { object: cases[0].object } });
+      await expect(adapter.handleWebhookEvent(payload, await firmar(payload, secret))).rejects.toThrow("Error actualizando suscripción en customer.subscription.updated: database unavailable");
+      expect(order).toEqual([...cases.flatMap(() => ["effect", "ledger"]), "effect"]);
+      dbError = null;
+      const retry = await adapter.handleWebhookEvent(payload, await firmar(payload, secret));
+      expect(retry.handled).toBe(true);
+      expect(order.slice(-3)).toEqual(["effect", "effect", "ledger"]);
+    } finally {
+      (client as unknown as Record<string, unknown>).from = originalFrom;
+      if (originalSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+      else process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+      if (originalKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+      else process.env.STRIPE_SECRET_KEY = originalKey;
+    }
+  });
 
   it("aplica el efecto una sola vez y responde sin mutar ante un reintento del mismo event.id", async () => {
     const { StripeGatewayAdapter } = await import("@/lib/payments");

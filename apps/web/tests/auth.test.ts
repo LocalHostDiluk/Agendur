@@ -76,6 +76,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
       let callbackUrl = "";
       let signUpCalls = 0;
       let subscriptionFails = false;
+      let provisioningFails: "perfiles_usuario" | "consentimientos_usuario" | null = null;
       let businessCleanupFails = false;
       let deleteCalls = 0;
       const cleanupOrder: string[] = [];
@@ -98,6 +99,7 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
           }),
           insert: (rows: unknown) => {
             inserts.push({ table, rows });
+            if (table === provisioningFails) return Promise.resolve({ error: { message: "provisioning failed" } });
             if (table === "suscripciones" && subscriptionFails) {
               return Promise.resolve({ error: { message: "trial failed" } });
             }
@@ -161,6 +163,24 @@ describe("Auth Route Handlers - Validaciones y Manejo de Errores", () => {
         });
         expect(callbackUrl).toBe("http://localhost:3000/api/auth/callback");
         expect(signUpCalls).toBe(3);
+
+        for (const table of ["perfiles_usuario", "consentimientos_usuario"] as const) {
+          provisioningFails = table;
+          const before = inserts.length;
+          const previousDeletes = deleteCalls;
+          cleanupOrder.length = 0;
+          const failed = await registerHandler(registrationRequest(validRegistration));
+          expect(failed.status).toBe(500);
+          expect(await failed.json()).toEqual({ success: false, ok: false,
+            error: "No se pudo completar el registro. Por favor intenta de nuevo." });
+          expect(inserts.slice(before).map(entry => entry.table)).toEqual(table === "perfiles_usuario"
+            ? ["perfiles_usuario"] : ["perfiles_usuario", "consentimientos_usuario"]);
+          expect(cleanupOrder).toEqual(["auth"]);
+          expect(deleteCalls).toBe(previousDeletes + 1);
+        }
+        provisioningFails = null;
+        deleteCalls = 0;
+        cleanupOrder.length = 0;
 
         subscriptionFails = true;
         const failedTrial = await registerHandler(registrationRequest(validRegistration));

@@ -19,11 +19,18 @@ el [estado y evidencia de B](INVENTARIO_BACKEND.md#tarea-b-reservas-disponibilid
 se distinguen de la auditoría histórica de A.
 
 La tarea C del **4 de octubre de 2026** parte de `main` en
-`81c5bffeec645f57911d559c11af2dfc86a57aef`, tras el merge de B (PR #39) y
+`81c5bffeec645f57911af2dfc86a57aef`, tras el merge de B (PR #39) y
 frontend (PR #38). El mapa vigente añade operaciones de profesionales, personal,
 servicios, sucursales y configuración. La
 [evidencia C](INVENTARIO_BACKEND.md#tarea-c-profesionales-personal-y-catálogo)
 conserva contratos, deuda funcional y pruebas de esta ejecución.
+
+Las tareas D (`codex/backend-organizacion-integraciones`) y E (`codex/backend-cierre-organizacion`)
+completan la reorganización del backend extrayendo las operaciones de identidad (`lib/backend/auth/`),
+pagos y Stripe (`lib/payments/`), citas del negocio (`lib/backend/reservas/citas-negocio.ts`)
+y notificaciones (`lib/backend/notificaciones/whatsapp-service.ts`), dejando las rutas HTTP
+adelgazadas y el backlog funcional (`OP-*`, `PAY-*`, `SEC-*`, `INF-02/03`, `I-*`) intacto para etapas posteriores.
+Ver [detalle de D y E](INVENTARIO_BACKEND.md#tareas-d-y-e-identidad-pagos-citas-de-negocio-y-cierre-de-organización).
 
 ## Fuente de verdad
 
@@ -53,15 +60,16 @@ la tarea correspondiente, después del merge humano de la tarea previa.
 | Cálculo temporal y ventanas de reserva | [`reservas/calculo-disponibilidad.ts`](../apps/web/lib/backend/reservas/calculo-disponibilidad.ts) | B: puro, minutos/día, excepciones/intersecciones y slots completos |
 | Consulta de disponibilidad | [`reservas/disponibilidad.ts`](../apps/web/lib/backend/reservas/disponibilidad.ts) | B: consultas y orquestación; cliente sólo consume HTTP |
 | Validación y creación de reserva | [`reservas/crear-reserva.ts`](../apps/web/lib/backend/reservas/crear-reserva.ts) | B: selección/configuración y una RPC cliente+cita; WhatsApp posterior |
+| Citas del negocio (consulta y cambio de estado) | [`reservas/citas-negocio.ts`](../apps/web/lib/backend/reservas/citas-negocio.ts) (171 l.) + [`ruta HTTP`](../apps/web/app/api/negocio/citas/route.ts) (77 l.) | D: filtros, alcances sede/profesional, proyección legacy y actualización de estado |
 | Sucursales | [`sucursales/servicio.ts`](../apps/web/lib/backend/sucursales/servicio.ts) + [`ruta HTTP`](../apps/web/app/api/negocio/sucursales/route.ts) | C: servicio existente, consulta autorizada, entrada de alta y eliminación; conserva exports createSucursal/getSucursalesByNegocio |
 | Profesionales y asignaciones | [`profesionales/`](../apps/web/lib/backend/profesionales/) + [`ruta HTTP`](../apps/web/app/api/negocio/profesionales/route.ts) | C: consultar-profesionales, crear-profesional, actualizar-profesional, asignar-servicios y eliminar-profesional |
 | Colaboradores y directorio | [`personal/`](../apps/web/lib/backend/personal/) + [`ruta HTTP`](../apps/web/app/api/negocio/personal/route.ts) | C: directorio y sus consultas reutilizadas, agregar-personal y actualizar-personal; baja lógica con activo=false |
 | Servicios | [`servicios/catalogo.ts`](../apps/web/lib/backend/servicios/catalogo.ts), [`validar-servicio.ts`](../apps/web/lib/backend/servicios/validar-servicio.ts) + [`ruta HTTP`](../apps/web/app/api/negocio/servicios/route.ts) | C: CRUD cohesionado y validación de alta/cambios; snapshots de citas intactos |
 | Configuración | [`configuracion/configuracion.ts`](../apps/web/lib/backend/configuracion/configuracion.ts) + [`ruta HTTP`](../apps/web/app/api/negocio/configuracion/route.ts) | C: lectura, preparación antes del body y modificación/proyecciones existentes |
-| Identidad, registro y baja | [`api/auth/`](../apps/web/app/api/auth/) | `lib/backend/auth/` para operaciones extensas, D |
+| Identidad, registro y baja | [`lib/backend/auth/`](../apps/web/lib/backend/auth/) (`validar-registro.ts` 177 l., `registrar-cuenta.ts` 225 l., `eliminar-cuenta.ts` 174 l.) + [`api/auth/`](../apps/web/app/api/auth/) (`register/route.ts` 84 l., `account/route.ts` 70 l.) | D: validación de registro, aprovisionamiento con compensación y baja anonimizada extraídos de las rutas |
 | Capacidades y selección de negocio | [`lib/auth/negocio-access.ts`](../apps/web/lib/auth/negocio-access.ts) | Mantener |
-| Planes, pagos y adaptadores | [`lib/payments/`](../apps/web/lib/payments/) | Mantener interfaz; separar Stripe por responsabilidades reales, D |
-| Notificación WhatsApp simulada | [`lib/backend/whatsapp-service.ts`](../apps/web/lib/backend/whatsapp-service.ts) | `lib/backend/notificaciones/`, D; sigue simulada |
+| Planes, pagos y adaptadores | [`lib/payments/`](../apps/web/lib/payments/) (`stripe-adapter.ts` 148 l., `stripe-client.ts` 195 l., `stripe-webhooks.ts` 233 l., `suscripcion-negocio.ts` 169 l.) + [`ruta HTTP`](../apps/web/app/api/negocio/suscripcion/route.ts) (58 l.) | D: interfaz preservada; cliente/sesiones Stripe, webhooks y operaciones de suscripción separados por responsabilidad |
+| Notificación WhatsApp simulada | [`lib/backend/notificaciones/whatsapp-service.ts`](../apps/web/lib/backend/notificaciones/whatsapp-service.ts) (21 l.) | D: movido a `lib/backend/notificaciones/`; sigue simulada |
 | Supabase, seguridad, instrumentación | [`lib/supabase/`](../apps/web/lib/supabase/), [`lib/security/`](../apps/web/lib/security/), [`instrumentation.ts`](../apps/web/instrumentation.ts) | Mantener ubicaciones coherentes, D |
 | Storage y Realtime | Políticas SQL, [`ImageUploadButton`](../apps/web/components/negocio/ImageUploadButton.tsx), [`lib/realtime/`](../apps/web/lib/realtime/) | Inventariar frontera browser/SSR; no mover frontend |
 | Validadores y tipos compartidos | [`lib/schedules/professional.ts`](../apps/web/lib/schedules/professional.ts), [`special.ts`](../apps/web/lib/schedules/special.ts), [`business-date.ts`](../apps/web/lib/utils/business-date.ts), [`lib/types/`](../apps/web/lib/types/) | Mantener compartidos y puros; B extrae special literalmente desde la ruta |
@@ -463,6 +471,13 @@ bunx tsc --noEmit
   [corrección y límites](INVENTARIO_BACKEND.md#corrección-inf-01-antes-de-d). Los
   resultados fallidos A/B/C anteriores son históricos; no hubo cambios de backend
   ni remoto. Commit local separado en la rama C, sin comenzar D.
+- Tareas D (`codex/backend-organizacion-integraciones`) y E (`codex/backend-cierre-organizacion`):
+  reorganización completada para identidad (`lib/backend/auth/{validar-registro,registrar-cuenta,eliminar-cuenta}.ts`),
+  pagos (`lib/payments/{stripe-client,stripe-webhooks,suscripcion-negocio,stripe-adapter}.ts`),
+  citas de negocio (`lib/backend/reservas/citas-negocio.ts`) y notificaciones (`lib/backend/notificaciones/whatsapp-service.ts`),
+  con rutas adelgazadas (`register` 84 l., `account` 70 l., `suscripcion` 58 l., `citas` 77 l.).
+  Verificación de cierre con `bun run build --webpack` y `bunx tsc --noEmit` en **0 errores**.
+  Los hallazgos funcionales (`OP-*`, `PAY-*`, `SEC-*`, `INF-02/03`, `I-*`) permanecen pendientes en el backlog funcional posterior.
 - Inventario remoto observado en A: PostgreSQL 17.6, cinco RPC cerradas a clientes, ningún crítico
   nuevo. Detección GiST `float4`/`float8`: cero índices afectados; no hubo REINDEX.
 - `stripe_webhook_events` tiene RLS sin policies: aceptable sólo mientras no tenga

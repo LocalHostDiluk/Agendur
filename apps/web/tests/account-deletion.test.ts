@@ -12,6 +12,7 @@ const BUSINESSES = [
 
 type Scenario = {
   stripeError?: Error;
+  signOutError?: Error;
   deleteError?: Error;
   ownersAfterDeleteError?: Array<{ id: string; owner_id: string | null }>;
   compensationError?: Error;
@@ -42,7 +43,7 @@ function installScenario(scenario: Scenario = {}) {
       signOut: async (options: { scope: string }) => {
         expect(options).toEqual({ scope: "global" });
         order.push("signout");
-        return { error: null };
+        return { error: scenario.signOutError ?? null };
       },
     },
   } as unknown as Awaited<ReturnType<typeof supabaseServer.createClient>>);
@@ -181,6 +182,15 @@ describe("DELETE /api/auth/account", () => {
     expect(response.status).toBe(502);
     expect((await response.json()).code).toBe("STRIPE_CANCELLATION_FAILED");
     expect(scenario.order).toEqual(["stripe:sub_1"]);
+  });
+
+  it("no desactiva ni borra la cuenta si falla la revocación de sesiones", async () => {
+    const scenario = installScenario({ signOutError: new Error("Auth unavailable") });
+    const response = await deleteAccount(request());
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ success: false, ok: false,
+      code: "SESSION_REVOCATION_FAILED", error: "No se pudieron cerrar las sesiones." });
+    expect(scenario.order).toEqual(["stripe:sub_1", "stripe:sub_2", "signout"]);
   });
 
   it("considera completado un error ambiguo de deleteUser solo si todos los owner_id ya son null", async () => {
