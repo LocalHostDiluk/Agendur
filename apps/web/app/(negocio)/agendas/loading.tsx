@@ -1,16 +1,8 @@
-import {
-  SkeletonBlock,
-  SkeletonText,
-  SkeletonCircle,
-} from "@/components/ui/Skeleton";
+import { SkeletonBlock, SkeletonText, SkeletonCircle } from "@/components/ui/Skeleton";
 
 const DIAS = [
-  { nombre: "LUN", dia: 15 },
-  { nombre: "MAR", dia: 16 },
-  { nombre: "MIÉ", dia: 17 },
-  { nombre: "JUE", dia: 18 },
-  { nombre: "VIE", dia: 19 },
-  { nombre: "SÁB", dia: 20 },
+  { nombre: "LUN", dia: 15 }, { nombre: "MAR", dia: 16 }, { nombre: "MIÉ", dia: 17 },
+  { nombre: "JUE", dia: 18 }, { nombre: "VIE", dia: 19 }, { nombre: "SÁB", dia: 20 },
   { nombre: "DOM", dia: 21 },
 ];
 
@@ -39,7 +31,6 @@ export function AgendasLoading() {
       {/* Barra de Control: Fecha, Alternador de Vista y Filtros */}
       <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Navegador de Fecha */}
           <div className="flex items-center gap-2 flex-wrap">
             <SkeletonBlock className="h-[36px] w-14 rounded-lg" />
             <SkeletonBlock className="h-[36px] w-16 rounded-lg" />
@@ -47,7 +38,6 @@ export function AgendasLoading() {
             <SkeletonText className="h-4 w-48 ml-2" />
           </div>
 
-          {/* Alternador de Vista y Filtros */}
           <div className="flex items-center gap-3 flex-wrap justify-between lg:justify-end">
             <SkeletonBlock className="h-[36px] w-52 rounded-xl" />
             <SkeletonBlock className="h-[36px] w-40 rounded-xl" />
@@ -69,23 +59,18 @@ export function AgendasLoading() {
               key={item.nombre}
               className="rounded-2xl border border-border bg-surface flex flex-col min-h-[320px]"
             >
-              {/* Encabezado del Día */}
               <div className="p-3 border-b border-border text-center rounded-t-2xl bg-surface-alt/70">
                 <span className="text-[11px] font-mono font-semibold text-text-secondary block">
                   {item.nombre}
                 </span>
-                {/* Número visible y normal según especificación */}
                 <span className="text-lg font-bricolage font-bold text-text-primary">
                   {item.dia}
                 </span>
-
-                {/* Dot de disponibilidad en .skel-circle de 4px (1rem/4 = 4px = w-1 h-1) */}
                 <div className="flex justify-center items-center h-2 mt-1">
                   <SkeletonCircle className="w-1 h-1" />
                 </div>
               </div>
 
-              {/* Lista de citas en skeleton */}
               <div className="p-2 space-y-2 flex-1">
                 <SkeletonBlock className="h-16 w-full rounded-xl" />
                 <SkeletonBlock className="h-16 w-full rounded-xl" />

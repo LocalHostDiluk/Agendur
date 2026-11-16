@@ -18,9 +18,10 @@ Alcance de este archivo: solo frontend. El servidor se rige por las
 | `page.tsx`, `layout.tsx`, `loading.tsx` | 100 |
 | Componente `.tsx` | 150 |
 | Hook o utilidad `.ts` | 100 |
+| Barrel `index.ts` (re-exportación pura) | Exento (solo re-exports del dominio/subdominio) |
 
 - Un componente por archivo.
-- `page.tsx` solo importa y compone. No define componentes, tipos ni funciones auxiliares.
+- `page.tsx` solo importa y compone. No define componentes, tipos ni funciones auxiliares. Cuando una página necesita recibir props opcionales de prueba (por ejemplo en tests unitarios) y debe cumplir con la validación estricta de tipos de rutas de Next.js (`NextPage`), se extrae la vista a `<Modulo>View.tsx` en la misma carpeta de la ruta y `page.tsx` solo renderiza `<Modulo>View />`.
 - Si un archivo llega a 130 líneas, divídelo ANTES de seguir escribiendo.
 - Nunca entregues un archivo que supere el límite.
 - Más de 2 ternarios o `&&` anidados en el JSX: extrae esa parte a un componente.
@@ -54,21 +55,42 @@ Usa SIEMPRE lo existente. Prohibido reescribirlo a mano:
 
 Antes de usar un componente de `ui/`, lee su archivo para conocer sus props. No adivines.
 
-## 3. Dónde va cada cosa
+## 3. Estructura de archivos (Dónde va cada cosa)
 
 | Qué | Ruta | Nombre |
 |---|---|---|
-| Componente de un dominio | `components/<dominio>/` | `PascalCase.tsx` |
+| Componente del dominio `negocio` | `components/negocio/<subdominio>/` | `PascalCase.tsx` |
+| Componente de otro dominio | `components/<dominio>/` | `PascalCase.tsx` |
+| Vista de ruta con props de prueba | `app/**/<ruta>/<Modulo>View.tsx` | `<Modulo>View.tsx` |
 | Componente usado en 2+ dominios | `components/ui/` | `PascalCase.tsx` |
 | Hook | `lib/hooks/` | `use-nombre.ts` |
 | Función pura | `lib/utils/` | `nombre.ts` |
 | Tipo usado en 2+ archivos | `lib/types/index.ts` | — |
 | Tipo o constante de 1 solo archivo | en ese archivo | — |
 
+### Subcarpetas por subdominio en `apps/web/components/negocio/`
+
+El dominio `negocio` agrupa oficialmente sus componentes en subcarpetas por subdominio:
+
+- `components/negocio/dashboard/` — Componentes exclusivos del dashboard (`Dashboard*`)
+- `components/negocio/personal/` — Componentes exclusivos de gestión de personal (`Personal*`)
+- `components/negocio/agendas/` — Componentes exclusivos de calendario y agendas (`Agenda*`)
+- `components/negocio/configuracion/` — Componentes exclusivos de configuración (`Configuracion*`)
+- `components/negocio/sucursales/` — Componentes exclusivos de sucursales y catálogo de servicios (`Sucursales*`, `Servicios*`)
+- `components/negocio/pagos/` — Componentes exclusivos de pagos y suscripción (`Pagos*`)
+- `components/negocio/reportes/` — Componentes exclusivos de reportes y analítica (`Reportes*`)
+- `components/negocio/onboarding/` — Componentes exclusivos de onboarding (`Onboarding*`)
+- `components/negocio/modales/` — Modales y drawers operativos compartidos (`CitaDetailDrawer`, `ModalNuevaCitaManual`, `ModalNuevoColaborador`, `ModalEditarColaborador`, `ModalNuevoServicio`, `ModalNuevaSucursal`, `HorariosEspecialesPanel` y sus subcomponentes extraídos)
+- `components/negocio/shell/` — Navegación y estructura del panel (`Sidebar`, `Header`, `MobileNavigation` y sus subcomponentes extraídos)
+- `components/negocio/index.ts` — Barrel central que re-exporta todos los subdominios para mantener limpios y compatibles los imports `@/components/negocio`.
+
+### Reglas adicionales de ubicación y exportación
+
 - Dominios existentes: `auth`, `cliente`, `errors`, `landing`, `negocio`, `providers`, `security`, `theme`, `ui`. Elige por el dominio de la pantalla.
-- Al crear un archivo en una carpeta que tiene `index.ts` (`negocio`, `cliente`, `ui`, `lib/hooks`), agrega su export ahí, copiando el formato existente.
+- Patrón `<Modulo>View.tsx` junto a `page.tsx`: cuando una página necesita recibir props opcionales de prueba para cumplir con la validación de tipos de rutas de Next.js (`NextPage`), coloca `<Modulo>View.tsx` junto a `page.tsx` y mantén `page.tsx` como wrapper ligero sin props de prueba.
+- Al crear un archivo en `components/negocio/<subdominio>/`, regístralo en `components/negocio/<subdominio>/index.ts` y asegúrate de que el subdominio esté re-exportado en `components/negocio/index.ts`. En las demás carpetas con `index.ts` (`cliente`, `ui`, `lib/hooks`), agrega su export ahí, copiando el formato existente.
 - Copia el estilo de imports del archivo vecino más cercano.
-- PROHIBIDO sin que el usuario lo pida: carpetas nuevas, `_components`, `shared`, `common`, `helpers`, un `utils.ts` nuevo, mover o renombrar archivos.
+- PROHIBIDO sin que el usuario lo pida: carpetas fuera de la estructura oficial de dominios y subdominios, `_components`, `shared`, `common`, `helpers`, un `utils.ts` nuevo, o mover/renombrar archivos fuera de una refactorización autorizada.
 
 ## 4. Estructura de un componente
 
