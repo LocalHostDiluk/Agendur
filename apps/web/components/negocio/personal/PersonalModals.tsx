@@ -5,8 +5,8 @@ import type { Sucursal, Servicio } from "@/lib/types";
 import type { usePersonalActions } from "@/lib/hooks/use-personal-actions";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PersonalRolesModal } from "./PersonalRolesModal";
-import { ModalNuevoColaborador } from "./ModalNuevoColaborador";
-import { ModalEditarColaborador } from "./ModalEditarColaborador";
+import { ModalNuevoColaborador } from "../modales/ModalNuevoColaborador";
+import { ModalEditarColaborador } from "../modales/ModalEditarColaborador";
 interface PersonalModalsProps {
   isPermisosModalOpen: boolean; setIsPermisosModalOpen: (open: boolean) => void;
   isModalOpen: boolean; setIsModalOpen: (open: boolean) => void;

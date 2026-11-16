@@ -32,6 +32,13 @@ export function LegalDraftShell({
   sections?: LegalSectionItem[];
   children: ReactNode;
 }) {
+  const navPillClass = (doc: "terminos" | "privacidad") =>
+    `rounded-full px-3.5 py-1.5 transition-colors ${
+      activeDoc === doc
+        ? "bg-[#6E49A6] text-[#F3EEDF]"
+        : "text-[#1D1720]/80 hover:bg-[#1D1720]/5 dark:text-[#F1ECE2]/80 dark:hover:bg-white/5"
+    }`;
+
   return (
     <div className="min-h-screen bg-[#F3EEDF] text-[#1D1720] selection:bg-[#6E49A6]/20 dark:bg-[#17121B] dark:text-[#F1ECE2]">
       <header className="sticky top-0 z-30 border-b border-[#D8D0BF] bg-[#F3EEDF]/90 backdrop-blur-md dark:border-[#332B3D] dark:bg-[#17121B]/90">
@@ -39,33 +46,15 @@ export function LegalDraftShell({
           aria-label="Navegación legal"
           className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-6"
         >
-          <Link
-            href="/"
-            className="brand-mark text-2xl text-[#1D1720] dark:text-[#F1ECE2]"
-            aria-label="Agendur"
-          >
+          <Link href="/" className="brand-mark text-2xl text-[#1D1720] dark:text-[#F1ECE2]" aria-label="Agendur">
             <span>A</span>gendur
           </Link>
 
           <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium sm:text-sm">
-            <Link
-              href="/legal/terminos"
-              className={`rounded-full px-3.5 py-1.5 transition-colors ${
-                activeDoc === "terminos"
-                  ? "bg-[#6E49A6] text-[#F3EEDF]"
-                  : "text-[#1D1720]/80 hover:bg-[#1D1720]/5 dark:text-[#F1ECE2]/80 dark:hover:bg-white/5"
-              }`}
-            >
+            <Link href="/legal/terminos" className={navPillClass("terminos")}>
               Términos y Condiciones
             </Link>
-            <Link
-              href="/legal/privacidad"
-              className={`rounded-full px-3.5 py-1.5 transition-colors ${
-                activeDoc === "privacidad"
-                  ? "bg-[#6E49A6] text-[#F3EEDF]"
-                  : "text-[#1D1720]/80 hover:bg-[#1D1720]/5 dark:text-[#F1ECE2]/80 dark:hover:bg-white/5"
-              }`}
-            >
+            <Link href="/legal/privacidad" className={navPillClass("privacidad")}>
               Aviso de Privacidad
             </Link>
             <span className="mx-1 hidden h-4 w-px bg-[#D8D0BF] sm:inline-block dark:bg-[#332B3D]" />
@@ -97,9 +86,7 @@ export function LegalDraftShell({
 
       <div
         className={`mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14 ${
-          sections.length > 0
-            ? "lg:grid lg:grid-cols-[250px_1fr] lg:gap-10"
-            : ""
+          sections.length > 0 ? "lg:grid lg:grid-cols-[250px_1fr] lg:gap-10" : ""
         }`}
       >
         {sections.length > 0 ? (
@@ -140,15 +127,9 @@ export function LegalDraftShell({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-xs text-[#6B6355] sm:px-6 dark:text-[#A79FAE]">
           <span>© 2026 Agendur · Todos los derechos reservados</span>
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/legal/terminos" className="hover:underline">
-              Términos y Condiciones
-            </Link>
-            <Link href="/legal/privacidad" className="hover:underline">
-              Aviso de Privacidad
-            </Link>
-            <Link href="/" className="hover:underline">
-              Volver al inicio
-            </Link>
+            <Link href="/legal/terminos" className="hover:underline">Términos y Condiciones</Link>
+            <Link href="/legal/privacidad" className="hover:underline">Aviso de Privacidad</Link>
+            <Link href="/" className="hover:underline">Volver al inicio</Link>
           </div>
         </div>
       </footer>

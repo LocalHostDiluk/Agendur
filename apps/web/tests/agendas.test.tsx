@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AgendasPage from "@/app/(negocio)/agendas/page";
-import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
+import { CitaDetailDrawer } from "@/components/negocio";
 import type { Cita, Servicio, Sucursal, Profesional } from "@/lib/types";
 import { getBusinessToday } from "@/lib/utils/business-date";
 

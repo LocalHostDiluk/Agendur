@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
+import { CitaDetailDrawer } from "@/components/negocio";
 import type { Cita, Servicio, Sucursal, Profesional } from "@/lib/types";
 
 function renderWithQuery(element: React.ReactElement) {
