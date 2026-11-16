@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import React from "react";
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   SkeletonBlock,
@@ -58,19 +59,131 @@ describe("Sistema Base de Skeletons — Agendur UI", () => {
     });
   });
 
-  describe("Hook useDelayedSkeleton (Reglas S.1, S.2, S.3)", () => {
+  describe("Hook useDelayedSkeleton (Design-system.md §8.1)", () => {
+    interface MinimalNode {
+      nodeType: number;
+      tagName: string;
+      nodeName: string;
+      childNodes: MinimalNode[];
+      style: Record<string, string>;
+      ownerDocument: MinimalDocument | null;
+      parentNode: MinimalNode | null;
+      textContent: string;
+      nodeValue?: string;
+      data?: string;
+      appendChild: (child: MinimalNode) => MinimalNode;
+      removeChild: (child: MinimalNode) => MinimalNode;
+      insertBefore: (child: MinimalNode, ref: MinimalNode | null) => MinimalNode;
+      addEventListener: () => void;
+      removeEventListener: () => void;
+    }
+
+    interface MinimalDocument {
+      nodeType: number;
+      defaultView: typeof globalThis | null;
+      createElement: (tag: string) => MinimalNode;
+      createElementNS: (_ns: string, tag: string) => MinimalNode;
+      createTextNode: (text: string) => MinimalNode;
+      createComment: (text: string) => MinimalNode;
+      activeElement: null;
+      addEventListener: () => void;
+      removeEventListener: () => void;
+    }
+
+    async function withDomHarness(
+      fn: (container: MinimalNode) => Promise<void>
+    ): Promise<void> {
+      const makeNode = (nodeType: number, tagName = ""): MinimalNode => {
+        const node: MinimalNode = {
+          nodeType,
+          tagName,
+          nodeName: tagName,
+          childNodes: [],
+          style: {},
+          ownerDocument: null,
+          parentNode: null,
+          textContent: "",
+          appendChild(child) {
+            child.parentNode = node;
+            node.childNodes.push(child);
+            return child;
+          },
+          removeChild(child) {
+            node.childNodes = node.childNodes.filter((item) => item !== child);
+            child.parentNode = null;
+            return child;
+          },
+          insertBefore(child, ref) {
+            child.parentNode = node;
+            const index = ref ? node.childNodes.indexOf(ref) : -1;
+            if (index === -1) node.childNodes.push(child);
+            else node.childNodes.splice(index, 0, child);
+            return child;
+          },
+          addEventListener() {},
+          removeEventListener() {},
+        };
+        return node;
+      };
+
+      const doc: MinimalDocument = {
+        nodeType: 9,
+        defaultView: globalThis,
+        createElement: (tag) =>
+          Object.assign(makeNode(1, tag.toUpperCase()), { ownerDocument: doc }),
+        createElementNS: (_ns, tag) =>
+          Object.assign(makeNode(1, tag.toUpperCase()), { ownerDocument: doc }),
+        createTextNode: (text) =>
+          Object.assign(makeNode(3), {
+            nodeValue: text,
+            textContent: text,
+            data: text,
+            ownerDocument: doc,
+          }),
+        createComment: (text) =>
+          Object.assign(makeNode(8), {
+            nodeValue: text,
+            data: text,
+            ownerDocument: doc,
+          }),
+        activeElement: null,
+        addEventListener() {},
+        removeEventListener() {},
+      };
+
+      const g = globalThis as Record<string, unknown>;
+      const prev = {
+        document: g.document,
+        window: g.window,
+        HTMLIFrameElement: g.HTMLIFrameElement,
+        IS_REACT_ACT_ENVIRONMENT: g.IS_REACT_ACT_ENVIRONMENT,
+      };
+
+      g.document = doc;
+      g.window = globalThis;
+      g.HTMLIFrameElement = function HTMLIFrameElement() {};
+      g.IS_REACT_ACT_ENVIRONMENT = true;
+
+      try {
+        await fn(doc.createElement("div"));
+      } finally {
+        for (const [key, val] of Object.entries(prev)) {
+          if (val === undefined) delete g[key];
+          else g[key] = val;
+        }
+      }
+    }
+
     function HookTestComponent({
       isLoading,
       delayMs,
-      minDisplayMs,
       onState,
     }: {
       isLoading: boolean;
       delayMs?: number;
-      minDisplayMs?: number;
       onState: (state: boolean) => void;
     }) {
-      const show = useDelayedSkeleton(isLoading, { delayMs, minDisplayMs });
+      const show = useDelayedSkeleton(isLoading, { delayMs });
       onState(show);
       return React.createElement("div", null, show ? "SKELETON" : "CONTENT");
     }
@@ -87,6 +200,98 @@ describe("Sistema Base de Skeletons — Agendur UI", () => {
       );
       expect(state).toBe(false);
       expect(html).toContain("CONTENT");
+    });
+
+    it("No muestra skeleton si la carga termina antes de delayMs (200ms)", async () => {
+      await withDomHarness(async (container) => {
+        const states: boolean[] = [];
+        const root = createRoot(container as unknown as Element);
+
+        await act(async () => {
+          root.render(
+            React.createElement(HookTestComponent, {
+              isLoading: true,
+              delayMs: 200,
+              onState: (s) => states.push(s),
+            })
+          );
+        });
+        expect(states.at(-1)).toBe(false);
+        expect(container.childNodes[0]?.textContent).toBe("CONTENT");
+
+        // Carga finaliza antes de los 200ms
+        await act(async () => {
+          root.render(
+            React.createElement(HookTestComponent, {
+              isLoading: false,
+              delayMs: 200,
+              onState: (s) => states.push(s),
+            })
+          );
+        });
+        expect(states.at(-1)).toBe(false);
+        expect(container.childNodes[0]?.textContent).toBe("CONTENT");
+
+        // Incluso después de que habría vencido delayMs, nunca aparece
+        await act(async () => {
+          await new Promise((r) => setTimeout(r, 220));
+        });
+        expect(states.every((s) => s === false)).toBe(true);
+        expect(container.childNodes[0]?.textContent).toBe("CONTENT");
+
+        await act(async () => {
+          root.unmount();
+        });
+      });
+    });
+
+    it("Muestra skeleton tras delayMs y lo oculta de inmediato al pasar isLoading a false (sin hold de 400ms)", async () => {
+      await withDomHarness(async (container) => {
+        let latest = false;
+        const root = createRoot(container as unknown as Element);
+
+        await act(async () => {
+          root.render(
+            React.createElement(HookTestComponent, {
+              isLoading: true,
+              delayMs: 20,
+              onState: (s) => {
+                latest = s;
+              },
+            })
+          );
+        });
+        expect(latest).toBe(false);
+        expect(container.childNodes[0]?.textContent).toBe("CONTENT");
+
+        await act(async () => {
+          await new Promise((r) => setTimeout(r, 50));
+        });
+        expect(latest).toBe(true);
+        expect(container.childNodes[0]?.textContent).toBe("SKELETON");
+
+        const startedAt = performance.now();
+        await act(async () => {
+          root.render(
+            React.createElement(HookTestComponent, {
+              isLoading: false,
+              delayMs: 20,
+              onState: (s) => {
+                latest = s;
+              },
+            })
+          );
+        });
+        const elapsedMs = performance.now() - startedAt;
+
+        expect(latest).toBe(false);
+        expect(container.childNodes[0]?.textContent).toBe("CONTENT");
+        expect(elapsedMs).toBeLessThan(100);
+
+        await act(async () => {
+          root.unmount();
+        });
+      });
     });
   });
 

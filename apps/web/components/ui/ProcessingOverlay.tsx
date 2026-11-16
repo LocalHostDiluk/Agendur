@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { CircleCheck, CircleAlert } from "lucide-react";
 
@@ -17,7 +17,7 @@ export interface ProcessingOverlayProps {
   isOpen?: boolean;
 
   /**
-   * Tipo de proceso en ejecución. Determina la secuencia de mensajes.
+   * Tipo de proceso en ejecución. Determina el mensaje canónico del proceso.
    * @default 'pago'
    */
   process?: ProcessType;
@@ -29,7 +29,7 @@ export interface ProcessingOverlayProps {
 
   /**
    * Estado actual del proceso.
-   * - 'loading': Muestra el ciclo de actividad y mensajes.
+   * - 'loading': Muestra el indicador de actividad y el mensaje de estado.
    * - 'success': Muestra ícono de éxito y texto ¡Listo! / Done!
    * - 'error': Muestra ícono de error, mensaje y botón reintentar.
    * @default 'loading'
@@ -56,17 +56,24 @@ export interface ProcessingOverlayProps {
   errorMessage?: string;
 
   /**
-   * Lista de mensajes personalizados opcionales para reemplazar los predeterminados.
+   * Mensaje explícito de etapa reportado por el backend.
+   * Reemplaza el mensaje canónico del proceso sin rotación por temporizador.
+   */
+  stageMessage?: string;
+
+  /**
+   * Compatibilidad heredada: si se proporciona y no hay `stageMessage`,
+   * muestra únicamente `customMessages[0]` sin ciclar por temporizador.
    */
   customMessages?: string[];
 
   /**
-   * Callback invocado tras 800ms de mantener el estado de éxito (REGLA C.3).
+   * Callback invocado inmediatamente al entrar al estado abierto de éxito.
    */
   onComplete?: () => void;
 
   /**
-   * Callback invocado al presionar el botón 'Reintentar' en estado de error (REGLA C.4).
+   * Callback invocado al presionar el botón 'Reintentar' en estado de error.
    */
   onRetry?: () => void;
 
@@ -81,48 +88,24 @@ export interface ProcessingOverlayProps {
   className?: string;
 }
 
-const PROCESS_MESSAGES: Record<ProcessType, { es: string[]; en: string[] }> = {
+const PROCESS_MESSAGES: Record<ProcessType, Record<ProcessingLang, string>> = {
   pago: {
-    es: [
-      "Verificando datos de pago…",
-      "Procesando con la pasarela…",
-      "Confirmando transacción…",
-    ],
-    en: [
-      "Verifying payment details…",
-      "Processing with the gateway…",
-      "Confirming transaction…",
-    ],
+    es: "Procesando tu pago…",
+    en: "Processing your payment…",
   },
   reporte: {
-    es: [
-      "Recopilando datos…",
-      "Calculando métricas…",
-      "Preparando tu archivo…",
-    ],
-    en: [
-      "Gathering data…",
-      "Calculating metrics…",
-      "Preparing your file…",
-    ],
+    es: "Preparando tu reporte…",
+    en: "Preparing your report…",
   },
   reserva: {
-    es: [
-      "Verificando disponibilidad…",
-      "Confirmando con el negocio…",
-      "Enviando tu confirmación…",
-    ],
-    en: [
-      "Checking availability…",
-      "Confirming with the business…",
-      "Sending your confirmation…",
-    ],
+    es: "Confirmando tu cita…",
+    en: "Confirming your appointment…",
   },
 };
 
 const TAKING_LONGER_MESSAGE: Record<ProcessingLang, string> = {
-  es: "Esto está tardando más de lo normal, pero seguimos en eso.",
-  en: "This is taking longer than usual, but we're still on it.",
+  es: "Esto está tardando más de lo normal.",
+  en: "This is taking longer than usual.",
 };
 
 const HELP_TEXT: Record<ProcessingLang, string> = {
@@ -153,6 +136,7 @@ export function ProcessingOverlay({
   lang = "es",
   variant = "modal",
   errorMessage,
+  stageMessage,
   customMessages,
   onComplete,
   onRetry,
@@ -165,21 +149,10 @@ export function ProcessingOverlay({
   // Tipo de proceso activo
   const activeProcess: ProcessType = process || processType || "pago";
 
-  // Lista de mensajes a ciclar
-  const messageList = useMemo(() => {
-    if (customMessages && customMessages.length > 0) {
-      return customMessages;
-    }
-    return PROCESS_MESSAGES[activeProcess]?.[lang] || PROCESS_MESSAGES.pago[lang];
-  }, [activeProcess, lang, customMessages]);
-
-  // Control de estado para REGLA C.1 (mínimo 1200ms antes de pasar a éxito)
-  const [isSuccessUnlocked, setIsSuccessUnlocked] = useState(false);
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isTakingLonger, setIsTakingLonger] = useState(false);
 
-  // Registro de tiempo de inicio sin impurezas en render
-  const startTimeRef = useRef<number | null>(null);
+  // Evita disparos duplicados de onComplete por cada entrada al estado de éxito abierto
+  const hasCompletedRef = useRef(false);
 
   // Referencias para callbacks actualizadas en effect
   const onCompleteRef = useRef(onComplete);
@@ -189,13 +162,6 @@ export function ProcessingOverlay({
     onCompleteRef.current = onComplete;
     onRetryRef.current = onRetry;
   });
-
-  // Inicializar startTime en el montaje o cuando status cambia
-  useEffect(() => {
-    if (startTimeRef.current === null || status === "loading") {
-      startTimeRef.current = Date.now();
-    }
-  }, [status]);
 
   // Bloqueo de scroll del body mientras el overlay esté abierto
   useEffect(() => {
@@ -209,84 +175,51 @@ export function ProcessingOverlay({
     };
   }, [isOpen]);
 
-  // Transición a éxito respetando REGLA C.1 (mínimo 1200ms)
+  // Éxito inmediato: notificar onComplete sin demoras artificiales (Design-system.md §8.2)
   useEffect(() => {
-    if (status !== "success") {
-      return;
-    }
-
-    const startTime = startTimeRef.current ?? Date.now();
-    const elapsed = Date.now() - startTime;
-    const remaining = Math.max(0, 1200 - elapsed);
-
-    const timer = setTimeout(() => {
-      setIsSuccessUnlocked(true);
-    }, remaining);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [status]);
-
-  // Derivación limpia del displayStatus
-  let displayStatus: ProcessingStatus = status;
-  if (status === "success" && !isSuccessUnlocked && typeof window !== "undefined") {
-    displayStatus = "loading";
-  }
-
-  // Manejo del estado éxito: mantener 800ms antes de disparar onComplete (REGLA C.3)
-  useEffect(() => {
-    if (displayStatus === "success") {
-      const timer = setTimeout(() => {
+    if (isOpen && status === "success") {
+      if (!hasCompletedRef.current) {
+        hasCompletedRef.current = true;
         onCompleteRef.current?.();
-      }, 800);
-
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-  }, [displayStatus]);
-
-  // Ciclo de mensajes (cada 1800ms) y regla de 8 segundos (REGLA C.2)
-  useEffect(() => {
-    if (displayStatus !== "loading") {
+      }
       return;
     }
 
-    const startTime = startTimeRef.current ?? Date.now();
-    const elapsed = Date.now() - startTime;
-    const remainingLonger = Math.max(0, 8000 - elapsed);
+    hasCompletedRef.current = false;
+  }, [isOpen, status]);
+
+  // Aviso de espera prolongada a los 8s mientras sigue cargando; se reinicia al salir o cerrar
+  useEffect(() => {
+    if (!isOpen || status !== "loading") {
+      return;
+    }
 
     const longerTimer = setTimeout(() => {
       setIsTakingLonger(true);
-    }, remainingLonger);
-
-    let cycleInterval: ReturnType<typeof setInterval> | null = null;
-    if (!isTakingLonger) {
-      cycleInterval = setInterval(() => {
-        setCurrentMessageIndex((prev) => (prev + 1) % messageList.length);
-      }, 1800);
-    }
+    }, 8000);
 
     return () => {
       clearTimeout(longerTimer);
-      if (cycleInterval) {
-        clearInterval(cycleInterval);
-      }
+      setIsTakingLonger(false);
     };
-  }, [displayStatus, isTakingLonger, messageList.length]);
+  }, [isOpen, status, stageMessage]);
 
   const handleRetry = () => {
-    startTimeRef.current = Date.now();
+    hasCompletedRef.current = false;
     setIsTakingLonger(false);
-    setCurrentMessageIndex(0);
-    setIsSuccessUnlocked(false);
     onRetryRef.current?.();
   };
 
-  const currentMessage = isTakingLonger
+  const baseMessage =
+    stageMessage ||
+    (customMessages && customMessages.length > 0 ? customMessages[0] : undefined) ||
+    PROCESS_MESSAGES[activeProcess]?.[lang] ||
+    PROCESS_MESSAGES.pago[lang];
+
+  const showTakingLonger = isOpen && status === "loading" && isTakingLonger;
+  const currentMessage = showTakingLonger
     ? TAKING_LONGER_MESSAGE[lang]
-    : messageList[currentMessageIndex % messageList.length];
+    : baseMessage;
 
   return (
     <AnimatePresence>
@@ -303,56 +236,60 @@ export function ProcessingOverlay({
           }`}
           onClick={() => {
             // El overlay de procesamiento es modal y no permite descarte accidental durante carga
-            if (displayStatus === "error" && onClose) {
+            if (status === "error" && onClose) {
               onClose();
             }
           }}
         >
-          {/* Estilos locales para los 3 cuadrados de actividad */}
+          {/* Estilos locales para los 3 cuadrados de actividad (opt-in en movimiento) */}
           <style>{`
-            @keyframes agendur-square-pulse {
-              0%, 100% {
-                opacity: 0.3;
-              }
-              50% {
-                opacity: 1;
-              }
-            }
             .agendur-pulse-dot {
               width: 8px;
               height: 8px;
               border-radius: 3px;
               background-color: var(--grape, #6e49a6);
-              animation: agendur-square-pulse 900ms ease-in-out infinite;
+              opacity: 0.6;
             }
-            .agendur-pulse-dot-0 {
-              animation-delay: 0ms;
-            }
-            .agendur-pulse-dot-1 {
-              animation-delay: 200ms;
-            }
-            .agendur-pulse-dot-2 {
-              animation-delay: 400ms;
-            }
-            @media (prefers-reduced-motion: reduce) {
+            @media (prefers-reduced-motion: no-preference) {
+              @keyframes agendur-square-pulse {
+                0%, 100% {
+                  opacity: 0.3;
+                }
+                50% {
+                  opacity: 1;
+                }
+              }
               .agendur-pulse-dot {
-                animation: none !important;
-                opacity: 0.6 !important;
+                opacity: 1;
+                animation: agendur-square-pulse 900ms ease-in-out infinite;
+              }
+              .agendur-pulse-dot-0 {
+                animation-delay: 0ms;
+              }
+              .agendur-pulse-dot-1 {
+                animation-delay: 200ms;
+              }
+              .agendur-pulse-dot-2 {
+                animation-delay: 400ms;
               }
             }
           `}</style>
 
           <motion.div
             initial={
-              variant === "modal" && !shouldReduceMotion
-                ? { opacity: 0, scale: 0.95 }
-                : { opacity: 0 }
+              shouldReduceMotion
+                ? false
+                : variant === "modal"
+                  ? { opacity: 0, scale: 0.95 }
+                  : { opacity: 0 }
             }
             animate={{ opacity: 1, scale: 1 }}
             exit={
-              variant === "modal" && !shouldReduceMotion
-                ? { opacity: 0, scale: 0.95 }
-                : { opacity: 0 }
+              shouldReduceMotion
+                ? undefined
+                : variant === "modal"
+                  ? { opacity: 0, scale: 0.95 }
+                  : { opacity: 0 }
             }
             transition={{
               duration: shouldReduceMotion ? 0 : 0.2,
@@ -366,12 +303,12 @@ export function ProcessingOverlay({
             onClick={(e) => e.stopPropagation()}
           >
             <AnimatePresence mode="wait">
-              {displayStatus === "loading" && (
+              {status === "loading" && (
                 <motion.div
                   key="status-loading"
-                  initial={{ opacity: 0 }}
+                  initial={shouldReduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                   transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
                   className="flex flex-col items-center"
                 >
@@ -379,7 +316,7 @@ export function ProcessingOverlay({
                   <div
                     className="flex items-center justify-center gap-[6px]"
                     role="status"
-                    aria-label="Cargando"
+                    aria-label={lang === "en" ? "Loading" : "Cargando"}
                   >
                     {[0, 1, 2].map((idx) => (
                       <div
@@ -396,19 +333,19 @@ export function ProcessingOverlay({
                     ))}
                   </div>
 
-                  {/* Texto de estado: Inter 14px, --text-secondary, crossfade 200ms cada 1800ms */}
+                  {/* Texto de estado: Inter 14px, --text-secondary */}
                   <div className="mt-4 min-h-[44px] flex items-center justify-center text-center px-1 w-full">
                     <AnimatePresence mode="wait">
                       <motion.p
                         key={currentMessage}
-                        initial={{ opacity: 0 }}
+                        initial={shouldReduceMotion ? false : { opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                         transition={{
                           duration: shouldReduceMotion ? 0 : 0.2,
                           ease: [0.16, 1, 0.3, 1],
                         }}
-                        className="text-[14px] leading-snug text-center text-[var(--text-secondary,#6b6355)] font-sans"
+                        className="prose-pretty text-[14px] leading-snug text-center text-[var(--text-secondary,#6b6355)] font-sans"
                       >
                         {currentMessage}
                       </motion.p>
@@ -419,54 +356,62 @@ export function ProcessingOverlay({
                   <div className="perforacion my-4" />
 
                   {/* Texto de ayuda fijo: Inter 12px, --text-muted */}
-                  <p className="text-[12px] text-center text-[var(--text-muted,#a39c8c)] font-sans">
+                  <p className="prose-pretty text-[12px] text-center text-[var(--text-muted,#a39c8c)] font-sans">
                     {HELP_TEXT[lang]}
                   </p>
                 </motion.div>
               )}
 
-              {displayStatus === "success" && (
+              {status === "success" && (
                 <motion.div
                   key="status-success"
-                  initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.95 }}
+                  initial={
+                    shouldReduceMotion
+                      ? false
+                      : { opacity: 0, scale: 0.95 }
+                  }
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                   transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
                   className="flex flex-col items-center justify-center py-3 text-center"
                 >
                   <CircleCheck
-                    className="w-10 h-10 text-[var(--mint,#46b88a)] mb-3"
+                    className="w-10 h-10 text-[var(--success-text)] mb-3"
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
-                  <h3 className="text-[16px] font-semibold text-[var(--text-primary,#211a26)] font-sans">
+                  <h3 className="heading-balance text-[16px] font-semibold text-[var(--text-primary,#211a26)] font-sans">
                     {SUCCESS_TEXT[lang]}
                   </h3>
                 </motion.div>
               )}
 
-              {displayStatus === "error" && (
+              {status === "error" && (
                 <motion.div
                   key="status-error"
-                  initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.95 }}
+                  initial={
+                    shouldReduceMotion
+                      ? false
+                      : { opacity: 0, scale: 0.95 }
+                  }
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                   transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
                   className="flex flex-col items-center justify-center py-2 text-center"
                 >
                   <CircleAlert
-                    className="w-10 h-10 text-[var(--danger,#d14343)] mb-3"
+                    className="w-10 h-10 text-[var(--danger-text)] mb-3"
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
-                  <p className="text-[14px] text-[var(--text-secondary,#6b6355)] font-sans px-2 mb-4 leading-relaxed">
+                  <p className="prose-pretty text-[14px] text-[var(--text-secondary,#6b6355)] font-sans px-2 mb-4 leading-relaxed">
                     {errorMessage || DEFAULT_ERROR_MESSAGE[lang]}
                   </p>
                   {onRetry && (
                     <button
                       type="button"
                       onClick={handleRetry}
-                      className="inline-flex items-center justify-center px-4 py-2 text-xs font-medium text-white bg-[var(--grape,#6e49a6)] hover:brightness-105 active:scale-[0.98] rounded-[var(--radius-md,10px)] transition-all cursor-pointer shadow-xs"
+                      className="inline-flex items-center justify-center px-4 py-2 text-xs font-medium bg-[var(--action-bg)] text-[var(--action-fg)] hover:bg-[var(--action-hover)] motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape rounded-[var(--radius-md,10px)] transition-colors cursor-pointer shadow-xs"
                     >
                       {RETRY_TEXT[lang]}
                     </button>

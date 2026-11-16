@@ -535,13 +535,13 @@ Esta es la lista para aplicar la guía, no una declaración de cambios ya realiz
 
 | Prioridad | Mejora | Evidencia de aceptación | Estado |
 | --- | --- | --- | --- |
-| P0 | Corregir texto tenue, acciones oscuras y roles de estado | Contraste medido sobre fondos y transparencias reales | En progreso en `feat/modern-web-polish` |
+| P0 | Corregir texto tenue, acciones oscuras y roles de estado | Contraste medido sobre fondos y transparencias reales | Completado (PR #49) |
 | P0 | Aislar tema de papel/ticket y acento del negocio | Portal y comprobante legibles al entrar desde dashboard oscuro | Pendiente |
 | P0 | Conservar datos y recuperar reserva/pago inciertos | Error de red o cupo ocupado no duplica operación ni borra contacto | Pendiente |
-| P1 | Retirar mínimos de skeleton/procesamiento y éxito (`useDelayedSkeleton` y `ProcessingOverlay`) | Datos y resultado disponibles al terminar; sin demora artificial | Pendiente (fuera de `feat/modern-web-polish`, para PR separado) |
+| P1 | Retirar mínimos de skeleton/procesamiento y éxito (`useDelayedSkeleton` y `ProcessingOverlay`) | Datos y resultado disponibles al terminar; sin demora artificial | Completado en `feat/remove-artificial-loading-delays` (incl. `stageMessage` de §8.2) |
 | P1 | Alinear carga con wizard y agenda reales | Mismo paso/grid antes y después; días/semana correctos | Pendiente |
 | P1 | Revisar controles en 320 px, teclado y móvil | Calendario sin overflow, foco visible y CTA sin solapamientos | Pendiente |
-| P1 | Unificar duración de modales, pulido web nativo y reducción de movimiento *opt-in* | CSS nativo (`@starting-style`, `closeTopLayer`), `:focus-visible`, `:user-invalid`, `scroll-padding-top`, `forced-colors` y estado final estático en `reduce` | En progreso en `feat/modern-web-polish` |
+| P1 | Unificar duración de modales, pulido web nativo y reducción de movimiento *opt-in* | CSS nativo (`@starting-style`, `closeTopLayer`), `:focus-visible`, `:user-invalid`, `scroll-padding-top`, `forced-colors` y estado final estático en `reduce` | Completado (PR #49) |
 | P2 | Dosificar ticket, simplificar bento y gráficas | La tarea domina; no hay métricas ficticias ni color semántico ambiguo | Pendiente |
 
 ### 13.1 Supuestos que necesitan evidencia
