@@ -24,13 +24,22 @@ export function LoginFormFields({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <label className="block text-[12px] font-medium text-text-primary">
+        <label
+          htmlFor="login-email"
+          className="block text-[12px] font-medium text-text-primary"
+        >
           Correo electrónico
         </label>
         <div className="relative">
-          <Mail className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Mail
+            className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            aria-hidden="true"
+          />
           <input
+            id="login-email"
             type="email"
+            inputMode="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -42,7 +51,10 @@ export function LoginFormFields({
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="block text-[12px] font-medium text-text-primary">
+          <label
+            htmlFor="login-password"
+            className="block text-[12px] font-medium text-text-primary"
+          >
             Contraseña
           </label>
           <span className="text-[12px] text-grape hover:underline cursor-pointer">
@@ -50,9 +62,14 @@ export function LoginFormFields({
           </span>
         </div>
         <div className="relative">
-          <Lock className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Lock
+            className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            aria-hidden="true"
+          />
           <input
+            id="login-password"
             type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -68,9 +85,9 @@ export function LoginFormFields({
             className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
           >
             {showPassword ? (
-              <EyeOff className="w-4 h-4" />
+              <EyeOff className="w-4 h-4" aria-hidden="true" />
             ) : (
-              <Eye className="w-4 h-4" />
+              <Eye className="w-4 h-4" aria-hidden="true" />
             )}
           </button>
         </div>
@@ -83,7 +100,7 @@ export function LoginFormFields({
       >
         {loading ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
             Iniciando...
           </>
         ) : (

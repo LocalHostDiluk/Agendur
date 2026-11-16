@@ -46,7 +46,7 @@ export function BookingStepDatos(props: BookingStepDatosProps) {
           <div>
             <label htmlFor="reserva-nombre" className={LABEL_CLASS}>Nombre <span className="text-danger">*</span></label>
             <input
-              id="reserva-nombre" name="nombre" type="text" required maxLength={100}
+              id="reserva-nombre" name="nombre" type="text" autoComplete="given-name" required maxLength={100}
               value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Sofía"
               className={INPUT_CLASS}
             />
@@ -54,7 +54,7 @@ export function BookingStepDatos(props: BookingStepDatosProps) {
           <div>
             <label htmlFor="reserva-apellido" className={LABEL_CLASS}>Apellidos <span className="text-danger">*</span></label>
             <input
-              id="reserva-apellido" name="apellido" type="text" required maxLength={100}
+              id="reserva-apellido" name="apellido" type="text" autoComplete="family-name" required maxLength={100}
               value={apellido} onChange={(e) => setApellido(e.target.value)} placeholder="Ej. Morales"
               className={INPUT_CLASS}
             />
@@ -67,7 +67,7 @@ export function BookingStepDatos(props: BookingStepDatosProps) {
             Teléfono{negocio.telefono_cliente_requerido ? " *" : " (opcional)"}
           </label>
           <input
-            id="reserva-telefono" name="telefono" type="tel" inputMode="tel"
+            id="reserva-telefono" name="telefono" type="tel" inputMode="tel" autoComplete="tel"
             required={Boolean(negocio.telefono_cliente_requerido)} pattern="\+?[1-9][0-9]{7,14}"
             value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="+52 55 1234 5678"
             className={INPUT_CLASS}
@@ -81,7 +81,7 @@ export function BookingStepDatos(props: BookingStepDatosProps) {
             Correo electrónico{negocio.email_cliente_requerido ? " *" : " (opcional)"}
           </label>
           <input
-            id="reserva-email" name="email" type="email"
+            id="reserva-email" name="email" type="email" inputMode="email" autoComplete="email"
             required={Boolean(negocio.email_cliente_requerido)} maxLength={254}
             value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ejemplo@correo.com"
             className={INPUT_CLASS}

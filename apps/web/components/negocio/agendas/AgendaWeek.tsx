@@ -9,7 +9,7 @@ interface AgendaWeekProps {
   citas: Cita[];
   viewMode: ReturnType<typeof useAgendaUi>["viewMode"];
   weekDays: ReturnType<typeof useAgendaDerived>["weekDays"];
-  citasByDay: Record<string, Cita[]>;
+  citasByDay: Partial<Record<string, Cita[]>>;
   servicios: Servicio[];
   setSelectedCita: (cita: Cita) => void;
 }

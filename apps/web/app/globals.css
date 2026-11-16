@@ -314,17 +314,18 @@ body {
 .nav-link {
   font-size: 0.9rem;
   font-weight: 600;
-  border-bottom: 2px solid transparent;
-  padding-block: 0.3rem;
   color: var(--ink);
-  text-decoration: none;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.35rem;
   transition:
     color 160ms ease,
-    border-color 160ms ease;
+    text-decoration-color 160ms ease;
 }
 
 .nav-link:hover {
-  border-color: var(--flame);
+  text-decoration-color: var(--flame);
 }
 
 .ticket-button {

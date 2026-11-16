@@ -353,6 +353,7 @@ export function ConfirmDialog({
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       if (!isConfirmDisabled) {
         handleConfirmClick();

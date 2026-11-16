@@ -21,7 +21,7 @@ export function useAgendaDerived({ citasData, filterProfesional, mondayYMD, toda
     if (filterProfesional) {
       filtered = filtered.filter((c) => c.profesional_id === filterProfesional);
     }
-    return [...filtered].sort((a, b) => {
+    return filtered.toSorted((a, b) => {
       const hA = a.hora_inicio ?? a.hora ?? "00:00";
       const hB = b.hora_inicio ?? b.hora ?? "00:00";
       return hA.localeCompare(hB);
@@ -50,14 +50,10 @@ export function useAgendaDerived({ citasData, filterProfesional, mondayYMD, toda
   );
 
   // Resumen de citas agrupadas por fecha
-  const citasByDay = useMemo(() => {
-    const map: Record<string, Cita[]> = {};
-    for (const c of citas) {
-      if (!map[c.fecha]) map[c.fecha] = [];
-      map[c.fecha].push(c);
-    }
-    return map;
-  }, [citas]);
+  const citasByDay = useMemo(
+    () => Object.groupBy(citas, (c) => c.fecha),
+    [citas],
+  );
 
   return { citas, weekDays, monthDays, citasByDay };
 }

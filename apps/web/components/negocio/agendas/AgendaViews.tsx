@@ -16,7 +16,7 @@ interface AgendaViewsProps {
   viewMode: ReturnType<typeof useAgendaUi>["viewMode"];
   weekDays: ReturnType<typeof useAgendaDerived>["weekDays"];
   monthDays: ReturnType<typeof useAgendaDerived>["monthDays"];
-  citasByDay: Record<string, Cita[]>;
+  citasByDay: Partial<Record<string, Cita[]>>;
   sucursales: Sucursal[];
   servicios: Servicio[];
   profesionales: Profesional[];
