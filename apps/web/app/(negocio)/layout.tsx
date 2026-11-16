@@ -1,68 +1,21 @@
 "use client";
 
-import { useCallback, useSyncExternalStore, useState, useEffect } from "react";
-import { Sidebar } from "@/components/negocio/Sidebar";
-import { Header } from "@/components/negocio/Header";
-import { MobileNavigation } from "@/components/negocio/MobileNavigation";
-import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
+import { useCallback, useState, useEffect } from "react";
+import {
+  Sidebar,
+  Header,
+  MobileNavigation,
+  ModalNuevaCitaManual,
+} from "@/components/negocio";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { useSucursales, useServicios } from "@/lib/hooks";
-
-const COLLAPSE_STORAGE_KEY = "agendur_sidebar_collapsed";
-
-let listeners: Array<() => void> = [];
-
-function emitChange() {
-  for (const listener of listeners) {
-    listener();
-  }
-}
-
-const sidebarStore = {
-  subscribe(listener: () => void) {
-    listeners = [...listeners, listener];
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === COLLAPSE_STORAGE_KEY) {
-        listener();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      listeners = listeners.filter((l) => l !== listener);
-      window.removeEventListener("storage", handleStorage);
-    };
-  },
-  getSnapshot(): boolean {
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem(COLLAPSE_STORAGE_KEY) === "true";
-    } catch {
-      return false;
-    }
-  },
-  getServerSnapshot(): boolean {
-    return false;
-  },
-  toggle() {
-    try {
-      const next = !sidebarStore.getSnapshot();
-      localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next));
-      emitChange();
-    } catch {
-      // Ignorar en entornos restringidos
-    }
-  },
-};
+import { useSidebarCollapsed } from "@/lib/hooks/use-sidebar-collapse";
 
 function NegocioShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
 
-  const isCollapsed = useSyncExternalStore(
-    sidebarStore.subscribe,
-    sidebarStore.getSnapshot,
-    sidebarStore.getServerSnapshot,
-  );
+  const { isCollapsed, toggleCollapse } = useSidebarCollapsed();
 
   const { data: sucursalesData } = useSucursales();
   const { data: serviciosData } = useServicios();
@@ -71,9 +24,6 @@ function NegocioShell({ children }: { children: React.ReactNode }) {
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), []);
-  const toggleCollapse = useCallback(() => {
-    sidebarStore.toggle();
-  }, []);
 
   // Manejar el evento personalizado agendur:open-new-appointment desde el FAB o cualquier origen
   useEffect(() => {

@@ -1,8 +1,8 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { ModalNuevaSucursal } from "@/components/negocio/ModalNuevaSucursal";
-import { ModalNuevoServicio } from "@/components/negocio/ModalNuevoServicio";
+import { ModalNuevaSucursal } from "../modales/ModalNuevaSucursal";
+import { ModalNuevoServicio } from "../modales/ModalNuevoServicio";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface SucursalesModalsProps {

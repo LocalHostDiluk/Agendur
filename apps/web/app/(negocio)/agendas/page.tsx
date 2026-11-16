@@ -4,11 +4,13 @@ import {
   useAuthMe, useSucursales, useServicios, useCatalogo, useCitasNegocio,
   useAgendaUi, useAgendaRange, useAgendaDerived,
 } from "@/lib/hooks";
-import { AgendaHeader } from "@/components/negocio/AgendaHeader";
-import { AgendaControls } from "@/components/negocio/AgendaControls";
-import { AgendaViews } from "@/components/negocio/AgendaViews";
-import { CitaDetailDrawer } from "@/components/negocio/CitaDetailDrawer";
-import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
+import {
+  AgendaHeader,
+  AgendaControls,
+  AgendaViews,
+  CitaDetailDrawer,
+  ModalNuevaCitaManual,
+} from "@/components/negocio";
 
 export default function AgendasPage() {
   const { data: auth } = useAuthMe();

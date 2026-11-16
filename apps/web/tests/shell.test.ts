@@ -13,9 +13,7 @@ mock.module("next/navigation", () => ({
   }),
 }));
 
-import { Sidebar } from "@/components/negocio/Sidebar";
-import { Header } from "@/components/negocio/Header";
-import { MobileNavigation } from "@/components/negocio/MobileNavigation";
+import { Sidebar, Header, MobileNavigation } from "@/components/negocio";
 import NegocioLayout from "@/app/(negocio)/layout";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 

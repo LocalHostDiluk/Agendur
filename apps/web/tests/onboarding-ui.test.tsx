@@ -10,8 +10,7 @@ mock.module("next/navigation", () => ({
 
 import OnboardingPage from "@/app/(negocio)/onboarding/page";
 import DashboardPage from "@/app/(negocio)/dashboard/page";
-import { Header } from "@/components/negocio/Header";
-import { Sidebar } from "@/components/negocio/Sidebar";
+import { Header, Sidebar } from "@/components/negocio";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 function render(element: React.ReactElement, auth: Record<string, unknown> | null, branches: Array<Record<string, unknown>> = []) {

@@ -19,6 +19,7 @@ Alcance de este archivo: solo frontend. El servidor se rige por las
 | Componente `.tsx` | 150 |
 | Hook o utilidad `.ts` | 100 |
 | Barrel `index.ts` (re-exportación pura) | Exento (solo re-exports del dominio/subdominio) |
+| `components/ui/**` | Exento del límite de 150 líneas (contiene primitivas preconstruidas de librerías de bloques y React Bits) |
 
 - Un componente por archivo.
 - `page.tsx` solo importa y compone. No define componentes, tipos ni funciones auxiliares. Cuando una página necesita recibir props opcionales de prueba (por ejemplo en tests unitarios) y debe cumplir con la validación estricta de tipos de rutas de Next.js (`NextPage`), se extrae la vista a `<Modulo>View.tsx` en la misma carpeta de la ruta y `page.tsx` solo renderiza `<Modulo>View />`.

@@ -2,9 +2,11 @@ import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ModalNuevaSucursal } from "@/components/negocio/ModalNuevaSucursal";
-import { ModalNuevoServicio } from "@/components/negocio/ModalNuevoServicio";
-import { ModalNuevaCitaManual } from "@/components/negocio/ModalNuevaCitaManual";
+import {
+  ModalNuevaSucursal,
+  ModalNuevoServicio,
+  ModalNuevaCitaManual,
+} from "@/components/negocio";
 
 function renderWithQuery(element: React.ReactElement) {
   const client = new QueryClient();

@@ -1,7 +1,7 @@
 import { Calendar } from "lucide-react";
 import type { UnifiedColaborador } from "@/app/(negocio)/personal/page";
 import type { Sucursal } from "@/lib/types";
-import { HorariosEspecialesPanel } from "./HorariosEspecialesPanel";
+import { HorariosEspecialesPanel } from "../modales/HorariosEspecialesPanel";
 import { PersonalHorarioRow } from "./PersonalHorarioRow";
 interface PersonalHorariosProps {
   colaboradoresFiltrados: UnifiedColaborador[]; todosLosColaboradores: UnifiedColaborador[];
