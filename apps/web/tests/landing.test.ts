@@ -23,10 +23,14 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { SocialProofMarquee } from "@/components/landing/SocialProofMarquee";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { BenefitsSection } from "@/components/beneficios/BenefitsSection";
+import { BenefitCard } from "@/components/beneficios/BenefitCard";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
+import { landingCopy } from "@/lib/landing-i18n";
+import { CalendarRange } from "lucide-react";
 import LandingPage from "@/app/(landing)/page";
 
 // Helper to wrap with ThemeProvider & LandingLanguageProvider
@@ -117,6 +121,37 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
     });
   });
 
+  describe("4b. BenefitsSection y BenefitCard Components", () => {
+    it("renderiza id=\"beneficios\", copy profesional en español y sin texto de prueba ni ${shape} literal", () => {
+      const html = renderWithTheme(React.createElement(BenefitsSection));
+      expect(html).toContain('id="beneficios"');
+      expect(html).toContain("Todo lo que ya tienes, funcionando a la vez.");
+      expect(html).toContain("Cada quien ve solo lo suyo");
+      expect(html).not.toContain("dice DJ");
+      expect(html).not.toContain("${shape}");
+    });
+
+    it("aplica clases de clip-path y md:col-span-2 en la última tarjeta", () => {
+      const html = renderWithTheme(React.createElement(BenefitsSection));
+      expect(html).toContain("[clip-path:polygon(");
+      expect(html).toContain("md:col-span-2");
+
+      const singleCardHtml = renderToStaticMarkup(
+        React.createElement(BenefitCard, {
+          item: landingCopy.es.benefits.cards[0],
+          icon: CalendarRange,
+          index: 0,
+          shape: "[clip-path:polygon(0_0,100%_0,100%_100%,0_100%)] md:col-span-2",
+        }),
+      );
+      expect(singleCardHtml).toContain(
+        "[clip-path:polygon(0_0,100%_0,100%_100%,0_100%)]",
+      );
+      expect(singleCardHtml).toContain("md:col-span-2");
+      expect(singleCardHtml).not.toContain("${shape}");
+    });
+  });
+
   describe("5. SocialProofMarquee Component", () => {
     it("renderiza métricas destacadas y testimonios", () => {
       const html = renderWithTheme(React.createElement(SocialProofMarquee));
@@ -155,15 +190,21 @@ describe("Landing Page Agendur - Sistema Risográfico y Ticket de Turno", () => 
   });
 
   describe("7. FAQSection Component", () => {
-    it("renderiza acordeón accesible con preguntas frecuentes", () => {
+    it("renderiza acordeón accesible con elementos nativos <details y <summary y respuestas en el HTML inicial para Ctrl+F", () => {
       const html = renderWithTheme(React.createElement(FAQSection));
       expect(html).toContain('id="faq"');
       expect(html).toContain("Preguntas frecuentes");
+      expect(html).toContain("<details");
+      expect(html).toContain("<summary");
       expect(html).toContain("¿Necesito tarjeta para probarlo?");
       expect(html).toContain(
         "¿Puedo tener varias sucursales con un solo plan?",
       );
       expect(html).toContain("¿Cómo llegan los recordatorios a mis clientes?");
+
+      for (const answer of landingCopy.es.faq.items.map((i) => i.a)) {
+        expect(html).toContain(answer);
+      }
     });
   });
 

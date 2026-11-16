@@ -23,7 +23,7 @@ export function Footer() {
     ],
   ] as const;
   return (
-    <footer id="contacto" className="bg-ink text-paper">
+    <footer id="contacto" className="scroll-mt-20 bg-ink text-paper">
       <div className="border-t border-dashed border-paper/35">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_repeat(4,1fr)] lg:px-8">
           <div>
@@ -36,7 +36,7 @@ export function Footer() {
               </span>
               gendur
             </Link>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-paper/60">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-paper/60 text-pretty">
               {t.footer.tagline}
             </p>
             <div

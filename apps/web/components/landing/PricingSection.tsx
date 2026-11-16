@@ -88,14 +88,14 @@ export function PricingSection() {
   const plans = lang === "en" ? PLANS_EN : PLANS_ES;
 
   return (
-    <section className="section paper pricing" id="precios">
+    <section className="section paper pricing landing-section-deferred" id="precios">
       <div className="wrap">
         <div className="pricing-header">
           <div className="pricing-title-wrap">
             <p className="eyebrow">
               {lang === "en" ? "03 / Clear pricing" : "03 / Precios claros"}
             </p>
-            <h2 className="section-title">{t.priceTitle}</h2>
+            <h2 className="section-title text-balance">{t.priceTitle}</h2>
           </div>
           <div
             className="price-toggle"
