@@ -4,7 +4,7 @@ import type { useAgendaDerived } from "@/lib/hooks/use-agenda-derived";
 
 interface AgendaWeekDayProps {
   day: ReturnType<typeof useAgendaDerived>["weekDays"][number];
-  citasByDay: Record<string, Cita[]>;
+  citasByDay: Partial<Record<string, Cita[]>>;
   servicios: Servicio[];
   setSelectedCita: (cita: Cita) => void;
 }

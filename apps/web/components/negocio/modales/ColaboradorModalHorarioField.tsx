@@ -68,7 +68,7 @@ export function ColaboradorModalHorarioField({
             id="colaborador-entrada"
             value={horaInicio}
             onChange={(e) => onChangeHoraInicio(e.target.value)}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+            className="select-native w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[38px]"
           >
             {COLABORADOR_HORAS_OPCIONES.map((h) => (
               <option key={h} value={h}>
@@ -89,7 +89,7 @@ export function ColaboradorModalHorarioField({
             id="colaborador-salida"
             value={horaFin}
             onChange={(e) => onChangeHoraFin(e.target.value)}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[38px]"
+            className="select-native w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-mono text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[38px]"
           >
             {COLABORADOR_HORAS_OPCIONES.map((h) => (
               <option key={h} value={h}>

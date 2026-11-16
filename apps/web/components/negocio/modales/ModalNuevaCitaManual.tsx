@@ -38,7 +38,7 @@ export function ModalNuevaCitaManual({
         aria-modal="true"
         aria-labelledby="modal-manual-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg bg-surface border border-border rounded-2xl shadow-xl overflow-hidden transform transition-all text-text-primary"
+        className="modal-panel-animate surface-overlay-depth relative w-full max-w-lg bg-surface border border-border rounded-2xl shadow-xl overflow-hidden transform transition-all text-text-primary"
       >
         <div className="flex items-start justify-between p-5 sm:p-6 border-b border-border bg-surface">
           <div>
@@ -50,11 +50,11 @@ export function ModalNuevaCitaManual({
             </div>
             <h2
               id="modal-manual-title"
-              className="text-xl sm:text-2xl font-bricolage font-bold tracking-tight text-text-primary"
+              className="heading-balance text-xl sm:text-2xl font-bricolage font-bold tracking-tight text-text-primary"
             >
               Agendar Cita Manual
             </h2>
-            <p className="text-xs sm:text-sm text-text-secondary mt-1">
+            <p className="prose-pretty text-xs sm:text-sm text-text-secondary mt-1">
               Registra una cita directa para clientes presenciales o vía telefónica.
             </p>
           </div>
@@ -63,13 +63,13 @@ export function ModalNuevaCitaManual({
             onClick={onClose}
             disabled={form.isSubmitting}
             aria-label="Cerrar modal"
-            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus:outline-hidden disabled:opacity-50 cursor-pointer"
+            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape disabled:opacity-50 cursor-pointer"
           >
             <X className="w-5 h-5" strokeWidth={1.75} />
           </button>
         </div>
 
-        <form onSubmit={form.handleSubmit} className="p-5 sm:p-6 space-y-4">
+        <form onSubmit={form.handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto scroll-shadows-y max-h-[calc(100dvh-11rem)]">
           <ModalCitaManualScheduleFields
             sucursales={sucursales}
             servicios={servicios}
@@ -103,14 +103,14 @@ export function ModalNuevaCitaManual({
               type="button"
               onClick={onClose}
               disabled={form.isSubmitting}
-              className="px-4 py-2 text-sm font-medium rounded-lg text-text-secondary bg-surface border border-border hover:bg-surface-alt hover:text-text-primary transition-colors focus:outline-hidden disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 text-sm font-medium rounded-lg text-text-secondary bg-surface border border-border hover:bg-surface-alt hover:text-text-primary transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape disabled:opacity-50 cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={form.isSubmitting}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium rounded-lg text-white bg-grape hover:opacity-95 active:scale-[0.98] transition-all focus:outline-hidden focus:ring-2 focus:ring-grape-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium rounded-lg text-white bg-grape hover:opacity-95 active:scale-[0.98] transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
             >
               {form.isSubmitting ? (
                 <>

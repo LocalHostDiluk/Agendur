@@ -4,12 +4,85 @@ import React from "react";
 import { useLandingLanguage } from "./LandingLanguageContext";
 
 const testimonials = {
-  es: [["La agenda dejó de ser un chat infinito. Ahora el equipo sabe qué sigue y el cliente llega con todo claro.", "Mariana Torres", "Fundadora · Estudio Niebla"], ["Los recordatorios nos devolvieron los sábados. Hay menos huecos y más tiempo para atender bien.", "Iván Salas", "Director · Clínica Origen"], ["Abrimos una segunda sucursal sin volver a las hojas de cálculo. Cada persona ve justo la agenda que necesita.", "Sofía Méndez", "Operaciones · Casa Luma"]],
-  en: [["Scheduling stopped being an endless chat. The team knows what is next and every client arrives informed.", "Mariana Torres", "Founder · Estudio Niebla"], ["Reminders gave our Saturdays back. There are fewer gaps and more time to serve people well.", "Iván Salas", "Director · Clínica Origen"], ["We opened a second location without returning to spreadsheets. Everyone sees exactly the schedule they need.", "Sofía Méndez", "Operations · Casa Luma"]],
+  es: [
+    ["La agenda dejó de ser un chat infinito. Ahora el equipo sabe qué sigue y el cliente llega con todo claro.", "Mariana Torres", "Fundadora · Estudio Niebla"],
+    ["Los recordatorios nos devolvieron los sábados. Hay menos huecos y más tiempo para atender bien.", "Iván Salas", "Director · Clínica Origen"],
+    ["Abrimos una segunda sucursal sin volver a las hojas de cálculo. Cada persona ve justo la agenda que necesita.", "Sofía Méndez", "Operaciones · Casa Luma"],
+  ],
+  en: [
+    ["Scheduling stopped being an endless chat. The team knows what is next and every client arrives informed.", "Mariana Torres", "Founder · Estudio Niebla"],
+    ["Reminders gave our Saturdays back. There are fewer gaps and more time to serve people well.", "Iván Salas", "Director · Clínica Origen"],
+    ["We opened a second location without returning to spreadsheets. Everyone sees exactly the schedule they need.", "Sofía Méndez", "Operations · Casa Luma"],
+  ],
 } as const;
-const shapes = ["[clip-path:polygon(0_0,100%_0,100%_calc(100%_-_28px),calc(100%_-_28px)_100%,0_100%)]", "[clip-path:polygon(28px_0,100%_0,100%_100%,0_100%,0_28px)]", "[clip-path:polygon(0_0,calc(100%_-_28px)_0,100%_28px,100%_100%,0_100%)]"];
+
+const shapes = [
+  "[clip-path:polygon(0_0,100%_0,100%_calc(100%_-_28px),calc(100%_-_28px)_100%,0_100%)]",
+  "[clip-path:polygon(28px_0,100%_0,100%_100%,0_100%,0_28px)]",
+  "[clip-path:polygon(0_0,calc(100%_-_28px)_0,100%_28px,100%_100%,0_100%)]",
+];
 
 export function SocialProofMarquee() {
   const { lang, t } = useLandingLanguage();
-  return <section className="bg-ink py-20 text-paper lg:py-28"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><h2 className="max-w-4xl font-bricolage text-4xl font-bold leading-[.98] tracking-tight sm:text-5xl lg:text-6xl">{lang === "es" ? "Negocios que ya atienden sin perseguir citas." : "Businesses that no longer chase appointments."}</h2><div className="my-12 grid border-y-2 border-dashed border-paper/60 md:grid-cols-3">{t.socialProof.metrics.map((metric) => <p key={metric.value} className="p-6 text-center font-bricolage text-xl font-bold md:border-l md:border-dashed md:border-paper/40 first:border-l-0">{metric.value} <span className="text-paper/70">{metric.label}</span></p>)}</div><div className="grid gap-5 md:grid-cols-3">{testimonials[lang].map(([quote, name, role], index) => <article key={name} className={`overflow-hidden bg-paper text-ink ${shapes[index]}`}><div role="img" aria-label={lang === "es" ? `Fotografía de ${name} pendiente de agregar` : `Photo of ${name} pending`} className="grid aspect-[1.15] place-items-center border-b-2 border-dashed border-ink/30 bg-mist/20 p-6 text-center font-mono text-xs uppercase tracking-widest text-ink/55">{lang === "es" ? "Foto pendiente" : "Photo pending"}</div><div className="p-6"><p className="font-bricolage text-xl font-semibold leading-snug">&ldquo;{quote}&rdquo;</p><div className="my-6 border-t-2 border-dashed border-ink/35" /><p className="font-semibold">{name}</p><p className="mt-1 text-sm text-ink/65">{role}</p></div></article>)}</div><div className="mt-14 border-t border-dashed border-paper/40 pt-8"><p className="mb-6 text-sm text-paper/60">{lang === "es" ? "Negocios que confían en Agendur" : "Businesses that trust Agendur"}</p><div className="flex flex-wrap justify-between gap-6 font-bricolage text-lg font-bold text-paper/55">{t.socialProof.clientLogos.map((client) => <span key={client}>{client}</span>)}</div></div></div></section>;
+  return (
+    <section className="landing-section-deferred bg-ink py-20 text-paper lg:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h2 className="max-w-4xl font-bricolage text-4xl font-bold leading-[.98] tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          {lang === "es"
+            ? "Negocios que ya atienden sin perseguir citas."
+            : "Businesses that no longer chase appointments."}
+        </h2>
+
+        <div className="my-12 grid border-y-2 border-dashed border-paper/60 md:grid-cols-3">
+          {t.socialProof.metrics.map((metric) => (
+            <p
+              key={metric.value}
+              className="p-6 text-center font-bricolage text-xl font-bold first:border-l-0 md:border-l md:border-dashed md:border-paper/40"
+            >
+              {metric.value} <span className="text-paper/70">{metric.label}</span>
+            </p>
+          ))}
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          {testimonials[lang].map(([quote, name, role], index) => (
+            <article key={name} className={`overflow-hidden bg-paper text-ink ${shapes[index]}`}>
+              <div
+                role="img"
+                aria-label={
+                  lang === "es"
+                    ? `Fotografía de ${name} pendiente de agregar`
+                    : `Photo of ${name} pending`
+                }
+                className="grid aspect-[1.15] place-items-center border-b-2 border-dashed border-ink/30 bg-mist/20 p-6 text-center font-mono text-xs uppercase tracking-widest text-ink/55"
+              >
+                {lang === "es" ? "Foto pendiente" : "Photo pending"}
+              </div>
+              <figure className="p-6">
+                <blockquote className="font-bricolage text-xl font-semibold leading-snug text-pretty">
+                  &ldquo;{quote}&rdquo;
+                </blockquote>
+                <div className="my-6 border-t-2 border-dashed border-ink/35" />
+                <figcaption>
+                  <p className="font-semibold">{name}</p>
+                  <p className="mt-1 text-sm text-ink/65">{role}</p>
+                </figcaption>
+              </figure>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-14 border-t border-dashed border-paper/40 pt-8">
+          <p className="mb-6 text-sm text-paper/60">
+            {lang === "es" ? "Negocios que confían en Agendur" : "Businesses that trust Agendur"}
+          </p>
+          <div className="flex flex-wrap justify-between gap-6 font-bricolage text-lg font-bold text-paper/55">
+            {t.socialProof.clientLogos.map((client) => (
+              <span key={client}>{client}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

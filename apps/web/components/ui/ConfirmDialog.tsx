@@ -353,6 +353,7 @@ export function ConfirmDialog({
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       if (!isConfirmDisabled) {
         handleConfirmClick();
@@ -361,18 +362,18 @@ export function ConfirmDialog({
   };
 
   let confirmButtonClass =
-    "px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center";
+    "px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center";
 
   if (confirmVariant === "grape") {
     confirmButtonClass +=
-      " bg-grape bg-[var(--grape)] text-white hover:opacity-90 focus:ring-grape focus:ring-[var(--grape)] shadow-xs";
+      " bg-grape bg-[var(--grape)] text-white hover:opacity-90 focus-visible:outline-grape focus-visible:outline-[var(--grape)] shadow-xs";
   } else if (confirmVariant === "danger-ghost") {
     confirmButtonClass +=
-      " text-danger text-[var(--danger)] bg-transparent hover:bg-danger-soft hover:bg-[var(--danger-soft)] focus:ring-danger focus:ring-[var(--danger)]";
+      " text-danger text-[var(--danger)] bg-transparent hover:bg-danger-soft hover:bg-[var(--danger-soft)] focus-visible:outline-danger focus-visible:outline-[var(--danger)]";
   } else {
     // default danger
     confirmButtonClass +=
-      " bg-danger bg-[var(--danger)] text-white hover:opacity-90 focus:ring-danger focus:ring-[var(--danger)] shadow-xs";
+      " bg-danger bg-[var(--danger)] text-white hover:opacity-90 focus-visible:outline-danger focus-visible:outline-[var(--danger)] shadow-xs";
   }
 
   if (hasTicketClass) {
@@ -401,7 +402,7 @@ export function ConfirmDialog({
         aria-labelledby={titleId}
         aria-describedby={describedBy}
         style={{ ["--ink" as string]: "var(--surface)" }}
-        className={`bg-surface bg-[var(--surface)] text-text-primary text-[var(--text-primary)] border border-border border-[var(--border)] rounded-[var(--radius-lg)] shadow-2xl w-full transform transition-all p-6 relative overflow-visible ${
+        className={`modal-panel-animate bg-surface bg-[var(--surface)] text-text-primary text-[var(--text-primary)] border border-border border-[var(--border)] rounded-[var(--radius-lg)] shadow-2xl w-full transform transition-all p-6 relative overflow-visible ${
           level === 1
             ? "max-w-[400px] text-center"
             : "max-w-[460px] border-t-[3px] border-t-danger border-t-[var(--danger)]"
@@ -425,7 +426,7 @@ export function ConfirmDialog({
 
             <h2
               id={titleId}
-              className="font-bricolage text-lg font-bold text-text-primary text-[var(--text-primary)] leading-tight"
+              className="font-bricolage text-lg font-bold text-text-primary text-[var(--text-primary)] leading-tight heading-balance"
             >
               {title}
             </h2>
@@ -460,7 +461,7 @@ export function ConfirmDialog({
                 type="button"
                 autoFocus
                 onClick={onCancel}
-                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-text-secondary text-[var(--text-secondary)] hover:text-text-primary hover:text-[var(--text-primary)] hover:bg-surface-alt hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-grape focus:ring-[var(--grape)] cursor-pointer"
+                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-text-secondary text-[var(--text-secondary)] hover:text-text-primary hover:text-[var(--text-primary)] hover:bg-surface-alt hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus-visible:outline-[var(--grape)] cursor-pointer"
               >
                 {cancelText}
               </button>
@@ -491,7 +492,7 @@ export function ConfirmDialog({
               <div className="pt-0.5">
                 <h2
                   id={titleId}
-                  className="font-bricolage text-base sm:text-lg font-bold text-text-primary text-[var(--text-primary)] leading-snug"
+                  className="font-bricolage text-base sm:text-lg font-bold text-text-primary text-[var(--text-primary)] leading-snug heading-balance"
                 >
                   {title}
                 </h2>
@@ -535,7 +536,7 @@ export function ConfirmDialog({
                   placeholder={effectivePlaceholder}
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full px-3 py-2 text-sm font-mono rounded-[var(--radius-sm)] border border-border bg-surface-alt/50 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-grape focus:ring-1 focus:ring-grape transition-colors"
+                  className="w-full px-3 py-2 text-sm font-mono rounded-[var(--radius-sm)] border border-border bg-surface-alt/50 text-text-primary placeholder:text-text-muted focus:border-grape focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-grape transition-colors"
                 />
               </div>
             )}
@@ -546,7 +547,7 @@ export function ConfirmDialog({
                 type="button"
                 autoFocus
                 onClick={onCancel}
-                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-text-secondary text-[var(--text-secondary)] hover:text-text-primary hover:text-[var(--text-primary)] hover:bg-surface-alt hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-grape focus:ring-[var(--grape)] cursor-pointer"
+                className="px-4 py-2.5 text-sm font-medium rounded-[var(--radius-md)] text-text-secondary text-[var(--text-secondary)] hover:text-text-primary hover:text-[var(--text-primary)] hover:bg-surface-alt hover:bg-[var(--surface-alt)] border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus-visible:outline-[var(--grape)] cursor-pointer"
               >
                 {cancelText}
               </button>

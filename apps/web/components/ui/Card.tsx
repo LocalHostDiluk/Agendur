@@ -4,7 +4,7 @@ export const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
   ({ className = "", children, ...props }, ref) => (
     <div
       ref={ref}
-      className={`flex flex-col bg-surface border border-border rounded-[var(--radius-md)] shadow-xs transition-colors ${className}`.trim()}
+      className={`flex flex-col bg-surface border border-border rounded-[var(--radius-md)] surface-card-depth transition-colors ${className}`.trim()}
       {...props}
     >
       {children}

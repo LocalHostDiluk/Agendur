@@ -107,7 +107,7 @@ export function SucursalModalFields({
         <select
           id="sucursal-tz" value={zonaHoraria} onChange={(e) => onChangeZonaHoraria(e.target.value)}
           disabled={isSubmitting}
-          className="w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
+          className="select-native w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 cursor-pointer"
         >
           {ZONAS_HORARIAS.map((tz) => (
             <option key={tz.value} value={tz.value}>{tz.label} ({tz.value})</option>

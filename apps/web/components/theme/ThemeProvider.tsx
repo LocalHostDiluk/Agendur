@@ -35,19 +35,24 @@ function getServerSnapshot(): Theme {
   return "light";
 }
 
+function applyDocumentTheme(nextTheme: Theme) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", nextTheme === "dark");
+  root.style.colorScheme = nextTheme;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    applyDocumentTheme(theme);
   }, [theme]);
 
   const setTheme = (newTheme: Theme) => {
     localStorage.setItem(THEME_KEY, newTheme);
+    if (typeof document !== "undefined") {
+      applyDocumentTheme(newTheme);
+    }
     window.dispatchEvent(new Event("storage"));
   };
 

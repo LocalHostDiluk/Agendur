@@ -46,7 +46,7 @@ export function HorariosEspecialesPanel({
               state.setTipo(event.target.value as ResourceType);
               state.setSelectedId("");
             }}
-            className="mt-1 w-full h-10 rounded-lg border border-border bg-surface px-3 text-sm text-text-primary"
+            className="select-native mt-1 w-full h-10 rounded-lg border border-border bg-surface px-3 text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape"
           >
             <option value="profesional">Profesional</option>
             <option value="sucursal">Sucursal</option>
@@ -57,7 +57,7 @@ export function HorariosEspecialesPanel({
           <select
             value={state.recursoId ?? ""}
             onChange={(event) => state.setSelectedId(event.target.value)}
-            className="mt-1 w-full h-10 rounded-lg border border-border bg-surface px-3 text-sm text-text-primary"
+            className="select-native mt-1 w-full h-10 rounded-lg border border-border bg-surface px-3 text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape"
           >
             {state.resources.map((item) => (
               <option key={item.id} value={item.id}>

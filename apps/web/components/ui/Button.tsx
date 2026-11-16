@@ -17,16 +17,18 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-grape text-white hover:opacity-90 active:scale-[0.98] transition-all",
+  primary:
+    "bg-[var(--action-bg)] text-[var(--action-fg)] hover:bg-[var(--action-hover)] motion-safe:active:scale-[0.98] transition-colors",
   secondary:
-    "bg-surface border border-border text-text-primary hover:bg-surface-alt active:scale-[0.98] transition-all",
+    "bg-surface border border-border text-text-primary hover:bg-surface-alt motion-safe:active:scale-[0.98] transition-colors",
   outline:
-    "bg-transparent border border-border text-text-primary hover:bg-surface-alt active:scale-[0.98] transition-all",
+    "bg-transparent border border-border text-text-primary hover:bg-surface-alt motion-safe:active:scale-[0.98] transition-colors",
   ghost:
-    "bg-transparent text-text-secondary hover:bg-surface-alt hover:text-text-primary active:scale-[0.98] transition-all",
-  danger: "bg-danger text-white hover:opacity-90 active:scale-[0.98] transition-all",
+    "bg-transparent text-text-secondary hover:bg-surface-alt hover:text-text-primary motion-safe:active:scale-[0.98] transition-colors",
+  danger:
+    "bg-[var(--danger-action)] text-white hover:opacity-90 motion-safe:active:scale-[0.98] transition-[background-color,opacity,transform]",
   destructive:
-    "bg-danger text-white hover:opacity-90 active:scale-[0.98] transition-all",
+    "bg-[var(--danger-action)] text-white hover:opacity-90 motion-safe:active:scale-[0.98] transition-[background-color,opacity,transform]",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -48,7 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref
 ) {
   const base =
-    "inline-flex items-center justify-center gap-x-2 font-medium rounded-[var(--radius-md)] duration-100 ease-out focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none select-none";
+    "inline-flex items-center justify-center gap-x-2 font-medium rounded-[var(--radius-md)] duration-100 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape disabled:opacity-50 disabled:pointer-events-none select-none";
   const classes = `${base} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`.trim();
 
   return (

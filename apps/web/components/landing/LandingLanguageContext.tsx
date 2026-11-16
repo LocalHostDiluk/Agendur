@@ -1,6 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useSyncExternalStore } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+} from "react";
 import { Language, landingCopy } from "@/lib/landing-i18n";
 
 interface LandingLanguageContextType {
@@ -33,6 +38,10 @@ export function LandingLanguageProvider({
     },
     () => "es",
   );
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = (newLang: Language) => {
     try {

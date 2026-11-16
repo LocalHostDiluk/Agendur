@@ -51,8 +51,15 @@ Usa SIEMPRE lo existente. Prohibido reescribirlo a mano:
 | Combinar clases | `cn` de `lib/utils.ts` |
 | Peticiones a la API | `lib/query/api-client.ts` |
 | Iconos | `lucide-react` |
-| Animación | `motion` |
+| Animación | CSS nativo primero; `motion` solo si CSS no basta |
 | Gráficas | `recharts` |
+
+### Regla de animación (orden de prioridad)
+
+1. **CSS nativo primero:** usa transiciones y animaciones nativas (`@starting-style`, `transition-behavior: allow-discrete`, `overlay`, `interpolate-size`, `@keyframes`, `animation-timeline: scroll()`) para transiciones de UI, acordeones, drawers y modales.
+2. **`motion` solo como excepción:** reserva la librería `motion` únicamente para coreografías interactivas complejas, gestos o *springs* de *shared-layout* que CSS nativo no pueda expresar.
+3. **Estrategia *opt-in* para movimiento reducido:** parte siempre del estado final estático por defecto y activa transformaciones espaciales, rotaciones o *marquees* solo dentro de `@media (prefers-reduced-motion: no-preference)`. Mantén activas las transiciones que no implican movimiento espacial (color o fondo) y permite *fades* más breves en `reduce` cuando aporten claridad.
+4. **Control de pausa (> 5 s):** cualquier animación automática o persistente de más de 5 segundos debe incluir un control accesible para pausarla o detenerla (WCAG 2.2.2).
 
 Antes de usar un componente de `ui/`, lee su archivo para conocer sus props. No adivines.
 
@@ -113,11 +120,16 @@ Orden fijo dentro del archivo:
 Agrégalo solo si el archivo usa hooks de React, handlers de eventos, APIs del navegador, `motion`, `recharts` o `preline`.
 Ponlo en el componente más pequeño que lo necesite. No lo pongas en un `page.tsx` si puedes evitarlo.
 
-## 6. Estilos
+## 6. Estilos y Tailwind CSS
 
 - Solo Tailwind. Colores, fuentes y espaciado salen de `globals.css` y del documento de estilo.
 - Prohibido: colores hex sueltos, `style={{ }}` (salvo valores dinámicos), CSS nuevo fuera de `globals.css`.
 - Une clases con `cn`.
+- **Anillo `:focus-visible` obligatorio:** prohibido usar `focus:outline-hidden` o `focus:outline-none` sin un `focus-visible:` explícito (`outline` o `ring`) de al menos `2px`.
+- **Validación post-interacción:** usa `:user-invalid` y `:user-valid` en lugar de `:invalid` / `:valid` para evitar errores prematuros antes de la interacción (excluyendo controles deslizantes `input[type="range"]`).
+- **Esquema de color, contraste P0 y controles nativos:** declara `color-scheme` y los tokens de contraste accesible P0 en `:root` y `.dark`; configura `accent-color`, `scrollbar-color` (prohibido usar `scrollbar-width: thin`) y sobrescribe estilos del navegador en `:-webkit-autofill`.
+- **Tipografía estable y ajuste de línea:** usa `font-size-adjust: from-font` para evitar saltos en *fallbacks* de fuentes; aplica `text-wrap: balance` de forma selectiva únicamente en encabezados cortos (nunca con `*`) y `.prose-pretty` (`text-wrap: pretty`) para texto corrido.
+- **Mejora progresiva con `@supports`:** envuelve `animation-timeline: scroll()` y `scroll-state` en `@supports` con un *fallback* estático funcional para navegadores sin soporte.
 
 ## 7. Calidad mínima
 

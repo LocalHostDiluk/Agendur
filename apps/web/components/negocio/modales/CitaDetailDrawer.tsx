@@ -48,7 +48,7 @@ export function CitaDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-cita-title"
-        className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full h-full bg-surface border-l border-border shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform duration-250 ease-out ${
+        className={`drawer-panel-animate surface-overlay-depth fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full h-full bg-surface border-l border-border shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform duration-250 ease-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -61,7 +61,7 @@ export function CitaDetailDrawer({
               type="button"
               onClick={onClose}
               aria-label="Cerrar detalle"
-              className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape cursor-pointer"
             >
               <X className="w-5 h-5" strokeWidth={1.75} />
             </button>
@@ -70,7 +70,7 @@ export function CitaDetailDrawer({
           <div className="flex items-center justify-between gap-3">
             <h2
               id="drawer-cita-title"
-              className="text-xl sm:text-2xl font-bricolage font-bold text-text-primary tracking-tight"
+              className="heading-balance text-xl sm:text-2xl font-bricolage font-bold text-text-primary tracking-tight"
             >
               Detalle de Cita
             </h2>
@@ -80,7 +80,7 @@ export function CitaDetailDrawer({
           </div>
         </div>
 
-        <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto scroll-shadows-y">
           <CitaDetailClienteSection {...view} />
           <CitaDetailTicketSection
             {...view}

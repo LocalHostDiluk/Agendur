@@ -102,6 +102,9 @@ export function ModalCitaManualClientFields({
             id="manual-cliente-email"
             type="email"
             inputMode="email"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             placeholder="ej. cliente@correo.com"
             value={clienteEmail}
             onChange={(e) => onChangeEmail(e.target.value)}
@@ -126,7 +129,7 @@ export function ModalCitaManualClientFields({
           value={notasCliente}
           onChange={(e) => onChangeNotas(e.target.value)}
           disabled={isSubmitting}
-          className="w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50 resize-none"
+          className="field-textarea w-full px-3.5 py-2 rounded-md bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-2 focus:ring-grape-soft disabled:opacity-50"
         />
       </div>
     </>

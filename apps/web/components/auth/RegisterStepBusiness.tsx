@@ -77,7 +77,7 @@ export function RegisterStepBusiness(props: RegisterStepBusinessProps) {
         <label htmlFor="register-giro" className="block text-[12px] font-medium text-text-primary">Tipo de industria</label>
         <select
           id="register-giro" value={giroComercial} onChange={(e) => setGiroComercial(e.target.value)}
-          className="w-full h-[40px] bg-surface border border-border rounded-md px-3 text-[14px] text-text-primary focus:outline-none focus:border-grape focus:ring-[3px] focus:ring-grape-soft transition-all"
+          className="select-native w-full h-[40px] bg-surface border border-border rounded-md px-3 text-[14px] text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-[3px] focus:ring-grape-soft transition-all"
         >
           {GIROS_PREDEFINIDOS.map((giro) => (<option key={giro} value={giro}>{giro}</option>))}
         </select>

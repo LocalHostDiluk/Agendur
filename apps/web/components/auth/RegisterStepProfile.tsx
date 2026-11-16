@@ -98,7 +98,7 @@ export function RegisterStepProfile(props: RegisterStepProfileProps) {
         <div className="flex gap-2">
           <select
             aria-label="Código de país" value={codigoPais} onChange={(e) => setCodigoPais(e.target.value)}
-            className="w-[105px] shrink-0 h-[40px] bg-surface border border-border rounded-md px-2 text-[13px] text-text-primary focus:outline-none focus:border-grape focus:ring-[3px] focus:ring-grape-soft transition-all"
+            className="select-native w-[105px] shrink-0 h-[40px] bg-surface border border-border rounded-md px-2 text-[13px] text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-[3px] focus:ring-grape-soft transition-all"
           >
             {COUNTRY_CODES.map((c) => (<option key={c.code} value={c.code}>{c.label}</option>))}
           </select>
@@ -120,7 +120,7 @@ export function RegisterStepProfile(props: RegisterStepProfileProps) {
         <label htmlFor="register-rol" className="block text-[12px] font-medium text-text-primary">Rol en el negocio</label>
         <select
           id="register-rol" value={rol} onChange={(e) => setRol(e.target.value)}
-          className="w-full h-[40px] bg-surface border border-border rounded-md px-3 text-[14px] text-text-primary focus:outline-none focus:border-grape focus:ring-[3px] focus:ring-grape-soft transition-all"
+          className="select-native w-full h-[40px] bg-surface border border-border rounded-md px-3 text-[14px] text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:border-grape focus:ring-[3px] focus:ring-grape-soft transition-all"
         >
           {ROLES.map((r) => (<option key={r} value={r}>{r}</option>))}
         </select>

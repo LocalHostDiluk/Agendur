@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useLandingLanguage } from "./LandingLanguageContext";
@@ -20,8 +20,22 @@ export function Navbar() {
 
   const closeMenu = () => setMobileMenuOpen(false);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
+
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper text-ink">
+    <header className="header-scroll-reactive sticky top-0 z-50 border-b-2 border-ink bg-paper text-ink">
+      <a href="#main-content" className="skip-link">
+        {lang === "en" ? "Skip to main content" : "Saltar al contenido principal"}
+      </a>
       <div className="page-shell flex h-20 items-center justify-between gap-6">
         <Link href="/" className="brand-mark" aria-label="Agendur">
           <span>A</span>gendur
@@ -29,7 +43,7 @@ export function Navbar() {
 
         <nav
           className="hidden items-center gap-7 lg:flex"
-          aria-label="Navegación principal"
+          aria-label={lang === "en" ? "Primary" : "Principal"}
         >
           {links.map(([label, href]) =>
             href.startsWith("/") ? (
@@ -65,6 +79,7 @@ export function Navbar() {
             className="inline-flex size-9 items-center justify-center rounded-none text-ink hover:bg-ink/5 focus-visible:outline-3 focus-visible:outline-flame"
             aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={mobileMenuOpen}
+            aria-controls="landing-mobile-menu"
           >
             {mobileMenuOpen ? (
               <X className="size-5" />

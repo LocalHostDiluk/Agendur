@@ -13,35 +13,38 @@ import { BenefitsSection } from "@/components/beneficios";
 export default function LandingPage() {
   return (
     <LandingLanguageProvider>
-      <main className="min-h-screen bg-paper text-ink selection:bg-grape selection:text-paper font-sans">
+      <div className="min-h-screen bg-paper text-ink selection:bg-grape selection:text-paper font-sans">
         {/* 1. NAV */}
         <Navbar />
 
-        {/* 2. HERO (Fondo --ink) */}
-        <HeroSection />
+        <main>
+          {/* 2. HERO (Fondo --ink) */}
+          <HeroSection />
 
-        {/* 3. CÓMO FUNCIONA (Fondo --paper, 1-2-3 con industrias) */}
-        <HowItWorksSection />
+          {/* 3. CÓMO FUNCIONA (Fondo --paper, 1-2-3 con industrias) */}
+          <HowItWorksSection />
 
-        {/* 4. DIFERENCIADORES CLAVE (Bento asimétrico con esquinas no convencionales) */}
-        <FeaturesSection />
+          {/* 4. DIFERENCIADORES CLAVE (Bento asimétrico con esquinas no convencionales) */}
+          <FeaturesSection />
 
-        {/* 4.5 BENEFICIOS (Fondo --paper, cards dark con esquinas clip) */}
-        <BenefitsSection />
+          {/* 4.5 BENEFICIOS (Fondo --paper, cards dark con esquinas clip) */}
+          <BenefitsSection />
 
-        {/* 5. PRUEBA SOCIAL COMBINADA (Métricas + 3 Testimonios en tickets + Logos) */}
-        <SocialProofMarquee />
+          {/* 5. PRUEBA SOCIAL COMBINADA (Métricas + 3 Testimonios en tickets + Logos) */}
+          <SocialProofMarquee />
 
-        {/* 6. PRECIOS (Fondo --paper, 3 tickets con perforación punteada) */}
-        <PricingSection />
+          {/* 6. PRECIOS (Fondo --paper, 3 tickets con perforación punteada) */}
+          <PricingSection />
 
-        {/* 7. FAQ (Acordeón con marcador sello rotatorio) */}
-        <FAQSection />
+          {/* 7. FAQ (Acordeón con marcador sello rotatorio) */}
+          <FAQSection />
 
-        {/* 8. CTA FINAL + FOOTER (Fondo --ink) */}
-        <CTASection />
+          {/* 8. CTA FINAL (Fondo --ink) */}
+          <CTASection />
+        </main>
+
         <Footer />
-      </main>
+      </div>
     </LandingLanguageProvider>
   );
 }

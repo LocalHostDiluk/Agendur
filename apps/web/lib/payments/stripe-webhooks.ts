@@ -43,7 +43,7 @@ export async function processStripeWebhookEvent(
   } catch (err: unknown) {
     const errorMsg = `Firma de webhook de Stripe inválida: ${err instanceof Error ? err.message : String(err)}`;
     Sentry.captureException(err, { extra: { context: "constructEvent" } });
-    throw new Error(errorMsg);
+    throw new Error(errorMsg, { cause: err });
   }
 
   const { data: yaProcesado, error: dedupeError } = await adminClient

@@ -20,5 +20,44 @@ export function FeaturesSection() {
     [t.features.cards[2].title, t.features.cards[2].desc, CircleDollarSign],
   ] as const;
 
-  return <section id="diferenciadores" className="bg-grape py-20 text-paper lg:py-28"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="mb-10 max-w-3xl md:mb-14"><p className="mb-4 text-xs font-bold text-flame">{lang === "es" ? "Hecho para operar" : "Made to run your business"}</p><h2 className="font-bricolage text-5xl font-bold leading-[.98] tracking-tight sm:text-6xl lg:text-7xl">{lang === "es" ? "Todo cae en su lugar." : "Everything falls into place."}</h2></div><div className="grid gap-4 lg:grid-cols-[1.2fr_.8fr_.8fr] lg:grid-rows-2">{cards.map(([title, desc, Icon], index) => <article key={title} className={`flex min-h-[280px] flex-col justify-between bg-paper p-8 text-ink ${shapes[index]}`}><div className="flex items-start justify-between gap-4"><span className="grid size-12 place-items-center rounded-full border-2 border-current"><Icon className="size-6" aria-hidden="true" /></span><span className="text-sm">0{index + 1}</span></div><div className="mt-12"><h3 className="font-bricolage text-2xl font-semibold leading-tight sm:text-3xl">{title}</h3><div className="my-5 border-t-2 border-dashed border-current opacity-40" /><p className="max-w-xl leading-relaxed opacity-75">{desc}</p></div></article>)}</div></div></section>;
+  return (
+    <section
+      id="diferenciadores"
+      className="landing-section-deferred bg-grape py-20 text-paper lg:py-28"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-10 max-w-3xl md:mb-14">
+          <p className="mb-4 text-xs font-bold text-flame">
+            {lang === "es" ? "Hecho para operar" : "Made to run your business"}
+          </p>
+          <h2 className="font-bricolage text-5xl font-bold leading-[.98] tracking-tight text-balance sm:text-6xl lg:text-7xl">
+            {lang === "es" ? "Todo cae en su lugar." : "Everything falls into place."}
+          </h2>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_.8fr_.8fr] lg:grid-rows-2">
+          {cards.map(([title, desc, Icon], index) => (
+            <article
+              key={title}
+              className={`flex min-h-[280px] flex-col justify-between bg-paper p-8 text-ink ${shapes[index]}`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <span className="grid size-12 place-items-center rounded-full border-2 border-current">
+                  <Icon className="size-6" aria-hidden="true" />
+                </span>
+                <span className="text-sm">0{index + 1}</span>
+              </div>
+              <div className="mt-12">
+                <h3 className="font-bricolage text-2xl font-semibold leading-tight text-balance sm:text-3xl">
+                  {title}
+                </h3>
+                <div className="my-5 border-t-2 border-dashed border-current opacity-40" />
+                <p className="max-w-xl leading-relaxed opacity-75 text-pretty">{desc}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }

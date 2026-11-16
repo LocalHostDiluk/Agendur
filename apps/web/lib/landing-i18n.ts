@@ -97,8 +97,8 @@ export const landingCopy = {
       ],
     },
     benefits: {
-    badge: "Beneficios",
-      title: "Todo lo que ya tienes, funcionando a la vez dice DJ.",
+      badge: "Beneficios",
+      title: "Todo lo que ya tienes, funcionando a la vez.",
       subtitle:
         "Piezas que se refuerzan solas: la agenda, el catálogo, el portal del cliente y tu equipo trabajando sobre la misma información.",
       cards: [
@@ -111,7 +111,7 @@ export const landingCopy = {
         {
           id: "catalogo-servicios",
           title: "Catálogo con duración y precio",
-          desc: "Cada servicio con su tiempo, su precio y su categoría. El cliente elige solo, sin llamadas ni mensajes para preguntar. Ademas de disfrutas de los beneficios de usuario de alto valor",
+          desc: "Cada servicio con su tiempo, su precio y su categoría. El cliente elige solo, sin llamadas ni mensajes para preguntar.",
           badge: "Sin llamadas",
         },
         {
@@ -122,8 +122,8 @@ export const landingCopy = {
         },
         {
           id: "equipo-permisos",
-          title: "Recibe recompensas al terminar tu cuponera",
-          desc: "termina tu tarjeta de puntos y disfruta de esta, ademas de muchos beneficios mas que vienen incluidos con esta cuponera",
+          title: "Cada quien ve solo lo suyo",
+          desc: "Roles y permisos por persona. Los especialistas ven su agenda, administración ve todo y nadie ve lo que no le corresponde.",
           badge: "Una vista",
         },
         {
@@ -326,7 +326,7 @@ export const landingCopy = {
       contact: "Contact",
       login: "Log in",
       cta: "Claim your 14-day free trial",
-      benefits: "benefits",
+      benefits: "Benefits",
     },
     hero: {
       h1: "Stop chasing appointments. Let them come to you.",

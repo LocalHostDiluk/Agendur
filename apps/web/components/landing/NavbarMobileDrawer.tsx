@@ -67,20 +67,32 @@ export function NavbarMobileDrawer({
 }: NavbarMobileDrawerProps) {
   return (
     <nav
+      id="landing-mobile-menu"
       className="border-t-2 border-ink bg-paper px-5 py-5 sm:hidden"
-      aria-label="Navegación móvil"
+      aria-label={lang === "en" ? "Mobile" : "Móvil"}
     >
       <div className="flex flex-col gap-4">
-        {links.map(([label, href]) => (
-          <a
-            key={href}
-            href={href}
-            onClick={onClose}
-            className="font-semibold text-ink hover:text-flame transition-colors"
-          >
-            {label}
-          </a>
-        ))}
+        {links.map(([label, href]) =>
+          href.startsWith("/") ? (
+            <Link
+              key={href}
+              href={href}
+              onClick={onClose}
+              className="font-semibold text-ink hover:text-flame transition-colors"
+            >
+              {label}
+            </Link>
+          ) : (
+            <a
+              key={href}
+              href={href}
+              onClick={onClose}
+              className="font-semibold text-ink hover:text-flame transition-colors"
+            >
+              {label}
+            </a>
+          ),
+        )}
         <Link
           href="/login"
           onClick={onClose}

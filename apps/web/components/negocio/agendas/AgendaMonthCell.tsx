@@ -7,7 +7,7 @@ import type { useAgendaDerived } from "@/lib/hooks/use-agenda-derived";
 
 interface AgendaMonthCellProps {
   cell: ReturnType<typeof useAgendaDerived>["monthDays"][number];
-  citasByDay: Record<string, Cita[]>;
+  citasByDay: Partial<Record<string, Cita[]>>;
   todayStr: string;
   selectedDate: string;
   setSelectedDate: ReturnType<typeof useAgendaUi>["setSelectedDate"];

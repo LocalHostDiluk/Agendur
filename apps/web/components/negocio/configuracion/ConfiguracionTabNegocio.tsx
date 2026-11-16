@@ -112,7 +112,7 @@ export function ConfiguracionTabNegocio({
             id="monedaPrincipal"
             value={monedaPrincipal}
             onChange={(e) => setMonedaPrincipal(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm font-mono text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+            className="select-native w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm font-mono text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
           >
             {MONEDAS.map((m) => (<option key={m.code} value={m.code}>{m.label}</option>))}
           </select>
@@ -124,7 +124,7 @@ export function ConfiguracionTabNegocio({
             id="pais"
             value={pais}
             onChange={(e) => setPais(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+            className="select-native w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
           >
             {PAISES.map((p) => (<option key={p.code} value={p.code}>{p.name} ({p.code})</option>))}
           </select>
@@ -139,7 +139,7 @@ export function ConfiguracionTabNegocio({
             id="zonaHoraria"
             value={zonaHoraria}
             onChange={(e) => setZonaHoraria(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+            className="select-native w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
           >
             {ZONAS_HORARIAS.map((z) => (<option key={z.value} value={z.value}>{z.label}</option>))}
           </select>

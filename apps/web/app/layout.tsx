@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter, Space_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { SileoToaster } from "@/components/theme/SileoToaster";
@@ -27,6 +27,10 @@ export const metadata: Metadata = {
     "Agendur - Software de Citas y Reservaciones para PyMEs y Múltiples Sucursales",
   description:
     "Permite a tus clientes agendar citas online 24/7 en cualquiera de tus sucursales. Reduce ausencias con recordatorios automáticos de WhatsApp y cobra anticipos en línea.",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

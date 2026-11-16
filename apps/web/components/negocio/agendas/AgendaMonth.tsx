@@ -11,7 +11,7 @@ interface AgendaMonthProps {
   citas: Cita[];
   viewMode: ReturnType<typeof useAgendaUi>["viewMode"];
   monthDays: ReturnType<typeof useAgendaDerived>["monthDays"];
-  citasByDay: Record<string, Cita[]>;
+  citasByDay: Partial<Record<string, Cita[]>>;
   todayStr: string;
   selectedDate: string;
   setSelectedDate: ReturnType<typeof useAgendaUi>["setSelectedDate"];

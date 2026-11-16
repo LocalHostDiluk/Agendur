@@ -22,7 +22,7 @@ export function PagosDesktopTable({
   onResetFilters,
 }: PagosDesktopTableProps) {
   return (
-    <div className="hidden sm:block overflow-x-auto">
+    <div className="hidden sm:block overflow-x-auto scroll-shadows-x">
       <Table>
         <TableHeader>
           <TableRow className="bg-surface-alt">

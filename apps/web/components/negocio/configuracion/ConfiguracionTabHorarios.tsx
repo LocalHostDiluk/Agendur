@@ -118,7 +118,7 @@ export function ConfiguracionTabHorarios({
               id="anticipacionMinima"
               value={anticipacionMinima}
               onChange={(e) => setAnticipacionMinima(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+              className="select-native w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
             >
               {ANTICIPACIONES_MINIMAS.map((item) => (<option key={item.value} value={item.value}>{item.label}</option>))}
             </select>
@@ -135,7 +135,7 @@ export function ConfiguracionTabHorarios({
               id="anticipacionMaxima"
               value={anticipacionMaxima}
               onChange={(e) => setAnticipacionMaxima(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus:outline-hidden focus:ring-2 focus:ring-grape min-h-[44px]"
+              className="select-native w-full px-3.5 py-2.5 rounded-[var(--radius-sm)] bg-surface border border-border text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-grape focus:ring-2 focus:ring-grape min-h-[44px]"
             >
               {ANTICIPACIONES_MAXIMAS.map((item) => (<option key={item.value} value={item.value}>{item.label}</option>))}
             </select>

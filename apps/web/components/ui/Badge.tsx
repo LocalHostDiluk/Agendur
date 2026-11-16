@@ -17,9 +17,9 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  success: "text-success bg-success-soft border border-success/20",
-  warning: "text-warning bg-warning-soft border border-warning/20",
-  danger: "text-danger bg-danger-soft border border-danger/20",
+  success: "text-[var(--success-text)] bg-success-soft border border-success/20",
+  warning: "text-[var(--warning-text)] bg-warning-soft border border-warning/20",
+  danger: "text-[var(--danger-text)] bg-danger-soft border border-danger/20",
   info: "text-grape bg-grape-soft border border-grape/20",
   grape: "text-grape bg-grape-soft border border-grape/20",
   neutral: "text-text-secondary bg-surface-alt border border-border",
