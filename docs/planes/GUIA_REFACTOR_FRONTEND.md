@@ -8,37 +8,48 @@ Objetivo: dividir archivos grandes en archivos pequeños (componentes, hooks, ut
 ## 0. Reglas que no se rompen
 
 PERMITIDO:
-- Crear archivos nuevos, solo en las ubicaciones de la sección 1.
+- Crear archivos nuevos en las ubicaciones autorizadas: subcarpetas por subdominio `components/negocio/<subdominio>/` (re-exportados en `components/negocio/<subdominio>/index.ts` y `components/negocio/index.ts`), `components/<dominio>/`, `components/ui/`, `lib/hooks/`, `lib/utils/`, y vistas `<Modulo>View.tsx` junto a `page.tsx` cuando la página requiera props opcionales de prueba (`NextPage`).
+- Agrupar y mover componentes de `components/negocio/` hacia su subcarpeta de subdominio oficial (`dashboard`, `personal`, `agendas`, `configuracion`, `sucursales`, `pagos`, `reportes`, `onboarding`, `modales`, `shell`) manteniendo el barrel central `components/negocio/index.ts`.
 - Cambiar código solo para: quitar código muerto, quitar duplicados, quitar `any`, simplificar condicionales. Siempre con el mismo resultado.
+
+LÍMITES DE LÍNEAS OBLIGATORIOS:
+- `page.tsx`, `layout.tsx`, `loading.tsx` ≤ 100 líneas.
+- Componente `.tsx` ≤ 150 líneas.
+- Hook o utilidad `.ts` ≤ 100 líneas.
+- Archivos `index.ts` de re-exportación pura: permiten agrupar todos los exports necesarios del dominio o subdominio.
 
 PROHIBIDO:
 - Rediseñar. No cambiar clases Tailwind, textos, orden del DOM, atributos `aria-*` ni `key`.
 - Cambiar lógica, llamadas a API, query keys, dependencias de `useEffect`/`useMemo`, orden de hooks.
-- Crear carpetas. Mover o renombrar archivos existentes.
+- Crear carpetas fuera de los subdominios autorizados de `REGLAS_FRONTEND.md` (prohibido `_components`, `shared`, `common`, `helpers`).
 - Instalar librerías.
 - Tocar: `app/api/**`, `lib/backend/**`, `lib/supabase/**`, `lib/payments/**`, `lib/security/**`, `proxy.ts`, `tests/**`.
 - Modificar un test para que pase. Si un test falla, tu cambio está mal: revierte.
 
-## 1. Dónde va cada cosa
+## 1. Dónde poner cada cosa
 
 | Qué | Ruta | Nombre |
 |---|---|---|
-| Sección o pieza del dashboard | `components/negocio/` | `Dashboard<Nombre>.tsx` (PascalCase) |
+| Componente extraído de vista o modal de `negocio` | `components/negocio/<subdominio>/` | `<Subdominio><Nombre>.tsx` o `<Nombre>.tsx` (PascalCase) |
+| Vista extraída de ruta para cumplir `NextPage` | `app/**/<ruta>/<Modulo>View.tsx` | `<Modulo>View.tsx` (PascalCase) |
 | Pieza genérica sin datos de negocio (sirve en 2+ dominios) | `components/ui/` | `<Nombre>.tsx` (PascalCase) |
 | Hook con estado local o lógica | `lib/hooks/` | `use-<nombre>.ts` (kebab-case) |
 | Función pura (formato, cálculo) | `lib/utils/` | `<nombre>.ts` (kebab-case) |
 | Tipo usado en 2+ archivos | `lib/types/index.ts` | añadir al final |
 | Tipo o constante usada en 1 solo archivo | en ese mismo archivo | — |
 
-Después de crear un archivo en `components/negocio/`, `components/ui/` o `lib/hooks/`, agrega su export en el `index.ts` de esa carpeta, copiando el formato de las líneas que ya existen.
+Subcarpetas oficiales de `components/negocio/<subdominio>/`:
+- `dashboard/` (`Dashboard*`), `personal/` (`Personal*`), `agendas/` (`Agenda*`), `configuracion/` (`Configuracion*`), `sucursales/` (`Sucursales*`, `Servicios*`), `pagos/` (`Pagos*`), `reportes/` (`Reportes*`), `onboarding/` (`Onboarding*`), `modales/` (modales/drawers operativos y sus subcomponentes), `shell/` (`Sidebar`, `Header`, `MobileNavigation` y sus subcomponentes).
+
+Después de crear un archivo en `components/negocio/<subdominio>/`, agrega su export en `components/negocio/<subdominio>/index.ts` y verifica que el subdominio esté re-exportado en `components/negocio/index.ts` para mantener compatibles los imports desde `@/components/negocio`. Para `components/ui/` o `lib/hooks/`, agrega su export en el `index.ts` de esa carpeta, copiando el formato de las líneas que ya existen.
 No existe la carpeta `_components`. No la crees.
 Un componente por archivo.
 
-## 2. Preparación (sin editar nada)
+## 2. Preparación y dónde poner cada cosa (sin editar nada)
 
-1. Lee `docs/reglas/`.
+1. Lee `docs/reglas/REGLAS_FRONTEND.md`.
 2. Lee el documento de estilo: `docs/diseño/`.
-3. Lee `components/negocio/index.ts`, `components/ui/index.ts`, `lib/hooks/index.ts`.
+3. Lee `components/negocio/index.ts`, los `components/negocio/<subdominio>/index.ts` relevantes, `components/ui/index.ts` y `lib/hooks/index.ts`. Recuerda que todo componente extraído de vistas o modales de `negocio` se coloca en `components/negocio/<subdominio>/` y se re-exporta en `components/negocio/<subdominio>/index.ts` y `components/negocio/index.ts`.
 4. Ejecuta `git status`. Si hay cambios sin commit, detente y avisa al usuario.
 5. Crea rama: `git switch -c refactor/front-(pagina a rediseñar)`.
 6. Lee `apps/web/package.json`. Ejecuta los scripts de tipos, lint y tests que existan. Anota el resultado. Si algo ya falla antes de tocar código, NO lo arregles; solo anótalo. No ejecutes e2e.
@@ -81,8 +92,8 @@ Si un `.map` tiene más de 15 líneas de JSX por elemento: extrae el elemento a 
 ## 6. Verificación (después de CADA extracción)
 
 1. Tipos, lint y tests (los scripts de la sección 2, paso 6). Deben dar el mismo resultado que la línea base.
-2. `wc -l` de cada archivo tocado o creado. Límites: `page.tsx` ≤ 100, cualquier otro `.tsx` ≤ 150, `.ts` ≤ 100.
-3. Si todo pasa: `git add` de los archivos tocados y commit con mensaje `refactor(dashboard): extrae <Nombre>`.
+2. `wc -l` de cada archivo tocado o creado. Límites: `page.tsx`/`layout.tsx`/`loading.tsx` ≤ 100, componente `.tsx` ≤ 150, hook/util `.ts` ≤ 100 (los archivos `index.ts` de re-exportación pura pueden agrupar los exports necesarios del dominio/subdominio).
+3. Si todo pasa: `git add` de los archivos tocados y commit con mensaje `refactor(<subdominio>): extrae <Nombre>`.
 4. Si algo falla: `git restore .` revierte los archivos modificados sin commit (solo esa pieza, porque las anteriores ya tienen commit). Borra a mano los archivos nuevos de esa pieza y quita sus líneas del `index.ts`. Repite con una pieza más pequeña. No arregles el fallo cambiando lógica.
 
 ## 7. Terminado cuando
